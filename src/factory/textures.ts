@@ -35,16 +35,28 @@ function pixelTexture(size: number, draw: (ctx: CanvasRenderingContext2D, size: 
 }
 
 let belt: THREE.CanvasTexture | undefined
+let returnBelt: THREE.CanvasTexture | undefined
 
-/** One tile of belt: dark green between two rails, with a light chevron pointing the way boxes travel. */
+/** A belt's surface: a dark band between two rails with a chevron, one tile long, repeating along its travel. */
 export function beltTexture(): THREE.CanvasTexture {
-  belt ??= pixelTexture(32, (ctx, s) => {
-    ctx.fillStyle = "#24483a"
+  belt ??= beltBand({ band: "#24483a", rail: "#172e25", chevron: "#5fb48c" })
+  return belt
+}
+
+/** The return belt's surface: the same band in rust, so rework reads differently from the trunk at a glance. */
+export function returnBeltTexture(): THREE.CanvasTexture {
+  returnBelt ??= beltBand({ band: "#4a2c1e", rail: "#2d1a10", chevron: "#e39b5c" })
+  return returnBelt
+}
+
+function beltBand(colors: { band: string; rail: string; chevron: string }): THREE.CanvasTexture {
+  const texture = pixelTexture(32, (ctx, s) => {
+    ctx.fillStyle = colors.band
     ctx.fillRect(0, 0, s, s)
-    ctx.fillStyle = "#172e25"
+    ctx.fillStyle = colors.rail
     ctx.fillRect(0, 0, s, 3)
     ctx.fillRect(0, s - 3, s, 3)
-    ctx.strokeStyle = "#5fb48c"
+    ctx.strokeStyle = colors.chevron
     ctx.lineWidth = 4
     ctx.beginPath()
     ctx.moveTo(11, 7)
@@ -52,8 +64,8 @@ export function beltTexture(): THREE.CanvasTexture {
     ctx.lineTo(11, s - 7)
     ctx.stroke()
   })
-  belt.wrapS = THREE.RepeatWrapping
-  return belt
+  texture.wrapS = THREE.RepeatWrapping
+  return texture
 }
 
 let floor: THREE.CanvasTexture | undefined

@@ -3,7 +3,8 @@
 A 3D factory that shows an agentic system at work. Each agent is a pixel-art
 worker at a station. Each task is a box that rides conveyor belts from one
 agent to the next, through a staging area where a human reviews it, and into a
-shipping container when it is done. Agents can join and leave while the
+shipping container when it is done; rework rides a return belt along the back
+wall. Agents can join and leave while the
 factory runs: the belts grow to reach a newcomer without rearranging what is
 already there, and a bench left behind stays vacant for the next one.
 

@@ -4,18 +4,29 @@
 // between them and agents can change status in place.
 
 import * as THREE from "three"
+import { carriesRework } from "~/floor/belts"
 import type { Layout } from "~/floor/types"
 import { beltSurface, beltTile, bench, containerWalls, door, floorSlab, pallet, patch } from "./pieces"
 
-export function drawFactory(layout: Layout, belt: THREE.Texture): THREE.Group {
+/** The moving surfaces of the belts: one for the trunk and the bays' belts, one for rework on the return belt. */
+export interface BeltTextures {
+  forward: THREE.Texture
+  rework: THREE.Texture
+}
+
+export function drawFactory(layout: Layout, textures: BeltTextures): THREE.Group {
   const group = new THREE.Group()
   group.add(floorSlab(layout.bounds))
   group.add(patch(layout.intake.rect, "intake"))
   for (const bay of layout.bays) group.add(patch(bay.rect, "bay"))
   group.add(patch(layout.staging.rect, "staging"))
 
-  const surface = beltSurface(belt)
-  for (const run of layout.belts) for (const tile of run.tiles) group.add(beltTile(tile, surface))
+  const forward = beltSurface(textures.forward)
+  const rework = beltSurface(textures.rework)
+  for (const belt of layout.belts) {
+    const surface = carriesRework(belt) ? rework : forward
+    for (const tile of belt.tiles) group.add(beltTile(tile, surface))
+  }
 
   for (const bay of layout.bays) for (const station of bay.stations) group.add(bench(station.bench, station.vacant))
   group.add(bench(layout.staging.bench))

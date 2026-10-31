@@ -45,16 +45,22 @@ test("a role and a task joining are drawn without errors", async ({ page }) => {
   await expect(factory).toHaveAttribute("data-drawn", "3")
 })
 
-test("handoffs ride the belts without errors", async ({ page }) => {
+test("handoffs ride the belts and rework rides the return belt without errors", async ({ page }) => {
   const factory = await openFactory(page)
+  const next = page.getByRole("button", { name: "Next handoff" })
 
-  await page.getByRole("button", { name: "Next handoff" }).click()
+  await next.click()
   await expect(factory).toHaveAttribute("data-drawn", "2")
-  // Let the boxes ride for a moment, then hand one on while it is still riding.
+  // Let the boxes ride for a moment, then hand one back as rework while it is still riding.
   await page.waitForTimeout(1000)
   await page.screenshot({ path: `${screenshots}/handoff.png` })
-  await page.getByRole("button", { name: "Next handoff" }).click()
+  await next.click()
   await expect(factory).toHaveAttribute("data-drawn", "3")
+  // The return belt is laid, and the box rides it back along the back wall.
+  await page.waitForTimeout(2500)
+  await page.screenshot({ path: `${screenshots}/rework.png` })
+  await next.click()
+  await expect(factory).toHaveAttribute("data-drawn", "4")
   await page.waitForTimeout(500)
 })
 

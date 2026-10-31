@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Agent, Pipeline, Snapshot, Task } from "~/model/types"
+import { carriesRework } from "./belts"
 import { bayId, layoutFloor, stationed } from "./layout"
 import { tileKey } from "./tiles"
 import type { Belt, BeltTile, Layout } from "./types"
@@ -445,5 +446,113 @@ describe("stationed", () => {
     const [ada] = agents
     const layout = layoutFloor(pipeline, { agents: [ada!], tasks: [] })
     expect(stationed(layout, [ada!]).map(({ station }) => station.role)).toEqual(["implementer"])
+  })
+})
+
+// With one agent per role, the bays sit at x = 4, 9 and 14; the return belt
+// runs along row 1 from the qa bay's riser at x = 16 to the implementer
+// bay's drop at x = 4, a drop and a riser per bay on row 2.
+
+describe("the return belt", () => {
+  const atReviewer: Snapshot = { ...oneOfEach, tasks: [task("t-1", { agent: "rev-1" })] }
+  const backAtImplementer: Snapshot = { ...oneOfEach, tasks: [task("t-1", { agent: "imp-1" })] }
+  const returnBelts = (layout: Layout) => layout.belts.filter(carriesRework)
+
+  it("is not laid until a task goes back", () => {
+    const layout = layoutFloor(pipeline, atReviewer)
+    expect(returnBelts(layout)).toEqual([])
+  })
+
+  it("is laid along the back wall the first time a task goes back, right to left from the last bay's riser to the first bay's drop", () => {
+    const before = layoutFloor(pipeline, atReviewer)
+    const after = layoutFloor(pipeline, backAtImplementer, before)
+    const run = after.belts.find((b) => b.id === "return")!
+
+    expect(run).toMatchObject({ kind: "return", from: bayId("qa"), to: bayId("implementer") })
+    expect(run.tiles).toEqual([
+      { kind: "junction", x: 16, y: 1, dir: "w", entries: ["w", "n"], exits: ["w"] },
+      { kind: "straight", x: 15, y: 1, dir: "w" },
+      { kind: "junction", x: 14, y: 1, dir: "w", entries: ["w"], exits: ["w", "s"] },
+      { kind: "straight", x: 13, y: 1, dir: "w" },
+      { kind: "straight", x: 12, y: 1, dir: "w" },
+      { kind: "junction", x: 11, y: 1, dir: "w", entries: ["w", "n"], exits: ["w"] },
+      { kind: "straight", x: 10, y: 1, dir: "w" },
+      { kind: "junction", x: 9, y: 1, dir: "w", entries: ["w"], exits: ["w", "s"] },
+      { kind: "straight", x: 8, y: 1, dir: "w" },
+      { kind: "straight", x: 7, y: 1, dir: "w" },
+      { kind: "junction", x: 6, y: 1, dir: "w", entries: ["w", "n"], exits: ["w"] },
+      { kind: "straight", x: 5, y: 1, dir: "w" },
+      { kind: "junction", x: 4, y: 1, dir: "w", entries: ["w"], exits: ["w", "s"] },
+    ])
+    expect(returnBelts(after).map((b) => [b.id, b.kind, b.tiles])).toEqual([
+      ["return", "return", run.tiles],
+      [`${bayId("implementer")}>return`, "riser", [{ kind: "straight", x: 6, y: 2, dir: "n" }]],
+      [`return>${bayId("implementer")}`, "drop", [{ kind: "straight", x: 4, y: 2, dir: "s" }]],
+      [`${bayId("reviewer")}>return`, "riser", [{ kind: "straight", x: 11, y: 2, dir: "n" }]],
+      [`return>${bayId("reviewer")}`, "drop", [{ kind: "straight", x: 9, y: 2, dir: "s" }]],
+      [`${bayId("qa")}>return`, "riser", [{ kind: "straight", x: 16, y: 2, dir: "n" }]],
+      [`return>${bayId("qa")}`, "drop", [{ kind: "straight", x: 14, y: 2, dir: "s" }]],
+    ])
+  })
+
+  it("stays as it is once laid, whatever is added later", () => {
+    const before = layoutFloor(pipeline, atReviewer)
+    const laid = layoutFloor(pipeline, backAtImplementer, before)
+    const later = layoutFloor(pipeline, { ...oneOfEach, agents: [...oneOfEach.agents, agent("imp-2", "implementer")] }, laid)
+
+    expect(returnBelts(later)).toEqual(returnBelts(laid))
+  })
+
+  it("extends right to a bay appended after it was laid, its tiles so far unchanged", () => {
+    const before = layoutFloor(pipeline, atReviewer)
+    const laid = layoutFloor(pipeline, backAtImplementer, before)
+    const appended = layoutFloor(
+      { roles: [...pipeline.roles, "security"] },
+      { agents: [...oneOfEach.agents, agent("sec-1", "security")], tasks: backAtImplementer.tasks },
+      laid,
+    )
+    const run = appended.belts.find((b) => b.id === "return")!
+
+    expect(run.from).toBe(bayId("security"))
+    expect(run.tiles[0]).toEqual({ kind: "junction", x: 21, y: 1, dir: "w", entries: ["w", "n"], exits: ["w"] })
+    // The ends of the line slide right to make room (ADR 0002); the return belt laid so far does not.
+    const appendedTiles = beltTiles(appended)
+    for (const tile of returnBelts(laid).flatMap((b) => b.tiles)) expect(appendedTiles.get(tileKey(tile))).toEqual(tile)
+  })
+
+  it("is laid when a task goes from one lane to another of the same bay", () => {
+    const twoLanes = [...oneOfEach.agents, agent("imp-2", "implementer")]
+    const before = layoutFloor(pipeline, { agents: twoLanes, tasks: [task("t-1", { agent: "imp-2" })] })
+    const after = layoutFloor(pipeline, { agents: twoLanes, tasks: [task("t-1", { agent: "imp-1" })] }, before)
+
+    expect(returnBelts(after)).not.toEqual([])
+  })
+
+  it("is not laid for a queue that advances, a handoff forward, or a task put back at the intake", () => {
+    const before = layoutFloor(pipeline, { ...oneOfEach, tasks: [task("a", { agent: "imp-1" }), task("b", { agent: "imp-1" }), task("c", { agent: "rev-1" })] })
+    const after = layoutFloor(pipeline, { ...oneOfEach, tasks: [task("b", { agent: "imp-1" }), task("a", { agent: "rev-1" }), task("c", "intake")] }, before)
+
+    expect(returnBelts(after)).toEqual([])
+  })
+
+  it("passes straight over a bay with no station", () => {
+    const noReviewer = [agent("imp-1", "implementer"), agent("qa-1", "qa")]
+    const before = layoutFloor(pipeline, { agents: noReviewer, tasks: [task("t-1", { agent: "qa-1" })] })
+    const after = layoutFloor(pipeline, { agents: noReviewer, tasks: [task("t-1", { agent: "imp-1" })] }, before)
+    const tiles = beltTiles(after)
+
+    expect(tiles.get(tileKey({ x: 9, y: 1 }))).toEqual({ kind: "straight", x: 9, y: 1, dir: "w" })
+    expect(tiles.get(tileKey({ x: 11, y: 1 }))).toEqual({ kind: "straight", x: 11, y: 1, dir: "w" })
+    expect(tiles.has(tileKey({ x: 9, y: 2 }))).toBe(false)
+  })
+
+  it("leaves every previously reserved tile unchanged when it is added", () => {
+    const before = layoutFloor(pipeline, { agents: [...oneOfEach.agents, agent("imp-2", "implementer")], tasks: [task("t-1", { agent: "rev-1" })] })
+    const after = layoutFloor(pipeline, { agents: [...oneOfEach.agents, agent("imp-2", "implementer")], tasks: [task("t-1", { agent: "imp-2" })] }, before)
+
+    const afterTiles = beltTiles(after)
+    for (const [key, tile] of beltTiles(before)) expect(afterTiles.get(key)).toEqual(tile)
+    expect(after.bays).toEqual(before.bays)
+    expect(after.bounds).toEqual(before.bounds)
   })
 })

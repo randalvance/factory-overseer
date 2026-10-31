@@ -15,7 +15,9 @@ the belts between bays never move.
 A junction is shaped once for everything that may ever join or leave it: a
 bay's split junction has an exit toward a lane not yet built and an entry for
 the return belt's drop, and so on. Adding a lane or a belt then connects to
-what is there without changing a single tile already laid.
+the junctions there without moving or reshaping them. The one place a tile
+changes shape is where a bay's first station arrives: the belt tiles that ran
+straight through the bay become its junctions, in place.
 
 We chose this over free-form splines and over an always-optimal relayout
 because the overseer watches the floor continuously, and a floor that

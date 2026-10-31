@@ -173,8 +173,9 @@ A task leaving one station for the next place on its route.
 _Avoid_: Transfer, pass, move
 
 **Rework**:
-A handoff back to an earlier role, whether from a station or from the staging
-area.
+A handoff back to an earlier role, or across to another lane of the same bay,
+whether from a station or from the staging area. Rework rides the return
+belt, which is laid the first time it is needed.
 _Avoid_: Bounce, return, rejection, send-back
 
 **Motion**:

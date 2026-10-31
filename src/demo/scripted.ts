@@ -71,11 +71,14 @@ export interface Handoff {
 
 /**
  * One task, t-37, across the whole line, as a host would report it over
- * successive snapshots. Each entry is the handoffs of one snapshot; the other
- * tasks make way so t-37 waits once, in the staging pile, and never rides
- * through a box.
+ * successive snapshots: to the reviewer, back to the implementer as rework,
+ * to the reviewer again and on. Each entry is the handoffs of one snapshot;
+ * the other tasks make way so t-37 waits once, in the staging pile, and
+ * never rides through a box.
  */
 export const acrossTheLine: Handoff[][] = [
+  [{ id: "t-37", to: { agent: "rev-1" } }],
+  [{ id: "t-37", to: { agent: "imp-1" } }],
   [{ id: "t-37", to: { agent: "rev-1" } }],
   [
     { id: "t-35", to: "staging" },

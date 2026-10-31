@@ -140,15 +140,70 @@ describe("what stays put", () => {
 
     expect(motionsFor(after, restingTiles(before))).toEqual({ toPlay: [], unrouted: [] })
   })
+})
 
-  it("reports rework, a task handed back to an earlier role, as unrouted until the return belt exists", () => {
+// Rework: up the riser past the bay's merge junction, right to left along
+// the return belt on row 1, down the drop into the target bay's split
+// junction, and on to the bench.
+
+describe("rework rides the return belt", () => {
+  it("carries a task handed back from the reviewer up to the return belt, along it and down into the implementer's bay", () => {
     const before = layoutFloor(pipeline, snapshot({ "t-1": { agent: "rev-1" } }))
     const after = nextSnapshot(before, { "t-1": { agent: "imp-1" } })
 
     const motions = motionsFor(after, restingTiles(before))
 
-    expect(motions.toPlay).toEqual([])
-    expect(motions.unrouted).toEqual(["t-1"])
+    expect(motions.unrouted).toEqual([])
+    expect(motions.toPlay[0]!.path).toEqual(
+      tiles([10, 3], [11, 3], [11, 2], [11, 1], [10, 1], [9, 1], [8, 1], [7, 1], [6, 1], [5, 1], [4, 1], [4, 2], [4, 3], [5, 3]),
+    )
+    expect(motions.toPlay[0]!.junctions).toEqual([
+      { tile: { x: 11, y: 3 }, exit: "n" },
+      { tile: { x: 11, y: 1 }, exit: "w" },
+      { tile: { x: 9, y: 1 }, exit: "w" },
+      { tile: { x: 6, y: 1 }, exit: "w" },
+      { tile: { x: 4, y: 1 }, exit: "s" },
+      { tile: { x: 4, y: 3 }, exit: "e" },
+    ])
+  })
+
+  it("drops rework into the split junction and on down the feeder to a second lane", () => {
+    const twoLanes = (tasks: Record<string, TaskLocation>): Snapshot => {
+      const base = snapshot(tasks)
+      return { ...base, agents: [base.agents[0]!, { id: "imp-2", name: "imp-2", role: "implementer", status: "idle" }, ...base.agents.slice(1)] }
+    }
+    const before = layoutFloor(pipeline, twoLanes({ "t-1": { agent: "rev-1" } }))
+    const after = layoutFloor(pipeline, twoLanes({ "t-1": { agent: "imp-2" } }), before)
+
+    const motions = motionsFor(after, restingTiles(before))
+
+    expect(motions.toPlay[0]!.path.slice(-5)).toEqual(tiles([4, 2], [4, 3], [4, 4], [4, 5], [4, 6], [5, 6]).slice(-5))
+    expect(motions.toPlay[0]!.junctions.slice(-2)).toEqual([
+      { tile: { x: 4, y: 3 }, exit: "s" },
+      { tile: { x: 4, y: 6 }, exit: "e" },
+    ])
+  })
+
+  it("re-routes a box riding forward through a bay when it is handed back: over that bay's bench, up its riser and back", () => {
+    const atImp = layoutFloor(pipeline, snapshot({ "t-1": { agent: "imp-1" } }))
+    const atQa = nextSnapshot(atImp, { "t-1": { agent: "qa-1" } })
+    const backAtImp = nextSnapshot(atQa, { "t-1": { agent: "imp-1" } })
+
+    // Reported half way along the belt into the reviewer's bay.
+    const motions = motionsFor(backAtImp, { "t-1": { x: 7, y: 3 } })
+
+    expect(motions.toPlay[0]!.path.slice(0, 6)).toEqual(tiles([7, 3], [8, 3], [9, 3], [10, 3], [11, 3], [11, 2]))
+    expect(motions.toPlay[0]!.path.at(-1)).toEqual({ x: 5, y: 3 })
+  })
+
+  it("keeps forward handoffs on the trunk once the return belt is there", () => {
+    const atReviewer = layoutFloor(pipeline, snapshot({ "t-1": { agent: "rev-1" } }))
+    const back = nextSnapshot(atReviewer, { "t-1": { agent: "imp-1" } })
+    const forwardAgain = nextSnapshot(back, { "t-1": { agent: "rev-1" } })
+
+    const motions = motionsFor(forwardAgain, restingTiles(back))
+
+    expect(motions.toPlay[0]!.path).toEqual(tiles([5, 3], [6, 3], [7, 3], [8, 3], [9, 3], [10, 3]))
   })
 })
 

@@ -1,6 +1,11 @@
 // What a view or a route needs to know about a belt tile beyond its shape.
 
-import type { BeltTile, Direction } from "./types"
+import type { Belt, BeltTile, Direction } from "./types"
+
+/** Whether a belt carries rework: the return belt itself, or a riser up to it or a drop down from it. */
+export function carriesRework(belt: Belt): boolean {
+  return belt.kind === "return" || belt.kind === "riser" || belt.kind === "drop"
+}
 
 /** The way boxes leave a belt tile: along a straight tile, out of a corner, on through a junction. */
 export function travelDirection(tile: BeltTile): Direction {

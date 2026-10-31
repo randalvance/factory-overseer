@@ -16,7 +16,7 @@ import { type CameraPose, PITCH, PX_PER_TILE, clampToFloor, fitFloor, panBy, zoo
 import { attachControls } from "./controls"
 import { disposeMeshes, drawFactory } from "./drawing"
 import { type Wardrobes, sheetUrl } from "./sprites"
-import { beltTexture, blankTexture, loadTexture } from "./textures"
+import { beltTexture, blankTexture, loadTexture, returnBeltTexture } from "./textures"
 
 export interface FactoryView {
   /**
@@ -73,7 +73,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   let floor: Rect | undefined
   let pose: CameraPose | undefined
 
-  const belt = beltTexture()
+  const surfaces = { forward: beltTexture(), rework: returnBeltTexture() }
   let drawing = new THREE.Group()
   scene.add(drawing)
   const agents = createAgents(scene)
@@ -122,7 +122,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     },
   })
 
-  // The belt texture repeats once per tile, so it scrolls as far as the boxes ride.
+  // The belt textures repeat once per tile, so they scroll as far as the boxes ride.
   let beltTravel = 0
   let lastFrame: number | undefined
   renderer.setAnimationLoop((time) => {
@@ -131,7 +131,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     agents.tick(dt, speed)
     boxes.tick(dt, speed)
     beltTravel += dt * BELT_SPEED * speed
-    belt.offset.x = -beltTravel % 1
+    for (const surface of Object.values(surfaces)) surface.offset.x = -beltTravel % 1
     if (visible) renderer.render(scene, camera)
   })
 
@@ -149,7 +149,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     floor = layout.bounds
     scene.remove(drawing)
     disposeMeshes(drawing)
-    drawing = drawFactory(layout, belt)
+    drawing = drawFactory(layout, surfaces)
     scene.add(drawing)
     agents.update(layout, snapshot, sheets, { styles: styling.styles, icons }, traffic)
     // Planned only now, after the wait, so rides still playing are picked up from where they are.

@@ -3,7 +3,7 @@
 // a toggle afterwards. No layout logic lives here: it only draws what it is
 // given.
 
-import { travelDirection } from "~/floor/belts"
+import { carriesRework, travelDirection } from "~/floor/belts"
 import type { JunctionSetting, Motion } from "~/floor/motion"
 import { step } from "~/floor/tiles"
 import type { BeltTile, Layout, Rect, Tile } from "~/floor/types"
@@ -32,7 +32,9 @@ export function LayoutDebugView({ layout, motions = [] }: { layout: Layout; moti
       <Zone rect={layout.staging.rect} label="staging" fill="#6b4a23" />
       <Zone rect={layout.container.rect} label="container" fill="#5a3366" />
 
-      {layout.belts.flatMap((belt) => belt.tiles.map((tile) => <BeltMark key={`${tile.x},${tile.y}`} tile={tile} />))}
+      {layout.belts.flatMap((belt) =>
+        belt.tiles.map((tile) => <BeltMark key={`${tile.x},${tile.y}`} tile={tile} rework={carriesRework(belt)} />),
+      )}
 
       {layout.bays.flatMap((bay) =>
         bay.stations.map((station) => (
@@ -108,16 +110,17 @@ function Cell({ tile, fill, label }: { tile: Tile; fill: string; label: string }
 const ARROW: Record<BeltTile["kind"], string> = { straight: "→", corner: "↳", junction: "⋔" }
 const ROTATION = { e: 0, s: 90, w: 180, n: 270 } as const
 
-function BeltMark({ tile }: { tile: BeltTile }) {
+/** A belt tile, its arrow turned the way boxes travel; the belts that carry rework in rust. */
+function BeltMark({ tile, rework }: { tile: BeltTile; rework: boolean }) {
   const dir = travelDirection(tile)
   const { cx, cy } = center(tile)
   return (
     <g>
-      <rect x={tile.x * TILE + 1} y={tile.y * TILE + 1} width={TILE - 2} height={TILE - 2} fill="#3a3f4b" />
+      <rect x={tile.x * TILE + 1} y={tile.y * TILE + 1} width={TILE - 2} height={TILE - 2} fill={rework ? "#4b3128" : "#3a3f4b"} />
       <text
         x={cx}
         y={cy + 4}
-        fill="#9fb3c8"
+        fill={rework ? "#e39b5c" : "#9fb3c8"}
         fontSize={12}
         textAnchor="middle"
         transform={`rotate(${ROTATION[dir]} ${cx} ${cy})`}

@@ -31,11 +31,13 @@ export type BeltTile =
 /**
  * A contiguous run of belt tiles in travel order. A trunk runs between two
  * places: the intake, a bay, the staging area or the container. A bay's own
- * belts, its feeder and its collector, start and end at the bay (ADR 0003).
+ * belts, its feeder and its collector, start and end at the bay. The return
+ * belt runs along the back wall from the last bay to the first; the riser
+ * out of each bay and the drop into it are one tile each (ADR 0003).
  */
 export interface Belt {
   id: string
-  kind: "trunk" | "feeder" | "collector"
+  kind: "trunk" | "feeder" | "collector" | "return" | "riser" | "drop"
   from: string
   to: string
   tiles: BeltTile[]
