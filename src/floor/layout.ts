@@ -1,6 +1,7 @@
 // The floor core: a pipeline and a snapshot in, a layout out (ADR 0002). Pure:
 // no renderer, no time, no randomness. Everything sits on a tile grid along
 // one trunk row, left to right: intake, one bay per role, staging, container.
+// Inside a bay, lanes stack toward the camera, one station each (ADR 0003).
 
 import type { Agent, Pipeline, Snapshot, Task } from "~/model/types"
 import type {
@@ -17,10 +18,15 @@ import type {
   Tile,
 } from "./types"
 
-/** The row the trunk runs along. Rows above it hold the agents' backs and, later, the return belt. */
+/** The row the trunk runs along. Above it: the agents' backs, the return belt, the back wall. */
 const TRUNK_ROW = 3
+/** The back wall's row, where the door is. */
+const WALL_ROW = 0
 const INTAKE_W = 2
+/** A bay's width: the feeder column, the benches, the collector column. */
 const BAY_W = 3
+/** Rows from one lane's bench to the next: the belts between, the agent, the bench. */
+const LANE_H = 3
 const STAGING_W = 3
 const CONTAINER_W = 3
 /** Belt tiles between one structure and the next. */
@@ -45,25 +51,10 @@ export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: L
   }
   x += INTAKE_W + GAP
 
-  const unplacedAgentIds: string[] = []
   const bays: Bay[] = roles.map((role) => {
-    const rect = footprint(x, BAY_W)
-    const [seated, ...standing] = snapshot.agents.filter((a) => a.role === role)
-    unplacedAgentIds.push(...standing.map((a) => a.id))
-    const stations: Station[] = seated
-      ? [
-          {
-            id: `station:${role}:0`,
-            role,
-            lane: 0,
-            agentId: seated.id,
-            bench: { x: x + 1, y: TRUNK_ROW },
-            agentTile: { x: x + 1, y: TRUNK_ROW - 1 },
-          },
-        ]
-      : []
+    const bay = layBay(role, x, snapshot, previous?.bays.find((b) => b.role === role))
     x += BAY_W + GAP
-    return { role, rect, stations }
+    return bay
   })
 
   const staging: StagingArea = {
@@ -87,23 +78,26 @@ export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: L
   }
   x += CONTAINER_W
 
-  const belts = trunkBelts(intake, bays, staging, container)
-  const { boxes, unplacedTaskIds } = placeBoxes(snapshot.tasks, { intake, bays, staging, container, belts })
+  const belts = [...trunkBelts(intake, bays, staging, container), ...bays.flatMap(bayBelts)]
+  const { boxes, unplacedTaskIds } = placeBoxes(snapshot.tasks, { bays, intake, staging, container, belts })
+  // One row of floor in front of the frontmost lane.
+  const front = Math.max(TRUNK_ROW + 1, ...bays.map((bay) => bay.rect.y + bay.rect.h))
 
   return {
-    bounds: { x: 0, y: 0, w: x, h: TRUNK_ROW + 2 },
+    bounds: { x: 0, y: 0, w: x, h: front + 1 },
     trunkRow: TRUNK_ROW,
+    door: { x: intake.rect.x + intake.rect.w, y: WALL_ROW },
     intake,
     bays,
     staging,
     container,
     belts,
     boxes,
-    unplaced: { agentIds: unplacedAgentIds, taskIds: unplacedTaskIds },
+    unplaced: { taskIds: unplacedTaskIds },
   }
 }
 
-/** A structure's footprint: the agent row and the trunk row. */
+/** A structure's footprint on the first two rows of the floor: the agent row and the trunk row. */
 function footprint(x: number, w: number): Rect {
   return { x, y: TRUNK_ROW - 1, w, h: 2 }
 }
@@ -124,6 +118,49 @@ function roleOrder(pipeline: Pipeline, snapshot: Snapshot, previous?: Layout): s
   return order
 }
 
+/**
+ * A bay, lane by lane: the stations it had, each vacant when its agent is no
+ * longer in the snapshot, then every agent of the role new to the bay at the
+ * first vacant station or, failing one, on a new lane in front. A vacant
+ * bench with a box still on it keeps the box until the host moves it, so a
+ * newcomer passes it by. The back of the bay never moves.
+ */
+function layBay(role: string, x: number, snapshot: Snapshot, previous: Bay | undefined): Bay {
+  const here = snapshot.agents.filter((agent) => agent.role === role)
+  const stations: Station[] = (previous?.stations ?? []).map((station) => ({
+    ...station,
+    vacant: !here.some((agent) => agent.id === station.agentId),
+  }))
+  const holdsABox = (station: Station) =>
+    snapshot.tasks.some((task) => typeof task.at === "object" && task.at.agent === station.agentId)
+  for (const agent of here) {
+    if (stations.some((station) => station.agentId === agent.id)) continue
+    const vacantStation = stations.find((station) => station.vacant && !holdsABox(station))
+    if (vacantStation) {
+      vacantStation.agentId = agent.id
+      vacantStation.vacant = false
+    } else {
+      stations.push(laneStation(role, x, stations.length, agent.id))
+    }
+  }
+  const lanes = Math.max(stations.length, 1)
+  return { role, rect: { x, y: TRUNK_ROW - 1, w: BAY_W, h: lanes * LANE_H - 1 }, stations }
+}
+
+/** A station on a lane of the bay at x: the bench in the bay's middle column, the agent behind it. */
+function laneStation(role: string, x: number, lane: number, agentId: string): Station {
+  const benchRow = TRUNK_ROW + lane * LANE_H
+  return {
+    id: `station:${role}:${lane}`,
+    role,
+    lane,
+    agentId,
+    vacant: false,
+    bench: { x: x + 1, y: benchRow },
+    agentTile: { x: x + 1, y: benchRow - 1 },
+  }
+}
+
 /** A place a box stops on its way along the trunk. */
 interface TrunkStop {
   id: string
@@ -131,26 +168,20 @@ interface TrunkStop {
   exit: number
   /** The first tile of the stop along the trunk; the belt in ends before it. */
   entry: number
-  /** The bay's belt out starts with the station's outbound junction, set toward the destination before a box leaves. */
-  outboundJunction?: boolean
 }
 
 /**
  * One belt between each pair of consecutive stops, from the tile after one
- * stop's exit to the tile before the next one's entry. A bay with no station
- * yet is not a stop: the trunk runs through it.
+ * stop's exit to the tile before the next one's entry. A bay with stations
+ * is entered at its feeder column and left at its collector column; a bay
+ * with none yet is not a stop, and the trunk runs through it.
  */
 function trunkBelts(intake: Intake, bays: Bay[], staging: StagingArea, container: Container): Belt[] {
   const stops: TrunkStop[] = [
     { id: "intake", exit: intake.rect.x + intake.rect.w - 1, entry: intake.rect.x },
-    ...bays.flatMap((bay) =>
-      bay.stations.map((station) => ({
-        id: bayId(bay.role),
-        exit: station.bench.x,
-        entry: station.bench.x,
-        outboundJunction: true,
-      })),
-    ),
+    ...bays
+      .filter((bay) => bay.stations.length > 0)
+      .map((bay) => ({ id: bayId(bay.role), entry: bay.rect.x, exit: bay.rect.x + bay.rect.w - 1 })),
     { id: "staging", exit: staging.bench.x, entry: staging.bench.x },
     // The mouth is the belt's last tile, so the container's entry is past it.
     { id: "container", exit: container.mouth.x, entry: container.mouth.x + 1 },
@@ -160,17 +191,50 @@ function trunkBelts(intake: Intake, bays: Bay[], staging: StagingArea, container
     const from = stops[i - 1]!
     const to = stops[i]!
     const tiles: BeltTile[] = []
-    for (let bx = from.exit + 1; bx < to.entry; bx++) {
-      const first = bx === from.exit + 1
-      tiles.push(
-        first && from.outboundJunction
-          ? { kind: "junction", x: bx, y: TRUNK_ROW, dir: "e", exits: ["e"] }
-          : { kind: "straight", x: bx, y: TRUNK_ROW, dir: "e" },
-      )
-    }
-    belts.push({ id: `${from.id}>${to.id}`, from: from.id, to: to.id, tiles })
+    for (let bx = from.exit + 1; bx < to.entry; bx++) tiles.push({ kind: "straight", x: bx, y: TRUNK_ROW, dir: "e" })
+    belts.push({ id: `${from.id}>${to.id}`, kind: "trunk", from: from.id, to: to.id, tiles })
   }
   return belts
+}
+
+/**
+ * A bay's own belts. The feeder runs down the back column from the split
+ * junction on the trunk, with a junction at each lane's bench row that
+ * sends boxes onto that lane's bench; the collector runs up the front
+ * column, a junction at each bench row taking the lane's boxes in, out
+ * through the merge junction onto the trunk. The split junction also takes
+ * the return belt's drop from above and the merge junction also feeds its
+ * riser, so the return belt connects without changing either (ADR 0002).
+ */
+function bayBelts(bay: Bay): Belt[] {
+  if (bay.stations.length === 0) return []
+  const benchRows = new Set(bay.stations.map((s) => s.bench.y))
+  const front = Math.max(...benchRows)
+  const back = bay.rect.x
+  const fore = bay.rect.x + bay.rect.w - 1
+  const feeder: BeltTile[] = []
+  const collector: BeltTile[] = []
+  for (let y = TRUNK_ROW; y <= front; y++) {
+    feeder.push(
+      y === TRUNK_ROW
+        ? { kind: "junction", x: back, y, dir: "e", entries: ["e", "s"], exits: ["e", "s"] }
+        : benchRows.has(y)
+          ? { kind: "junction", x: back, y, dir: "s", entries: ["s"], exits: ["e", "s"] }
+          : { kind: "straight", x: back, y, dir: "s" },
+    )
+    collector.unshift(
+      y === TRUNK_ROW
+        ? { kind: "junction", x: fore, y, dir: "e", entries: ["e", "n"], exits: ["e", "n"] }
+        : benchRows.has(y)
+          ? { kind: "junction", x: fore, y, dir: "n", entries: ["e", "n"], exits: ["n"] }
+          : { kind: "straight", x: fore, y, dir: "n" },
+    )
+  }
+  const id = bayId(bay.role)
+  return [
+    { id: `${id}:feeder`, kind: "feeder", from: id, to: id, tiles: feeder },
+    { id: `${id}:collector`, kind: "collector", from: id, to: id, tiles: collector },
+  ]
 }
 
 type Places = Pick<Layout, "intake" | "bays" | "staging" | "container" | "belts">
@@ -178,8 +242,8 @@ type Places = Pick<Layout, "intake" | "bays" | "staging" | "container" | "belts"
 /**
  * One box per task, where its location says. Among tasks at one agent, array
  * order is queue order: the first sits on the bench, the rest wait back along
- * the belt into the bay, piling up at its first tile when the belt is shorter
- * than the queue.
+ * the belts into its lane, piling up at the farthest tile when the belts are
+ * shorter than the queue.
  */
 function placeBoxes(tasks: Task[], places: Places): { boxes: BoxPlacement[]; unplacedTaskIds: string[] } {
   const boxes: BoxPlacement[] = []
@@ -194,8 +258,8 @@ function placeBoxes(tasks: Task[], places: Places): { boxes: BoxPlacement[]; unp
   const pileTile = (pile: Tile[], index: number): Tile => pile[Math.min(index, pile.length - 1)]!
   const queueTile = (station: Station, index: number): Tile => {
     if (index === 0) return station.bench
-    const inbound = places.belts.find((b) => b.to === bayId(station.role))?.tiles ?? []
-    const tile = inbound[Math.max(0, inbound.length - index)] ?? station.bench
+    const behind = queueBehind(station, places.belts)
+    const tile = behind[Math.min(index - 1, behind.length - 1)] ?? station.bench
     return { x: tile.x, y: tile.y }
   }
 
@@ -227,10 +291,16 @@ function placeBoxes(tasks: Task[], places: Places): { boxes: BoxPlacement[]; unp
   return { boxes, unplacedTaskIds }
 }
 
+/** The belt tiles behind a station's bench, nearest first: its stretch of the feeder up to the trunk, then the trunk into the bay. */
+function queueBehind(station: Station, belts: Belt[]): Tile[] {
+  const bay = bayId(station.role)
+  const feeder = belts.find((b) => b.kind === "feeder" && b.from === bay)?.tiles ?? []
+  const inbound = belts.find((b) => b.kind === "trunk" && b.to === bay)?.tiles ?? []
+  return [...feeder.filter((t) => t.y <= station.bench.y).reverse(), ...inbound.slice().reverse()]
+}
+
 /** Every station, each with the agent at it, or none while it is vacant. */
 export function stationed(layout: Layout, agents: Agent[]): { station: Station; agent: Agent | undefined }[] {
   const byId = new Map(agents.map((agent) => [agent.id, agent]))
-  return layout.bays.flatMap((bay) =>
-    bay.stations.map((station) => ({ station, agent: station.agentId === null ? undefined : byId.get(station.agentId) })),
-  )
+  return layout.bays.flatMap((bay) => bay.stations.map((station) => ({ station, agent: byId.get(station.agentId) })))
 }

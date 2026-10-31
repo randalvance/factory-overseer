@@ -32,7 +32,7 @@ export const opening: DemoScript = {
   },
 }
 
-/** A new role joins the pipeline with one agent, as a new session of a new kind would. */
+/** A new role joins the pipeline with one agent. */
 export function withAnotherRole({ pipeline, snapshot }: DemoScript): DemoScript {
   const role = `role-${pipeline.roles.length + 1}`
   return {
@@ -99,18 +99,38 @@ export function withHandoffs({ pipeline, snapshot }: DemoScript, handoffs: Hando
   return { pipeline, snapshot: { ...snapshot, tasks } }
 }
 
-/** The demo's state: the script as it stands, and how many snapshots of the trip across the line have played. */
+/** The demo's state: the script as it stands, how many snapshots of the trip across the line have played, and how many implementers have been hired. */
 export interface Demo {
   script: DemoScript
   step: number
+  hired: number
 }
 
-export const atTheStart: Demo = { script: opening, step: 0 }
+export const atTheStart: Demo = { script: opening, step: 0, hired: 0 }
+
+/** Who joins Ada as an implementer, in hiring order. */
+const HIRES = ["Barbara", "Dennis", "Edsger", "Frances", "Hedy", "Ken", "Margaret", "Niklaus"]
+
+/** Another implementer is hired and joins. */
+export function withAnotherImplementer(demo: Demo): Demo {
+  const hired = demo.hired + 1
+  const name = HIRES[(hired - 1) % HIRES.length]!
+  const agent: Agent = { id: `imp-${hired + 1}`, name, role: "implementer", status: "idle" }
+  const { pipeline, snapshot } = demo.script
+  return { ...demo, hired, script: { pipeline, snapshot: { ...snapshot, agents: [...snapshot.agents, agent] } } }
+}
+
+/** The implementer who joined last leaves. Ada goes last of all. */
+export function withoutAnImplementer(demo: Demo): Demo {
+  const { pipeline, snapshot } = demo.script
+  const leaving = snapshot.agents.filter((agent) => agent.role === "implementer").at(-1)
+  return { ...demo, script: { pipeline, snapshot: { ...snapshot, agents: snapshot.agents.filter((agent) => agent !== leaving) } } }
+}
 
 /** Play the next snapshot of the trip across the line, if any is left. */
 export function nextHandoff(demo: Demo): Demo {
   const handoffs = acrossTheLine[demo.step]
-  return handoffs ? { script: withHandoffs(demo.script, handoffs), step: demo.step + 1 } : demo
+  return handoffs ? { ...demo, script: withHandoffs(demo.script, handoffs), step: demo.step + 1 } : demo
 }
 
 export function tripOver(demo: Demo): boolean {

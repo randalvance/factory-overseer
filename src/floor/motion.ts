@@ -4,12 +4,12 @@
 // are pure, like the rest of the floor core: no time, no renderer.
 //
 // Routes follow the belts: a box rolls onto a belt tile from the tile behind
-// it and off along the tile's travel direction. Inside the intake, the
+// each of its entries and off along each of its exits. Inside the intake, the
 // staging area and the container, boxes are carried, so any neighbouring
 // tile there is reachable too, except the one the inspector stands on, and
 // never against a belt.
 
-import { entryDirection, exits, travelDirection } from "./belts"
+import { entries, exits, travelDirection } from "./belts"
 import { DIRECTIONS, directionBetween, opposite, sameTile, step, tileKey } from "./tiles"
 import type { BeltTile, Direction, Layout, Rect, Tile } from "./types"
 
@@ -73,7 +73,7 @@ function routes(layout: Layout): Map<string, Tile[]> {
   for (const belt of layout.belts) {
     for (const tile of belt.tiles) {
       beltTiles.set(tileKey(tile), tile)
-      link(step(tile, opposite(entryDirection(tile))), tile)
+      for (const entry of entries(tile)) link(step(tile, opposite(entry)), tile)
       for (const exit of exits(tile)) link(tile, step(tile, exit))
     }
   }

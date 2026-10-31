@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react"
 import { LayoutDebugView } from "~/debug/LayoutDebugView"
-import { type Demo, atTheStart, nextHandoff, tripOver, withAnotherRole, withAnotherTask, withNextStatus } from "~/demo/scripted"
+import {
+  type Demo,
+  atTheStart,
+  nextHandoff,
+  tripOver,
+  withAnotherImplementer,
+  withAnotherRole,
+  withAnotherTask,
+  withNextStatus,
+  withoutAnImplementer,
+} from "~/demo/scripted"
 import { Factory } from "~/factory/Factory"
 import type { Motions } from "~/floor/motion"
 import type { Layout } from "~/floor/types"
@@ -28,7 +38,8 @@ export function App() {
   }, [over])
 
   const { pipeline, snapshot } = demo.script
-  const noPlace = drawn ? [...drawn.layout.unplaced.agentIds, ...drawn.layout.unplaced.taskIds] : []
+  const anyImplementer = snapshot.agents.some((agent) => agent.role === "implementer")
+  const noPlace = drawn?.layout.unplaced.taskIds ?? []
   const noRoute = drawn?.motions.unrouted ?? []
 
   return (
@@ -52,6 +63,12 @@ export function App() {
           {/* Ada, at the first bench, round every status. */}
           <button type="button" onClick={() => setDemo((d) => ({ ...d, script: withNextStatus(d.script, "imp-1") }))}>
             Next status
+          </button>
+          <button type="button" onClick={() => setDemo(withAnotherImplementer)}>
+            Add an implementer
+          </button>
+          <button type="button" onClick={() => setDemo(withoutAnImplementer)} disabled={!anyImplementer}>
+            Remove an implementer
           </button>
           <button type="button" onClick={() => setDemo((d) => ({ ...d, script: withAnotherRole(d.script) }))}>
             Add a role

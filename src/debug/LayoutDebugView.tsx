@@ -38,13 +38,14 @@ export function LayoutDebugView({ layout, motions = [] }: { layout: Layout; moti
         bay.stations.map((station) => (
           <g key={station.id}>
             <Cell tile={station.bench} fill="#8a7a3a" label="bench" />
-            <Cell tile={station.agentTile} fill={station.agentId ? "#3f8f5f" : "#444"} label={station.agentId ?? "vacant"} />
+            <Cell tile={station.agentTile} fill={station.vacant ? "#444" : "#3f8f5f"} label={station.agentId} />
           </g>
         )),
       )}
       <Cell tile={layout.staging.bench} fill="#8a7a3a" label="bench" />
       <Cell tile={layout.staging.inspectorTile} fill="#3f8f5f" label="inspector" />
       <Cell tile={layout.container.mouth} fill="#444" label="mouth" />
+      <Cell tile={layout.door} fill="#7a5c2e" label="door" />
 
       {layout.boxes.map((box, i) => (
         <BoxMark key={box.taskId} tile={box.tile} label={box.taskId} stackIndex={sharedTileCount(layout, i)} />

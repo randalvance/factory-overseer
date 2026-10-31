@@ -12,6 +12,11 @@ are laid out again further right to make room, because a bay cannot
 otherwise be appended between the last bay and the ends. Bays, stations and
 the belts between bays never move.
 
+A junction is shaped once for everything that may ever join or leave it: a
+bay's split junction has an exit toward a lane not yet built and an entry for
+the return belt's drop, and so on. Adding a lane or a belt then connects to
+what is there without changing a single tile already laid.
+
 We chose this over free-form splines and over an always-optimal relayout
 because the overseer watches the floor continuously, and a floor that
 rearranges itself destroys the mental map that makes the visualization useful.

@@ -71,6 +71,26 @@ test("an agent is shown in every status without errors", async ({ page }) => {
   }
 })
 
+test("implementers come and go without errors", async ({ page }) => {
+  const factory = await openFactory(page)
+  const add = page.getByRole("button", { name: "Add an implementer" })
+
+  await add.click()
+  await expect(factory).toHaveAttribute("data-drawn", "2")
+  // Barbara is on her way in from the door.
+  await page.waitForTimeout(1200)
+  await page.screenshot({ path: `${screenshots}/walk-in.png` })
+  await add.click()
+  await expect(factory).toHaveAttribute("data-drawn", "3")
+  await page.getByRole("button", { name: "Remove an implementer" }).click()
+  await expect(factory).toHaveAttribute("data-drawn", "4")
+  // Dennis fades; Edsger takes his lane.
+  await add.click()
+  await expect(factory).toHaveAttribute("data-drawn", "5")
+  await page.waitForTimeout(3500)
+  await page.screenshot({ path: `${screenshots}/lanes.png` })
+})
+
 test("the flat debug view is still there behind a toggle", async ({ page }) => {
   await openFactory(page)
   const debugView = page.getByRole("img", { name: "Floor layout" })

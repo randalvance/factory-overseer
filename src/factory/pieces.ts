@@ -17,6 +17,7 @@ const PALLET_H = 0.1
 const CONTAINER_FLOOR_H = 0.1
 const WALL_H = 1.4
 const WALL_T = 0.1
+const DOOR_H = 2.2
 export const AGENT_H = 1.5
 /** A box's edge, in tiles. */
 export const BOX_SIZE = 0.6
@@ -29,7 +30,10 @@ const COLOR = {
   bay: 0x3a7a62,
   staging: 0xc08a2e,
   bench: 0x6b7f99,
+  vacantBench: 0x3e4756,
   tablet: 0x1a2634,
+  door: 0x4b5260,
+  doorFrame: 0xd9b23c,
   beltFrame: 0x2b2f36,
   pallet: 0x8b6b3e,
   container: 0x9c4a2f,
@@ -82,9 +86,14 @@ export function beltTile(tile: BeltTile, surface: THREE.Material): THREE.Group {
   return group
 }
 
-/** A bench, the width of its tile so the belts meet it. The box sits on it; the tablet is a piece of its own, since its face changes with the agent's status. */
-export function bench(tile: Tile): THREE.Mesh {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, BENCH_H, 0.7), new THREE.MeshLambertMaterial({ color: COLOR.bench }))
+/**
+ * A bench, the width of its tile so the belts meet it, dimmed while vacant.
+ * The box sits on it; the tablet is a piece of its own, since its face
+ * changes with the agent's status.
+ */
+export function bench(tile: Tile, vacant = false): THREE.Mesh {
+  const material = new THREE.MeshLambertMaterial({ color: vacant ? COLOR.vacantBench : COLOR.bench })
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, BENCH_H, 0.7), material)
   const { x, z } = tileCenter(tile)
   mesh.position.set(x, BENCH_H / 2, z)
   return mesh
@@ -108,6 +117,18 @@ export function tablet(): TabletPiece {
   const group = new THREE.Group()
   group.add(mesh)
   return { group, face }
+}
+
+/** The door in the back wall: a roll-up door's panel in a frame, standing at the back edge of its tile. */
+export function door(tile: Tile): THREE.Group {
+  const group = new THREE.Group()
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(1.3, DOOR_H, 0.12), new THREE.MeshLambertMaterial({ color: COLOR.doorFrame }))
+  frame.position.set(0, DOOR_H / 2, 0.06)
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(1.1, DOOR_H - 0.1, 0.06), new THREE.MeshLambertMaterial({ color: COLOR.door }))
+  panel.position.set(0, (DOOR_H - 0.1) / 2, 0.15)
+  group.add(frame, panel)
+  group.position.set(tile.x + 0.5, 0, tile.y)
+  return group
 }
 
 /** A low wooden pallet where boxes wait with nothing carrying them. */

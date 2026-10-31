@@ -5,7 +5,7 @@
 
 import * as THREE from "three"
 import type { Layout } from "~/floor/types"
-import { beltSurface, beltTile, bench, containerWalls, floorSlab, pallet, patch } from "./pieces"
+import { beltSurface, beltTile, bench, containerWalls, door, floorSlab, pallet, patch } from "./pieces"
 
 export function drawFactory(layout: Layout, belt: THREE.Texture): THREE.Group {
   const group = new THREE.Group()
@@ -17,8 +17,9 @@ export function drawFactory(layout: Layout, belt: THREE.Texture): THREE.Group {
   const surface = beltSurface(belt)
   for (const run of layout.belts) for (const tile of run.tiles) group.add(beltTile(tile, surface))
 
-  for (const bay of layout.bays) for (const station of bay.stations) group.add(bench(station.bench))
+  for (const bay of layout.bays) for (const station of bay.stations) group.add(bench(station.bench, station.vacant))
   group.add(bench(layout.staging.bench))
+  group.add(door(layout.door))
   for (const tile of layout.intake.pile) group.add(pallet(tile))
   // The first staging spot is the bench itself; the rest are shelves beside the inspector.
   for (const tile of layout.staging.pile.slice(1)) group.add(pallet(tile))

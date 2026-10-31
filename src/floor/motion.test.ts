@@ -43,15 +43,18 @@ describe("a handoff rides the trunk", () => {
     expect(motions.toPlay[0]!.path).toEqual(tiles([5, 3], [6, 3], [7, 3], [8, 3], [9, 3], [10, 3]))
   })
 
-  it("sets the station's outbound junction toward the next bay before the box leaves", () => {
+  it("sets the bay's merge junction toward the trunk and the next bay's split junction toward its lane before the box leaves", () => {
     const before = layoutFloor(pipeline, snapshot({ "t-1": { agent: "imp-1" } }))
     const after = nextSnapshot(before, { "t-1": { agent: "rev-1" } })
 
     const motions = motionsFor(after, restingTiles(before))
 
-    expect(motions.toPlay[0]!.junctions).toEqual([{ tile: { x: 6, y: 3 }, exit: "e" }])
-    const outbound = after.belts.flatMap((b) => b.tiles).find((t) => t.x === 6 && t.y === 3)
-    expect(outbound).toEqual({ kind: "junction", x: 6, y: 3, dir: "e", exits: ["e"] })
+    expect(motions.toPlay[0]!.junctions).toEqual([
+      { tile: { x: 6, y: 3 }, exit: "e" },
+      { tile: { x: 9, y: 3 }, exit: "e" },
+    ])
+    const merge = after.belts.flatMap((b) => b.tiles).find((t) => t.x === 6 && t.y === 3)
+    expect(merge).toEqual({ kind: "junction", x: 6, y: 3, dir: "e", entries: ["e", "n"], exits: ["e", "n"] })
   })
 })
 
@@ -146,5 +149,39 @@ describe("what stays put", () => {
 
     expect(motions.toPlay).toEqual([])
     expect(motions.unrouted).toEqual(["t-1"])
+  })
+})
+
+describe("a bay with lanes", () => {
+  const twoImplementers = (tasks: Record<string, TaskLocation>): Snapshot => {
+    const base = snapshot(tasks)
+    return { ...base, agents: [base.agents[0]!, { id: "imp-2", name: "imp-2", role: "implementer", status: "idle" }, ...base.agents.slice(1)] }
+  }
+
+  it("routes a box bound for the second lane's agent through the split junction, down the feeder and onto its bench", () => {
+    const before = layoutFloor(pipeline, twoImplementers({ "t-1": "intake" }))
+    const after = layoutFloor(pipeline, twoImplementers({ "t-1": { agent: "imp-2" } }), before)
+
+    const motions = motionsFor(after, restingTiles(before))
+
+    expect(motions.toPlay[0]!.path).toEqual(tiles([1, 3], [2, 3], [3, 3], [4, 3], [4, 4], [4, 5], [4, 6], [5, 6]))
+    expect(motions.toPlay[0]!.junctions).toEqual([
+      { tile: { x: 4, y: 3 }, exit: "s" },
+      { tile: { x: 4, y: 6 }, exit: "e" },
+    ])
+  })
+
+  it("collects a handoff from the second lane up the front of the bay and on along the trunk", () => {
+    const before = layoutFloor(pipeline, twoImplementers({ "t-1": { agent: "imp-2" } }))
+    const after = layoutFloor(pipeline, twoImplementers({ "t-1": { agent: "rev-1" } }), before)
+
+    const motions = motionsFor(after, restingTiles(before))
+
+    expect(motions.toPlay[0]!.path).toEqual(tiles([5, 6], [6, 6], [6, 5], [6, 4], [6, 3], [7, 3], [8, 3], [9, 3], [10, 3]))
+    expect(motions.toPlay[0]!.junctions).toEqual([
+      { tile: { x: 6, y: 6 }, exit: "n" },
+      { tile: { x: 6, y: 3 }, exit: "e" },
+      { tile: { x: 9, y: 3 }, exit: "e" },
+    ])
   })
 })

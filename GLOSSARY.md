@@ -63,9 +63,35 @@ the agent works on it.
 _Avoid_: Desk, table, workbench, seat
 
 **Lane**:
-One station's own stretch of belt inside a bay, from the junction that feeds
-it to the junction that collects from it.
+One station's place in its bay: the junction on the feeder that sends boxes
+to its bench, the bench, and the junction on the collector that takes them
+away.
 _Avoid_: Slot, branch, spur, row
+
+**Feeder**:
+The belt down the back of a bay that carries boxes from its split junction to
+the lane of whichever agent holds them.
+_Avoid_: Inbound column, distributor
+
+**Collector**:
+The belt up the front of a bay that takes boxes off every lane to its merge
+junction and back onto the trunk.
+_Avoid_: Outbound column, merger
+
+**Aisle**:
+The column of floor before a bay, which agents walk down from the back wall to
+reach their lane.
+_Avoid_: Corridor, walkway
+
+**Door**:
+The opening in the back wall that a new agent walks in through on its way to
+its station.
+_Avoid_: Entrance, spawn point
+
+**Way In**:
+The tile path a new agent walks from the door to its station: along the back
+wall, down the aisle before its bay, and in to its tile.
+_Avoid_: Route, spawn path
 
 **Tablet**:
 The screen at a station that shows what its agent is doing with the box in
@@ -123,12 +149,23 @@ The belt that carries boxes forward from one bay to the next.
 _Avoid_: Main line, bus, highway
 
 **Return Belt**:
-The belt that carries rework back toward earlier bays.
+The belt that carries rework back toward earlier bays, along the back wall.
 _Avoid_: Return lane, back edge, loop, rejection belt
+
+**Drop**:
+The belt tile that brings rework down from the return belt into a bay's split
+junction.
+_Avoid_: Chute, inlet
+
+**Riser**:
+The belt tile that takes rework up from a bay's merge junction, or from the
+staging area, to the return belt.
+_Avoid_: Ramp, outlet
 
 **Junction**:
 A place on a belt where a box's route forks or joins. A junction is set toward
-the destination before a box crosses it.
+the destination before a box crosses it. A bay's split junction forks the
+trunk into its lanes; its merge junction joins them back.
 _Avoid_: Switch, diverter, splitter, merger
 
 **Handoff**:

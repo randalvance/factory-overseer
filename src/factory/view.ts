@@ -8,6 +8,7 @@ import { stationed } from "~/floor/layout"
 import { type Motions, motionsFor } from "~/floor/motion"
 import type { Layout, Rect } from "~/floor/types"
 import { type AgentStatus, STATUS_ICONS, type StatusStyle } from "~/model/status"
+import type { ComingsAndGoings } from "~/floor/walk"
 import type { Agent, Snapshot } from "~/model/types"
 import { type Icons, createAgents } from "./agents"
 import { BELT_SPEED, createBoxes } from "./boxes"
@@ -20,11 +21,12 @@ import { beltTexture, blankTexture, loadTexture } from "./textures"
 export interface FactoryView {
   /**
    * Draw a layout with its agents and tasks, the agents looking as the
-   * styling says; the boxes whose place changed ride there from wherever they
-   * are. Resolves with the motions played once drawn, or with none once a
-   * newer snapshot has taken its place. The rides play on after that.
+   * styling says, those who arrive walking in and those who have left fading;
+   * the boxes whose place changed ride there from wherever they are. Resolves
+   * with the motions played once drawn, or with none once a newer snapshot
+   * has taken its place. The rides play on after that.
    */
-  show(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Motions>
+  show(layout: Layout, snapshot: Snapshot, styling: Styling, traffic: ComingsAndGoings): Promise<Motions>
   /** Scale every belt. */
   setSpeed(speed: number): void
   dispose(): void
@@ -126,7 +128,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   renderer.setAnimationLoop((time) => {
     const dt = lastFrame === undefined ? 0 : Math.min((time - lastFrame) / 1000, MAX_FRAME_S)
     lastFrame = time
-    agents.tick(dt)
+    agents.tick(dt, speed)
     boxes.tick(dt, speed)
     beltTravel += dt * BELT_SPEED * speed
     belt.offset.x = -beltTravel % 1
@@ -135,7 +137,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
 
   let generation = 0
 
-  async function show(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Motions> {
+  async function show(layout: Layout, snapshot: Snapshot, styling: Styling, traffic: ComingsAndGoings): Promise<Motions> {
     const call = ++generation
     const [sheets, icons] = await Promise.all([
       sheetsOf(layout, snapshot.agents, assetBase, styling.wardrobes),
@@ -149,7 +151,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     disposeMeshes(drawing)
     drawing = drawFactory(layout, belt)
     scene.add(drawing)
-    agents.update(layout, snapshot, sheets, { styles: styling.styles, icons })
+    agents.update(layout, snapshot, sheets, { styles: styling.styles, icons }, traffic)
     // Planned only now, after the wait, so rides still playing are picked up from where they are.
     const motions = motionsFor(layout, boxes.tiles())
     boxes.update(layout, snapshot.tasks, motions.toPlay)

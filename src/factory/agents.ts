@@ -1,12 +1,16 @@
 // The agents on the floor and the tablets on the benches. Like the boxes,
 // they stay from one snapshot to the next: a status change shows on the same
 // figure as a new pose, icon, bubble and tablet face, and a check shown once
-// stays brief. Nothing here is laid out; every agent stands where the layout
-// puts its station.
+// stays brief. An agent that arrives walks in from the door; one that has
+// left fades where it stands. Nothing here is laid out: every agent stands
+// where the layout puts its station, and the floor core says who comes and
+// goes.
 
 import * as THREE from "three"
 import { stationed } from "~/floor/layout"
-import type { Layout, Station, Tile } from "~/floor/types"
+import { directionBetween } from "~/floor/tiles"
+import type { Direction, Layout, Station, Tile } from "~/floor/types"
+import type { ComingsAndGoings } from "~/floor/walk"
 import { type AgentStatus, type StatusIcon, type StatusStyle, bubbleText } from "~/model/status"
 import type { Agent, Snapshot, Task } from "~/model/types"
 import { disposeMeshes } from "./drawing"
@@ -23,7 +27,7 @@ import {
   tablet,
   tileCenter,
 } from "./pieces"
-import { sheetFrame } from "./sprites"
+import { type Facing, sheetFrame } from "./sprites"
 import { type TabletLook, tabletTexture } from "./tablets"
 
 export type StatusStyles = Readonly<Record<AgentStatus, StatusStyle>>
@@ -39,12 +43,23 @@ export interface StatusLooks {
 export interface Agents {
   /**
    * Stand every agent the layout has a station for at it, in its sheet,
-   * looking as its status says, and give every bench a tablet. Agents without
-   * a station or a sheet go, as do the tablets of benches no longer laid out.
+   * looking as its status says, and give every bench a tablet. Those who
+   * arrive walk in from the door along their way in; those who have left,
+   * and any other figure without a station or a sheet, fade. The tablets of
+   * benches no longer laid out go.
    */
-  update(layout: Layout, snapshot: Snapshot, sheets: ReadonlyMap<string, THREE.Texture>, looks: StatusLooks): void
-  /** Carry every pose, jump, spark and tablet dt seconds on. Real seconds: a status is not scaled with the belts. */
-  tick(dt: number): void
+  update(
+    layout: Layout,
+    snapshot: Snapshot,
+    sheets: ReadonlyMap<string, THREE.Texture>,
+    looks: StatusLooks,
+    traffic: ComingsAndGoings,
+  ): void
+  /**
+   * Carry every walk, fade, pose, jump, spark and tablet dt seconds on. Walks
+   * are scaled with the belts; a status plays in real seconds.
+   */
+  tick(dt: number, speed: number): void
   dispose(): void
 }
 
@@ -63,6 +78,16 @@ const GRAVITY = 4
 const LINES_PER_S = 0.5
 /** The sheet columns of each pose. */
 const COLUMN = { stand: 0, step: 1, raisedArm: 3, armForward: 4, hurt: 5 }
+/** The walk cycle's columns, one foot forward then the other. */
+const WALK_CYCLE = [0, 1, 2, 1]
+/** Tiles walked in a second at speed 1. */
+const WALK_SPEED = 3
+/** Walk frames a second. */
+const WALK_FPS = 8
+/** Seconds an agent that has left takes to fade. */
+const FADE_S = 1
+/** The sheet row that faces the way an agent steps. */
+const FACING: Record<Direction, Facing> = { e: "right", w: "left", s: "down", n: "up" }
 /** Sheets and icons are cut out at half alpha. */
 const CUTOUT = 0.5
 
@@ -89,11 +114,19 @@ interface Figure {
   /** Whether the sparks fly: the agent is working and has a box on its bench. */
   sparking: boolean
   bench: Tile
+  /** Where it stands once in: its station's agent tile. */
+  home: THREE.Vector3
   style: StatusStyle
   /** Seconds in the current status. */
   inStatus: number
   /** Seconds on its own clock, started at random so a bay does not jump in step. */
   clock: number
+  /** The way it faces: the camera, or the way it steps while walking in. */
+  facing: Facing
+  /** Its way in from the door and how far along it is, in tiles, while it walks. */
+  walk?: { wayIn: Tile[]; progress: number }
+  /** Seconds into its fade, once it has left. */
+  fading?: number
 }
 
 export function createAgents(parent: THREE.Object3D): Agents {
@@ -104,7 +137,14 @@ export function createAgents(parent: THREE.Object3D): Agents {
   /** Tablet faces the lines have scrolled by. */
   let scrolled = 0
 
-  function update(layout: Layout, snapshot: Snapshot, sheets: ReadonlyMap<string, THREE.Texture>, looks: StatusLooks) {
+  function update(
+    layout: Layout,
+    snapshot: Snapshot,
+    sheets: ReadonlyMap<string, THREE.Texture>,
+    looks: StatusLooks,
+    traffic: ComingsAndGoings,
+  ) {
+    const wayInOf = new Map(traffic.arrivals.map((arrival) => [arrival.agentId, arrival.wayIn]))
     const taskById = new Map(snapshot.tasks.map((task) => [task.id, task]))
     const onBench = new Map<string, Task>()
     for (const { taskId, spot } of layout.boxes) {
@@ -119,7 +159,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
       // A status outside the table is shown as idle rather than not at all.
       const style = agent && (looks.styles[agent.status] ?? looks.styles.idle)
       if (agent && sheet && style) {
-        stand(agent, station, sheet, style, looks, onBench.has(station.id))
+        stand(agent, station, sheet, style, looks, onBench.has(station.id), wayInOf.get(agent.id))
         standing.add(agent.id)
       }
       showTablet(station.id, station.bench, tabletLook(style, onBench.get(station.id), looks.icons))
@@ -128,13 +168,28 @@ export function createAgents(parent: THREE.Object3D): Agents {
     showTablet("staging", layout.staging.bench, { kind: "dim" })
     benches.add("staging")
 
-    for (const id of figures.keys()) if (!standing.has(id)) removeFigure(id)
+    for (const id of traffic.departures) {
+      const figure = figures.get(id)
+      if (figure) figure.fading ??= 0
+    }
+    for (const [id, figure] of figures) if (!standing.has(id)) figure.fading ??= 0
     for (const id of tablets.keys()) if (!benches.has(id)) removeTablet(id)
   }
 
-  function stand(agent: Agent, station: Station, sheet: THREE.Texture, style: StatusStyle, looks: StatusLooks, hasBox: boolean) {
+  /** Put the agent at its station, or at the start of its way in when it has one and is new to the floor. */
+  function stand(
+    agent: Agent,
+    station: Station,
+    sheet: THREE.Texture,
+    style: StatusStyle,
+    looks: StatusLooks,
+    hasBox: boolean,
+    wayIn: Tile[] | undefined,
+  ) {
     let figure = figures.get(agent.id)
-    if (figure && figure.frame.source !== sheet.source) {
+    // A new sheet means a new body, but not a new arrival.
+    const redressed = figure !== undefined && figure.frame.source !== sheet.source
+    if (figure && redressed) {
       removeFigure(agent.id)
       figure = undefined
     }
@@ -159,23 +214,28 @@ export function createAgents(parent: THREE.Object3D): Agents {
         sparks,
         sparking: false,
         bench: station.bench,
+        home: new THREE.Vector3(),
         style,
         inStatus: 0,
         clock: Math.random() * 60,
+        facing: "down",
       }
+      if (wayIn && !redressed && wayIn.length > 1) figure.walk = { wayIn, progress: 0 }
       figures.set(agent.id, figure)
     } else if (figure.agent.status !== agent.status) {
       figure.inStatus = 0
     }
 
     const { x, z } = tileCenter(station.agentTile)
-    figure.group.position.set(x, 0, z)
+    figure.home.set(x, 0, z)
+    if (figure.walk) advance(figure, 0)
+    else figure.group.position.copy(figure.home)
+    figure.fading = undefined
     figure.agent = agent
     figure.bench = station.bench
     figure.style = style
     figure.sparking = style.motion === "work" && hasBox
-    fade(figure.body.material, style.opacity)
-    fade(figure.icon.material, style.opacity)
+    dim(figure, 1)
     if (style.icon !== "none" && figure.icon.material.map !== looks.icons[style.icon]) {
       figure.icon.material.map = looks.icons[style.icon]
       figure.icon.material.needsUpdate = true
@@ -190,23 +250,44 @@ export function createAgents(parent: THREE.Object3D): Agents {
       const sprite = bubble(text)
       figure.group.add(sprite)
       figure.bubble = { text, sprite }
+      figure.bubble.sprite.material.opacity = style.opacity
     }
-    if (figure.bubble) figure.bubble.sprite.material.opacity = style.opacity
     pose(figure)
   }
 
-  /** Put the figure as its status has it at this moment of its clock. */
+  /** Carry a walk steps tiles on, from tile centre to tile centre, facing the way of each step; at the end, home. */
+  function advance(figure: Figure, steps: number) {
+    const walk = figure.walk
+    if (!walk) return
+    const last = walk.wayIn.length - 1
+    walk.progress = Math.min(walk.progress + steps, last)
+    const i = Math.min(Math.floor(walk.progress), last - 1)
+    const from = tileCenter(walk.wayIn[i]!)
+    const to = tileCenter(walk.wayIn[i + 1]!)
+    const t = walk.progress - i
+    figure.group.position.set(from.x + (to.x - from.x) * t, 0, from.z + (to.z - from.z) * t)
+    figure.facing = FACING[directionBetween(walk.wayIn[i]!, walk.wayIn[i + 1]!) ?? "s"]
+    if (walk.progress >= last) {
+      figure.walk = undefined
+      figure.facing = "down"
+      figure.group.position.copy(figure.home)
+    }
+  }
+
+  /** Put the figure as its status has it at this moment of its clock, or mid-step while it walks in. */
   function pose(figure: Figure) {
     const { style, clock, inStatus } = figure
     let column = style.pose === "hurt" ? COLUMN.hurt : COLUMN.stand
     let lift = 0
-    if (style.motion === "work") {
+    if (figure.walk) {
+      column = WALK_CYCLE[Math.floor(clock * WALK_FPS) % WALK_CYCLE.length]!
+    } else if (style.motion === "work") {
       column = Math.floor(clock / WORK_BEAT) % 2 === 0 ? COLUMN.raisedArm : COLUMN.armForward
     } else if (style.motion === "jump") {
       lift = JUMP_H * Math.abs(Math.sin((Math.PI * clock) / JUMP_PERIOD))
       if (style.pose !== "hurt") column = lift > JUMP_H / 2 ? COLUMN.step : COLUMN.stand
     }
-    const frame = sheetFrame(column, "down")
+    const frame = sheetFrame(column, figure.facing)
     figure.frame.offset.set(frame.offset.x, frame.offset.y)
     figure.body.position.y = 0.01 + lift
 
@@ -255,12 +336,21 @@ export function createAgents(parent: THREE.Object3D): Agents {
     tablets.delete(id)
   }
 
-  function tick(dt: number) {
-    for (const figure of figures.values()) {
+  function tick(dt: number, speed: number) {
+    for (const [id, figure] of figures) {
       figure.clock += dt
       figure.inStatus += dt
+      if (figure.walk) advance(figure, dt * WALK_SPEED * speed)
+      if (figure.fading !== undefined) {
+        figure.fading += dt
+        if (figure.fading >= FADE_S) {
+          removeFigure(id)
+          continue
+        }
+        dim(figure, 1 - figure.fading / FADE_S)
+      }
       pose(figure)
-      if (figure.sparking) sparkle(figure, dt)
+      if (figure.sparking && !figure.walk && figure.fading === undefined) sparkle(figure, dt)
       else for (const s of figure.sparks) burnOut(s)
     }
     scrolled += dt * LINES_PER_S
@@ -299,6 +389,14 @@ export function createAgents(parent: THREE.Object3D): Agents {
   }
 
   return { update, tick, dispose }
+}
+
+/** Show the figure at a fraction of its status's opacity: all of it, or less as it fades. */
+function dim(figure: Figure, fraction: number) {
+  const opacity = figure.style.opacity * fraction
+  fade(figure.body.material, opacity)
+  fade(figure.icon.material, opacity)
+  if (figure.bubble) figure.bubble.sprite.material.opacity = opacity
 }
 
 /** Dim a cut-out sprite. Opacity scales the alpha before the cutout test, so the test scales with it or the sprite vanishes. */

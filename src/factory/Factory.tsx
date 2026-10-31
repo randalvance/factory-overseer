@@ -2,13 +2,15 @@
 // factory drawn in 3D. React owns only this shell; the view behind the
 // imperative handle does the drawing (ADR 0004). Each snapshot is laid out
 // additively on the last, so the floor never rearranges itself under the
-// overseer (ADR 0002), and the boxes whose place changed ride the belts there
-// from wherever they are.
+// overseer (ADR 0002); the boxes whose place changed ride the belts there
+// from wherever they are, and the agents who came and went since the last
+// snapshot walk in and fade.
 
 import { useEffect, useRef, useState } from "react"
 import { layoutFloor } from "~/floor/layout"
 import type { Motions } from "~/floor/motion"
 import type { Layout } from "~/floor/types"
+import { comingsAndGoings } from "~/floor/walk"
 import { type StatusStyleOverrides, resolveStatusStyles } from "~/model/status"
 import type { Agent, Pipeline, Task } from "~/model/types"
 import type { Wardrobes } from "./sprites"
@@ -57,10 +59,11 @@ export function Factory({ pipeline, agents, tasks, speed = 1, statusStyles, ward
   useEffect(() => {
     if (!view.current) return
     const layout = layoutFloor(pipeline, { agents, tasks }, previous.current)
+    const traffic = comingsAndGoings(previous.current, layout)
     previous.current = layout
     let stale = false
     view.current
-      .show(layout, { agents, tasks }, { styles: resolveStatusStyles(statusStyles), wardrobes: wardrobes ?? {} })
+      .show(layout, { agents, tasks }, { styles: resolveStatusStyles(statusStyles), wardrobes: wardrobes ?? {} }, traffic)
       .then((motions) => {
         if (stale) return
         latestOnLayout.current?.(layout, motions)

@@ -7,9 +7,14 @@ export function travelDirection(tile: BeltTile): Direction {
   return tile.kind === "corner" ? tile.to : tile.dir
 }
 
-/** The way boxes travel as they enter the tile. */
+/** The way boxes travel as they enter the tile; for a junction, the way through. */
 export function entryDirection(tile: BeltTile): Direction {
   return tile.kind === "corner" ? tile.from : tile.dir
+}
+
+/** Every way boxes can travel as they enter the tile: one for a straight or a corner, each entry of a junction. */
+export function entries(tile: BeltTile): Direction[] {
+  return tile.kind === "junction" ? tile.entries : [entryDirection(tile)]
 }
 
 /** Every way boxes can leave the tile: one for a straight or a corner, each exit of a junction. */
