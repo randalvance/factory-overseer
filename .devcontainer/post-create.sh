@@ -12,8 +12,9 @@ if [ -f "$HOME/.host-gitconfig" ]; then
 fi
 git config --global --add safe.directory "$PWD"
 
-# GitHub auth for pushes. GH_TOKEN is passed through from the host at
-# `devcontainer up`; without it this only wires git to ask gh later.
+# GitHub auth for pushes. GH_TOKEN reaches the container from the host
+# environment of each `devcontainer exec` call (set it on the host as
+# GH_TOKEN="$(gh auth token)"); without it this only wires git to ask gh.
 gh auth setup-git >/dev/null 2>&1 || true
 
 python3 -m pip install --user --quiet pillow

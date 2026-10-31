@@ -8,3 +8,4 @@ playwright-report/
 *.blend1
 *.blend2
 /tmp/
+.scratch/
