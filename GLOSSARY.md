@@ -72,6 +72,11 @@ The screen at a station that shows the agent's progress on the box in front
 of it. The box stays put until the tablet reports the work done.
 _Avoid_: Screen, terminal, monitor
 
+**Vacant**:
+A station whose agent has left. It keeps its place until an agent of the same
+role takes it.
+_Avoid_: Empty, free, unassigned
+
 ## What moves
 
 **Task**:
@@ -112,6 +117,20 @@ _Avoid_: Bounce, return, rejection, send-back
 **Shipped**:
 The state of a task that has reached the shipping container. Terminal.
 _Avoid_: Done, complete, finished
+
+**Queue**:
+The boxes waiting behind the one on a station's bench, in order, on the belt
+into that station.
+_Avoid_: Backlog, line, waiting list
+
+**Pile**:
+Boxes waiting where nothing carries them yet: at the intake, or in the staging
+area for the inspector.
+_Avoid_: Heap, buffer
+
+**Stack**:
+The shipped boxes accumulating in the shipping container.
+_Avoid_: Archive, history
 
 ## Agent statuses
 

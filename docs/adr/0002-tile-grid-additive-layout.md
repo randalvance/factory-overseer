@@ -6,7 +6,11 @@ something reserves tiles, and nothing already placed moves when agents or
 roles are added or removed. A role that appears later is appended to the end
 of the line even when it logically sits mid-pipeline, and the belts loop to
 reach it; only an explicit request from the overseer recomputes a compact
-layout.
+layout. The one exception is the two ends of the line: when a bay is
+appended, the staging area, the container and the belts that run into them
+are laid out again further right to make room, because a bay cannot
+otherwise be appended between the last bay and the ends. Bays, stations and
+the belts between bays never move.
 
 We chose this over free-form splines and over an always-optimal relayout
 because the overseer watches the floor continuously, and a floor that
