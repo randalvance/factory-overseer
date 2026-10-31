@@ -43,6 +43,9 @@ test("a role and a task joining are drawn without errors", async ({ page }) => {
   await expect(factory).toHaveAttribute("data-drawn", "2")
   await page.getByRole("button", { name: "Add a task" }).click()
   await expect(factory).toHaveAttribute("data-drawn", "3")
+  // The new box is on its way down out of the hopper.
+  await page.waitForTimeout(250)
+  await page.screenshot({ path: `${screenshots}/hopper.png` })
 })
 
 test("handoffs ride the belts and rework rides the return belt without errors", async ({ page }) => {
@@ -62,6 +65,36 @@ test("handoffs ride the belts and rework rides the return belt without errors", 
   await next.click()
   await expect(factory).toHaveAttribute("data-drawn", "4")
   await page.waitForTimeout(500)
+})
+
+test("rework from the staging area rides back, and the rest ships into the container, without errors", async ({ page }) => {
+  const factory = await openFactory(page)
+  const next = page.getByRole("button", { name: "Next handoff" })
+
+  // The fourth handoff has the inspector reject t-31 back to qa.
+  for (let i = 1; i <= 4; i++) {
+    await next.click()
+    await expect(factory).toHaveAttribute("data-drawn", String(i + 1))
+  }
+  await page.waitForTimeout(2500)
+  await page.screenshot({ path: `${screenshots}/staging-rework.png` })
+  for (let i = 5; !(await next.isDisabled()); i++) {
+    await next.click()
+    await expect(factory).toHaveAttribute("data-drawn", String(i + 1))
+  }
+  // The last boxes ride into the container, whose count already shows the total.
+  await page.waitForTimeout(4000)
+  await page.screenshot({ path: `${screenshots}/shipped.png` })
+})
+
+test("the staging area can be switched off and on without errors", async ({ page }) => {
+  const factory = await openFactory(page)
+
+  await page.getByRole("button", { name: "Staging off" }).click()
+  await expect(factory).toHaveAttribute("data-drawn", "2")
+  await page.screenshot({ path: `${screenshots}/no-staging.png` })
+  await page.getByRole("button", { name: "Staging on" }).click()
+  await expect(factory).toHaveAttribute("data-drawn", "3")
 })
 
 test("an agent is shown in every status without errors", async ({ page }) => {

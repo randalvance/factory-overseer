@@ -29,8 +29,8 @@ function nextSnapshot(before: Layout, tasks: Record<string, TaskLocation>): Layo
 
 // The first floor: intake on tiles 0 to 1, the implementer's bench at x = 5,
 // the reviewer's at x = 10, the qa's at x = 15, the staging bench at x = 20
-// and the container's mouth at x = 24 with the stack at x = 25, all on the
-// trunk row y = 3.
+// and the container's mouth at x = 24 with its first stack at x = 25, all on
+// the trunk row y = 3.
 
 describe("a handoff rides the trunk", () => {
   it("carries a task from one station's bench to the next bay's bench, tile by tile", () => {
@@ -238,5 +238,65 @@ describe("a bay with lanes", () => {
       { tile: { x: 6, y: 3 }, exit: "e" },
       { tile: { x: 9, y: 3 }, exit: "e" },
     ])
+  })
+})
+
+describe("rework from the staging area", () => {
+  it("rides a task the inspector rejects up the staging area's riser, along the return belt and down into the qa bay", () => {
+    const awaitingReview = layoutFloor(pipeline, snapshot({ "t-1": "staging" }))
+    const rejected = nextSnapshot(awaitingReview, { "t-1": { agent: "qa-1" } })
+
+    const motions = motionsFor(rejected, restingTiles(awaitingReview))
+
+    expect(motions.toPlay[0]!.path).toEqual(
+      tiles([20, 3], [21, 3], [21, 2], [21, 1], [20, 1], [19, 1], [18, 1], [17, 1], [16, 1], [15, 1], [14, 1], [14, 2], [14, 3], [15, 3]),
+    )
+    expect(motions.toPlay[0]!.junctions).toEqual([
+      { tile: { x: 21, y: 3 }, exit: "n" },
+      { tile: { x: 16, y: 1 }, exit: "w" },
+      { tile: { x: 14, y: 1 }, exit: "s" },
+      { tile: { x: 14, y: 3 }, exit: "e" },
+    ])
+  })
+
+  it("still ships from the staging bench straight on into the container", () => {
+    const awaitingReview = layoutFloor(pipeline, snapshot({ "t-1": "staging" }))
+    const shipped = nextSnapshot(awaitingReview, { "t-1": "shipped" })
+
+    const motions = motionsFor(shipped, restingTiles(awaitingReview))
+
+    expect(motions.toPlay[0]!.path).toEqual(tiles([20, 3], [21, 3], [22, 3], [23, 3], [24, 3], [25, 3]))
+    expect(motions.toPlay[0]!.junctions).toEqual([{ tile: { x: 21, y: 3 }, exit: "e" }])
+  })
+})
+
+describe("with the staging area switched off", () => {
+  it("rides from the last station straight into the container", () => {
+    const atQa = layoutFloor(pipeline, snapshot({ "t-1": { agent: "qa-1" } }), undefined, { staging: false })
+    const shipped = layoutFloor(pipeline, snapshot({ "t-1": "shipped" }), atQa, { staging: false })
+
+    const motions = motionsFor(shipped, restingTiles(atQa))
+
+    expect(motions.toPlay[0]!.path).toEqual(tiles([15, 3], [16, 3], [17, 3], [18, 3], [19, 3], [20, 3]))
+    expect(motions.unrouted).toEqual([])
+  })
+
+  it("keeps a box already in the container where the container now is: no ride, and no route missing", () => {
+    const shipped = layoutFloor(pipeline, snapshot({ "t-1": "shipped" }))
+    const switchedOff = layoutFloor(pipeline, snapshot({ "t-1": "shipped" }), shipped, { staging: false })
+
+    expect(restingTiles(shipped)["t-1"]).toEqual({ x: 25, y: 3 })
+    expect(restingTiles(switchedOff)["t-1"]).toEqual({ x: 20, y: 3 })
+    expect(motionsFor(switchedOff, restingTiles(shipped), shipped)).toEqual({ toPlay: [], unrouted: [] })
+  })
+
+  it("still rides a box on its way into the container the rest of the way when the container stays put", () => {
+    const awaitingReview = layoutFloor(pipeline, snapshot({ "t-1": "staging" }))
+    const shipped = layoutFloor(pipeline, snapshot({ "t-1": "shipped" }), awaitingReview)
+    const stillShipped = layoutFloor(pipeline, snapshot({ "t-1": "shipped" }), shipped)
+
+    const motions = motionsFor(stillShipped, { "t-1": { x: 23, y: 3 } }, shipped)
+
+    expect(motions.toPlay[0]!.path).toEqual(tiles([23, 3], [24, 3], [25, 3]))
   })
 })

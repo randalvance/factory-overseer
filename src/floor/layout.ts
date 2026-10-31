@@ -41,7 +41,12 @@ export function bayId(role: string): string {
   return `bay:${role}`
 }
 
-export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: Layout): Layout {
+export interface FloorOptions {
+  /** Whether boxes pass an inspector before they ship. On unless switched off. */
+  staging?: boolean
+}
+
+export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: Layout, options: FloorOptions = {}): Layout {
   const roles = roleOrder(pipeline, snapshot, previous)
   let x = 0
 
@@ -62,32 +67,35 @@ export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: L
     return bay
   })
 
-  const staging: StagingArea = {
-    rect: footprint(x, STAGING_W),
-    bench: { x: x + 1, y: TRUNK_ROW },
-    inspectorTile: { x: x + 1, y: TRUNK_ROW - 1 },
-    // Waiting boxes stay inside the area: on the bench, then piled on the
-    // shelf before it, from where the next one rolls onto the bench when it
-    // frees. The shelf past the bench would only be reachable against the belt.
-    pile: [
-      { x: x + 1, y: TRUNK_ROW },
-      { x, y: TRUNK_ROW - 1 },
-    ],
+  let staging: StagingArea | undefined
+  if (options.staging ?? true) {
+    staging = {
+      rect: footprint(x, STAGING_W),
+      bench: { x: x + 1, y: TRUNK_ROW },
+      inspectorTile: { x: x + 1, y: TRUNK_ROW - 1 },
+      // Waiting boxes stay inside the area: on the bench, then piled on the
+      // shelf before it, from where the next one rolls onto the bench when it
+      // frees. The shelf past the bench would only be reachable against the belt.
+      pile: [
+        { x: x + 1, y: TRUNK_ROW },
+        { x, y: TRUNK_ROW - 1 },
+      ],
+    }
+    x += STAGING_W + GAP
   }
-  x += STAGING_W + GAP
 
   const container: Container = {
     rect: footprint(x, CONTAINER_W),
     mouth: { x, y: TRUNK_ROW },
-    stack: { x: x + 1, y: TRUNK_ROW },
+    stacks: [TRUNK_ROW, TRUNK_ROW - 1].flatMap((y) => columns(x + 1, x + CONTAINER_W).map((sx) => ({ x: sx, y }))),
   }
   x += CONTAINER_W
 
   const belts = [...trunkBelts(intake, bays, staging, container), ...bays.flatMap(bayBelts)]
-  const { boxes, unplacedTaskIds } = placeBoxes(snapshot.tasks, { bays, intake, staging, container, belts })
+  const { boxes, unplacedTaskIds } = placeBoxes(snapshot.tasks, { bays, intake, staging, container, belts }, previous)
   // Once laid, the return belt stays; it is laid the first time a box is rework.
   const hadReturnBelt = previous?.belts.some((belt) => belt.kind === "return") ?? false
-  if (hadReturnBelt || boxes.some((box) => isRework(box, bays, previous))) belts.push(...returnBelts(bays))
+  if (hadReturnBelt || boxes.some((box) => isRework(box, bays, previous))) belts.push(...returnBelts(bays, staging))
   // One row of floor in front of the frontmost lane.
   const front = Math.max(TRUNK_ROW + 1, ...bays.map((bay) => bay.rect.y + bay.rect.h))
 
@@ -108,6 +116,11 @@ export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: L
 /** A structure's footprint on the first two rows of the floor: the agent row and the trunk row. */
 function footprint(x: number, w: number): Rect {
   return { x, y: TRUNK_ROW - 1, w, h: 2 }
+}
+
+/** The tile columns from one x up to, not including, another. */
+function columns(from: number, to: number): number[] {
+  return Array.from({ length: to - from }, (_, i) => from + i)
 }
 
 /**
@@ -176,19 +189,22 @@ interface TrunkStop {
   exit: number
   /** The first tile of the stop along the trunk; the belt in ends before it. */
   entry: number
+  /** The column where the belt out starts with a junction toward the return belt's riser: past the staging bench, for rework. */
+  riserColumn?: number
 }
 
 /**
  * One belt between each pair of consecutive stops, from the tile after one
  * stop's exit to the tile before the next one's entry. A bay with stations
  * is entered at its feeder column and left at its collector column; a bay
- * with none yet is not a stop, and the trunk runs through it.
+ * with none yet is not a stop, and the trunk runs through it. Without a
+ * staging area the last stop before the container is the last such bay.
  */
-function trunkBelts(intake: Intake, bays: Bay[], staging: StagingArea, container: Container): Belt[] {
+function trunkBelts(intake: Intake, bays: Bay[], staging: StagingArea | undefined, container: Container): Belt[] {
   const stops: TrunkStop[] = [
     { id: "intake", exit: intake.rect.x + intake.rect.w - 1, entry: intake.rect.x },
     ...staffed(bays).map((bay) => ({ id: bayId(bay.role), entry: feederColumn(bay), exit: collectorColumn(bay) })),
-    { id: "staging", exit: staging.bench.x, entry: staging.bench.x },
+    ...(staging ? [{ id: "staging", exit: staging.bench.x, entry: staging.bench.x, riserColumn: riserColumn(staging) }] : []),
     // The mouth is the belt's last tile, so the container's entry is past it.
     { id: "container", exit: container.mouth.x, entry: container.mouth.x + 1 },
   ]
@@ -197,7 +213,13 @@ function trunkBelts(intake: Intake, bays: Bay[], staging: StagingArea, container
     const from = stops[i - 1]!
     const to = stops[i]!
     const tiles: BeltTile[] = []
-    for (let bx = from.exit + 1; bx < to.entry; bx++) tiles.push({ kind: "straight", x: bx, y: TRUNK_ROW, dir: "e" })
+    for (let x = from.exit + 1; x < to.entry; x++) {
+      tiles.push(
+        x === from.riserColumn
+          ? { kind: "junction", x, y: TRUNK_ROW, dir: "e", entries: ["e"], exits: ["e", "n"] }
+          : { kind: "straight", x, y: TRUNK_ROW, dir: "e" },
+      )
+    }
     belts.push({ id: `${from.id}>${to.id}`, kind: "trunk", from: from.id, to: to.id, tiles })
   }
   return belts
@@ -244,14 +266,15 @@ function bayBelts(bay: Bay): Belt[] {
 }
 
 /**
- * The return belt, right to left along the back wall from the last bay with
- * stations to the first: over each such bay, a riser junction above its
- * merge junction, where rework from the bay joins, and a drop junction above
- * its split junction, where rework for the bay leaves. The riser and the
- * drop themselves, one tile each in the agent row, connect the belt to the
- * bay's junctions. A bay with no station is passed straight over.
+ * The return belt, right to left along the back wall from the staging area's
+ * riser, or the last bay's when there is no staging area, to the first bay
+ * with stations: over each such bay, a riser junction above its merge
+ * junction, where rework from the bay joins, and a drop junction above its
+ * split junction, where rework for the bay leaves. The risers and the drops
+ * themselves, one tile each in the agent row, connect the belt to the
+ * junctions below. A bay with no station is passed straight over.
  */
-function returnBelts(bays: Bay[]): Belt[] {
+function returnBelts(bays: Bay[], staging: StagingArea | undefined): Belt[] {
   const served = staffed(bays)
   const first = served[0]
   const last = served.at(-1)
@@ -259,6 +282,11 @@ function returnBelts(bays: Bay[]): Belt[] {
   const dropColumns = new Set(served.map(feederColumn))
   const riserColumns = new Set(served.map(collectorColumn))
   const run: BeltTile[] = []
+  const stagingRiserColumn = staging && riserColumn(staging)
+  if (stagingRiserColumn !== undefined) {
+    run.push({ kind: "corner", x: stagingRiserColumn, y: RETURN_ROW, from: "n", to: "w" })
+    for (let x = stagingRiserColumn - 1; x > collectorColumn(last); x--) run.push({ kind: "straight", x, y: RETURN_ROW, dir: "w" })
+  }
   for (let x = collectorColumn(last); x >= feederColumn(first); x--) {
     run.push(
       riserColumns.has(x)
@@ -269,7 +297,10 @@ function returnBelts(bays: Bay[]): Belt[] {
     )
   }
   return [
-    { id: "return", kind: "return", from: bayId(last.role), to: bayId(first.role), tiles: run },
+    { id: "return", kind: "return", from: staging ? "staging" : bayId(last.role), to: bayId(first.role), tiles: run },
+    ...(stagingRiserColumn === undefined
+      ? []
+      : [{ id: "staging>return", kind: "riser", from: "staging", to: "return", tiles: [{ kind: "straight", x: stagingRiserColumn, y: RETURN_ROW + 1, dir: "n" }] } satisfies Belt]),
     ...served.flatMap((bay): Belt[] => {
       const id = bayId(bay.role)
       const riser: BeltTile = { kind: "straight", x: collectorColumn(bay), y: RETURN_ROW + 1, dir: "n" }
@@ -295,6 +326,11 @@ function feederColumn(bay: Bay): number {
 /** The bay's front column, where the collector runs and the trunk leaves. */
 function collectorColumn(bay: Bay): number {
   return bay.rect.x + bay.rect.w - 1
+}
+
+/** The column past the staging bench, where the trunk's junction out of the staging area and its riser to the return belt are. */
+function riserColumn(staging: StagingArea): number {
+  return staging.bench.x + 1
 }
 
 /**
@@ -330,12 +366,15 @@ type Places = Pick<Layout, "intake" | "bays" | "staging" | "container" | "belts"
  * One box per task, where its location says. Among tasks at one agent, array
  * order is queue order: the first sits on the bench, the rest wait back along
  * the belts into its lane, piling up at the farthest tile when the belts are
- * shorter than the queue.
+ * shorter than the queue. Shipped is terminal: a task once in the container
+ * stays there whatever the host says of it later; shipped boxes fill the
+ * container's stacks in order, round and round, so they pile up a layer at a time.
  */
-function placeBoxes(tasks: Task[], places: Places): { boxes: BoxPlacement[]; unplacedTaskIds: string[] } {
+function placeBoxes(tasks: Task[], places: Places, previous: Layout | undefined): { boxes: BoxPlacement[]; unplacedTaskIds: string[] } {
   const boxes: BoxPlacement[] = []
   const unplacedTaskIds: string[] = []
   const stations = places.bays.flatMap((bay) => bay.stations)
+  const shippedBefore = new Set(previous ? inContainer(previous).map((box) => box.taskId) : [])
   const counts = new Map<string, number>()
   const nextIndexAt = (key: string): number => {
     const n = counts.get(key) ?? 0
@@ -351,16 +390,21 @@ function placeBoxes(tasks: Task[], places: Places): { boxes: BoxPlacement[]; unp
   }
 
   for (const task of tasks) {
-    const at = task.at
+    const at = shippedBefore.has(task.id) ? "shipped" : task.at
     if (at === "intake") {
       const index = nextIndexAt("intake")
       boxes.push({ taskId: task.id, tile: pileTile(places.intake.pile, index), spot: { kind: "intake", index } })
     } else if (at === "staging") {
+      if (!places.staging) {
+        unplacedTaskIds.push(task.id)
+        continue
+      }
       const index = nextIndexAt("staging")
       boxes.push({ taskId: task.id, tile: pileTile(places.staging.pile, index), spot: { kind: "staging", index } })
     } else if (at === "shipped") {
       const index = nextIndexAt("shipped")
-      boxes.push({ taskId: task.id, tile: places.container.stack, spot: { kind: "container", index } })
+      const stacks = places.container.stacks
+      boxes.push({ taskId: task.id, tile: stacks[index % stacks.length]!, spot: { kind: "container", index } })
     } else {
       const station = stations.find((s) => s.agentId === at.agent)
       if (!station) {
@@ -390,4 +434,9 @@ function queueBehind(station: Station, belts: Belt[]): Tile[] {
 export function stationed(layout: Layout, agents: Agent[]): { station: Station; agent: Agent | undefined }[] {
   const byId = new Map(agents.map((agent) => [agent.id, agent]))
   return layout.bays.flatMap((bay) => bay.stations.map((station) => ({ station, agent: byId.get(station.agentId) })))
+}
+
+/** The boxes in the container, where they stay. */
+export function inContainer(layout: Pick<Layout, "boxes">): BoxPlacement[] {
+  return layout.boxes.filter((box) => box.spot.kind === "container")
 }

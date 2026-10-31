@@ -10,7 +10,7 @@ import type { Layout, Rect } from "~/floor/types"
 import { type AgentStatus, STATUS_ICONS, type StatusStyle } from "~/model/status"
 import type { ComingsAndGoings } from "~/floor/walk"
 import type { Agent, Snapshot } from "~/model/types"
-import { type Icons, createAgents } from "./agents"
+import { INSPECTOR, type Icons, createAgents } from "./agents"
 import { BELT_SPEED, createBoxes } from "./boxes"
 import { type CameraPose, PITCH, PX_PER_TILE, clampToFloor, fitFloor, panBy, zoomBy } from "./camera"
 import { attachControls } from "./controls"
@@ -72,6 +72,8 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   let visible = false
   let floor: Rect | undefined
   let pose: CameraPose | undefined
+  /** The last layout drawn, so the next one's motions know where every box rested. */
+  let shown: Layout | undefined
 
   const surfaces = { forward: beltTexture(), rework: returnBeltTexture() }
   let drawing = new THREE.Group()
@@ -128,8 +130,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   renderer.setAnimationLoop((time) => {
     const dt = lastFrame === undefined ? 0 : Math.min((time - lastFrame) / 1000, MAX_FRAME_S)
     lastFrame = time
-    agents.tick(dt, speed)
-    boxes.tick(dt, speed)
+    agents.tick(dt, speed, boxes.tick(dt, speed))
     beltTravel += dt * BELT_SPEED * speed
     for (const surface of Object.values(surfaces)) surface.offset.x = -beltTravel % 1
     if (visible) renderer.render(scene, camera)
@@ -153,8 +154,9 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     scene.add(drawing)
     agents.update(layout, snapshot, sheets, { styles: styling.styles, icons }, traffic)
     // Planned only now, after the wait, so rides still playing are picked up from where they are.
-    const motions = motionsFor(layout, boxes.tiles())
+    const motions = motionsFor(layout, boxes.tiles(), shown)
     boxes.update(layout, snapshot.tasks, motions.toPlay)
+    shown = layout
     aimCamera()
     if (visible) renderer.render(scene, camera)
     return motions
@@ -181,20 +183,24 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   }
 }
 
-/** The sheet of every agent the layout has a station for, by agent id. */
+/** Enough of an agent to pick its sheet. */
+type Wearer = Pick<Agent, "id" | "role" | "sprite">
+
+/** The sheet of every agent the layout has a station for, by agent id, and the inspector's while there is a staging area. */
 async function sheetsOf(
   layout: Layout,
   agents: Agent[],
   assetBase: string,
   wardrobes: Wardrobes,
 ): Promise<Map<string, THREE.Texture>> {
-  const standing = stationed(layout, agents).flatMap(({ agent }) => (agent ? [agent] : []))
-  const sheets = await Promise.all(standing.map((agent) => sheetOf(agent, assetBase, wardrobes)))
-  return new Map(standing.map((agent, i) => [agent.id, sheets[i]!]))
+  const standing: Wearer[] = stationed(layout, agents).flatMap(({ agent }) => (agent ? [agent] : []))
+  if (layout.staging) standing.push(INSPECTOR)
+  const sheets = await Promise.all(standing.map((wearer) => sheetOf(wearer, assetBase, wardrobes)))
+  return new Map(standing.map((wearer, i) => [wearer.id, sheets[i]!]))
 }
 
 /** The agent's own sheet, or the one derived from its id when its own cannot be loaded. */
-function sheetOf(agent: Agent, assetBase: string, wardrobes: Wardrobes): Promise<THREE.Texture> {
+function sheetOf(agent: Wearer, assetBase: string, wardrobes: Wardrobes): Promise<THREE.Texture> {
   const own = sheetUrl(agent, assetBase, wardrobes)
   const fallback = sheetUrl({ id: agent.id, role: agent.role }, assetBase, wardrobes)
   return loadTexture(own).catch((error: unknown) => {

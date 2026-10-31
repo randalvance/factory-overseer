@@ -1,13 +1,16 @@
 // The boxes on the floor. Unlike the pieces, boxes stay from one snapshot to
 // the next and ride the belts between their resting places, so a box in
-// transit keeps going when the floor around it is redrawn.
+// transit keeps going when the floor around it is redrawn. A task new to the
+// intake drops out of the hopper onto its pile tile. The count over the
+// container is kept here too: it counts the boxes resting inside, so it goes
+// up as each one lands.
 
 import * as THREE from "three"
 import type { BoxTiles, Motion } from "~/floor/motion"
 import { tileKey } from "~/floor/tiles"
-import type { Layout, Tile } from "~/floor/types"
+import type { BoxSpot, Layout, Tile } from "~/floor/types"
 import type { Task } from "~/model/types"
-import { BOX_SIZE, box, boxFace, heightsOver, tileCenter } from "./pieces"
+import { BOX_SIZE, box, boxFace, containerCount, heightsOver, hopperMouth, recount, tileCenter } from "./pieces"
 
 /** Belt travel in tiles per second at speed 1. */
 export const BELT_SPEED = 2
@@ -25,15 +28,22 @@ interface FloorBox {
   mesh: THREE.Mesh
   /** Where the layout rests it. */
   tile: Tile
+  spot: BoxSpot
   rest: THREE.Vector3
   ride?: Ride
+}
+
+/** A ride that ended this tick: whose box, and the tile it now rests on. */
+export interface Landing {
+  taskId: string
+  tile: Tile
 }
 
 export interface Boxes {
   /** Rest every box where the layout puts it, riding the motions given. Boxes of tasks no longer on the floor go. */
   update(layout: Layout, tasks: Task[], motions: Motion[]): void
-  /** Carry every ride dt seconds further at the given speed. */
-  tick(dt: number, speed: number): void
+  /** Carry every ride dt seconds further at the given speed; the rides that ended on the way. */
+  tick(dt: number, speed: number): Landing[]
   /** Where each box is now: at rest, or over a tile of its ride. */
   tiles(): BoxTiles
   dispose(): void
@@ -43,11 +53,16 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
   const boxes = new Map<string, FloorBox>()
   const group = new THREE.Group()
   parent.add(group)
+  /** The count over the container. */
+  let plate: THREE.Mesh | undefined
+  /** Whether a snapshot has been shown: the first finds its boxes in place, later ones drop newcomers out of the hopper. */
+  let opened = false
 
   function update(layout: Layout, tasks: Task[], motions: Motion[]) {
     const taskById = new Map(tasks.map((task) => [task.id, task]))
     const motionOf = new Map(motions.map((motion) => [motion.taskId, motion]))
     const heightOver = heightsOver(layout)
+    const mouth = hopperMouth(layout.intake)
     const stackedAt = new Map<string, number>()
     const kept = new Set<string>()
 
@@ -65,10 +80,15 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
       if (!floorBox) {
         const mesh = box(placement.tile, underside, label, task?.color)
         group.add(mesh)
-        floorBox = { mesh, tile: placement.tile, rest }
+        floorBox = { mesh, tile: placement.tile, spot: placement.spot, rest }
         boxes.set(placement.taskId, floorBox)
+        if (opened && placement.spot.kind === "intake") {
+          mesh.position.copy(mouth)
+          floorBox.ride = { path: [placement.tile], waypoints: [mouth.clone(), rest.clone()], progress: 0 }
+        }
       } else {
         floorBox.tile = placement.tile
+        floorBox.spot = placement.spot
         floorBox.rest = rest
         ;(floorBox.mesh.material as THREE.MeshLambertMaterial).map = boxFace(label, task?.color)
       }
@@ -92,6 +112,24 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
     }
 
     for (const taskId of boxes.keys()) if (!kept.has(taskId)) remove(taskId)
+    removePlate()
+    plate = containerCount(layout.container, restingInContainer())
+    group.add(plate)
+    opened = true
+  }
+
+  function restingInContainer(): number {
+    let count = 0
+    for (const floorBox of boxes.values()) if (floorBox.spot.kind === "container" && !floorBox.ride) count++
+    return count
+  }
+
+  function removePlate() {
+    if (!plate) return
+    group.remove(plate)
+    plate.geometry.dispose()
+    ;(plate.material as THREE.Material).dispose()
+    plate = undefined
   }
 
   function remove(taskId: string) {
@@ -103,9 +141,10 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
     boxes.delete(taskId)
   }
 
-  function tick(dt: number, speed: number) {
+  function tick(dt: number, speed: number): Landing[] {
     const steps = dt * BELT_SPEED * speed
-    for (const floorBox of boxes.values()) {
+    const landings: Landing[] = []
+    for (const [taskId, floorBox] of boxes) {
       const ride = floorBox.ride
       if (!ride) continue
       const last = ride.waypoints.length - 1
@@ -115,8 +154,11 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
       if (ride.progress >= last) {
         floorBox.ride = undefined
         floorBox.mesh.position.copy(floorBox.rest)
+        landings.push({ taskId, tile: floorBox.tile })
       }
     }
+    if (landings.length > 0 && plate) recount(plate, restingInContainer())
+    return landings
   }
 
   function tiles(): BoxTiles {
@@ -130,6 +172,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
 
   function dispose() {
     for (const taskId of [...boxes.keys()]) remove(taskId)
+    removePlate()
     parent.remove(group)
   }
 

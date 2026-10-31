@@ -2,17 +2,19 @@
 // they stay from one snapshot to the next: a status change shows on the same
 // figure as a new pose, icon, bubble and tablet face, and a check shown once
 // stays brief. An agent that arrives walks in from the door; one that has
-// left fades where it stands. Nothing here is laid out: every agent stands
-// where the layout puts its station, and the floor core says who comes and
-// goes.
+// left fades where it stands. The inspector stands at the staging area for
+// as long as there is one and stamps each box that lands on the bench.
+// Nothing here is laid out: every agent stands where the layout puts its
+// station, and the floor core says who comes and goes.
 
 import * as THREE from "three"
 import { stationed } from "~/floor/layout"
-import { directionBetween } from "~/floor/tiles"
+import { directionBetween, sameTile } from "~/floor/tiles"
 import type { Direction, Layout, Station, Tile } from "~/floor/types"
 import type { ComingsAndGoings } from "~/floor/walk"
 import { type AgentStatus, type StatusIcon, type StatusStyle, bubbleText } from "~/model/status"
 import type { Agent, Snapshot, Task } from "~/model/types"
+import type { Landing } from "./boxes"
 import { disposeMeshes } from "./drawing"
 import {
   AGENT_H,
@@ -27,7 +29,7 @@ import {
   tablet,
   tileCenter,
 } from "./pieces"
-import { type Facing, sheetFrame } from "./sprites"
+import { type Facing, INSPECTOR_SHEET, sheetFrame } from "./sprites"
 import { type TabletLook, tabletTexture } from "./tablets"
 
 export type StatusStyles = Readonly<Record<AgentStatus, StatusStyle>>
@@ -56,12 +58,23 @@ export interface Agents {
     traffic: ComingsAndGoings,
   ): void
   /**
-   * Carry every walk, fade, pose, jump, spark and tablet dt seconds on. Walks
-   * are scaled with the belts; a status plays in real seconds.
+   * Carry every walk, fade, pose, jump, spark and tablet dt seconds on; the
+   * inspector stamps each box that has just landed on the staging bench.
+   * Walks are scaled with the belts; a status plays in real seconds.
    */
-  tick(dt: number, speed: number): void
+  tick(dt: number, speed: number, landings: Landing[]): void
   dispose(): void
 }
+
+/** The key the inspector's sheet is handed over under, beside the agents' by id. */
+export const INSPECTOR_ID = "inspector"
+/**
+ * The inspector is no agent (GLOSSARY), but wears the agent shape so the
+ * figures can stand it like one: a fixed stock sheet, and a look of its own
+ * that the host's status styles do not reach.
+ */
+export const INSPECTOR: Agent = { id: INSPECTOR_ID, name: "Inspector", role: INSPECTOR_ID, status: "idle", sprite: INSPECTOR_SHEET }
+const INSPECTOR_STYLE: StatusStyle = { motion: "stand", icon: "none", bubble: null, pose: "walk", opacity: 1 }
 
 /** Seconds each work pose is held. */
 const WORK_BEAT = 0.35
@@ -86,6 +99,8 @@ const WALK_SPEED = 3
 const WALK_FPS = 8
 /** Seconds an agent that has left takes to fade. */
 const FADE_S = 1
+/** Seconds the inspector's stamp takes: the arm up, then down on the box. */
+const STAMP_S = 0.6
 /** The sheet row that faces the way an agent steps. */
 const FACING: Record<Direction, Facing> = { e: "right", w: "left", s: "down", n: "up" }
 /** Sheets and icons are cut out at half alpha. */
@@ -127,6 +142,21 @@ interface Figure {
   walk?: { wayIn: Tile[]; progress: number }
   /** Seconds into its fade, once it has left. */
   fading?: number
+  /** Seconds into the inspector's stamp, while one is under way. */
+  stamping?: number
+}
+
+/** Where a figure stands and how it looks for one snapshot. */
+interface Posting {
+  station: Pick<Station, "agentTile" | "bench">
+  sheet: THREE.Texture
+  style: StatusStyle
+  /** What its bubble says, or null for none. */
+  bubble: string | null
+  /** Whether a box is on its bench, for the sparks. */
+  hasBox?: boolean
+  /** Its way in from the door when it is new to the floor. */
+  wayIn?: Tile[]
 }
 
 export function createAgents(parent: THREE.Object3D): Agents {
@@ -159,14 +189,22 @@ export function createAgents(parent: THREE.Object3D): Agents {
       // A status outside the table is shown as idle rather than not at all.
       const style = agent && (looks.styles[agent.status] ?? looks.styles.idle)
       if (agent && sheet && style) {
-        stand(agent, station, sheet, style, looks, onBench.has(station.id), wayInOf.get(agent.id))
+        const bubble = bubbleText(agent.status, agent.activity, looks.styles)
+        stand(agent, { station, sheet, style, bubble, hasBox: onBench.has(station.id), wayIn: wayInOf.get(agent.id) }, looks)
         standing.add(agent.id)
       }
       showTablet(station.id, station.bench, tabletLook(style, onBench.get(station.id), looks.icons))
       benches.add(station.id)
     }
-    showTablet("staging", layout.staging.bench, { kind: "dim" })
-    benches.add("staging")
+    const inspectorSheet = sheets.get(INSPECTOR_ID)
+    if (layout.staging && inspectorSheet) {
+      const bench = layout.staging.bench
+      const station = { agentTile: layout.staging.inspectorTile, bench }
+      stand(INSPECTOR, { station, sheet: inspectorSheet, style: INSPECTOR_STYLE, bubble: null }, looks)
+      standing.add(INSPECTOR_ID)
+      showTablet("staging", bench, { kind: "dim" })
+      benches.add("staging")
+    }
 
     for (const id of traffic.departures) {
       const figure = figures.get(id)
@@ -177,15 +215,8 @@ export function createAgents(parent: THREE.Object3D): Agents {
   }
 
   /** Put the agent at its station, or at the start of its way in when it has one and is new to the floor. */
-  function stand(
-    agent: Agent,
-    station: Station,
-    sheet: THREE.Texture,
-    style: StatusStyle,
-    looks: StatusLooks,
-    hasBox: boolean,
-    wayIn: Tile[] | undefined,
-  ) {
+  function stand(agent: Agent, posting: Posting, looks: StatusLooks) {
+    const { station, sheet, style, bubble: text, hasBox = false, wayIn } = posting
     let figure = figures.get(agent.id)
     // A new sheet means a new body, but not a new arrival.
     const redressed = figure !== undefined && figure.frame.source !== sheet.source
@@ -240,7 +271,6 @@ export function createAgents(parent: THREE.Object3D): Agents {
       figure.icon.material.map = looks.icons[style.icon]
       figure.icon.material.needsUpdate = true
     }
-    const text = bubbleText(agent.status, agent.activity, looks.styles)
     if (figure.bubble && figure.bubble.text !== text) {
       figure.group.remove(figure.bubble.sprite)
       figure.bubble.sprite.material.dispose()
@@ -281,6 +311,8 @@ export function createAgents(parent: THREE.Object3D): Agents {
     let lift = 0
     if (figure.walk) {
       column = WALK_CYCLE[Math.floor(clock * WALK_FPS) % WALK_CYCLE.length]!
+    } else if (figure.stamping !== undefined) {
+      column = figure.stamping < STAMP_S / 2 ? COLUMN.raisedArm : COLUMN.armForward
     } else if (style.motion === "work") {
       column = Math.floor(clock / WORK_BEAT) % 2 === 0 ? COLUMN.raisedArm : COLUMN.armForward
     } else if (style.motion === "jump") {
@@ -336,11 +368,14 @@ export function createAgents(parent: THREE.Object3D): Agents {
     tablets.delete(id)
   }
 
-  function tick(dt: number, speed: number) {
+  function tick(dt: number, speed: number, landings: Landing[]) {
+    const inspector = figures.get(INSPECTOR_ID)
+    if (inspector && landings.some((landing) => sameTile(landing.tile, inspector.bench))) inspector.stamping ??= 0
     for (const [id, figure] of figures) {
       figure.clock += dt
       figure.inStatus += dt
       if (figure.walk) advance(figure, dt * WALK_SPEED * speed)
+      if (figure.stamping !== undefined) figure.stamping = figure.stamping + dt < STAMP_S ? figure.stamping + dt : undefined
       if (figure.fading !== undefined) {
         figure.fading += dt
         if (figure.fading >= FADE_S) {

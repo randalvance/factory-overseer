@@ -6,7 +6,9 @@ agent to the next, through a staging area where a human reviews it, and into a
 shipping container when it is done; rework rides a return belt along the back
 wall. Agents can join and leave while the
 factory runs: the belts grow to reach a newcomer without rearranging what is
-already there, and a bench left behind stays vacant for the next one.
+already there, and a bench left behind stays vacant for the next one. A host
+with no human review switches the staging area off, and the last bay ships
+straight into the container.
 
 Early days: the floor is being laid. The vocabulary is in [GLOSSARY.md](GLOSSARY.md)
 and the decisions so far are in [docs/adr](docs/adr).

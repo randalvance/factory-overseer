@@ -6,9 +6,9 @@
 import * as THREE from "three"
 import { travelDirection } from "~/floor/belts"
 import { tileKey } from "~/floor/tiles"
-import type { BeltTile, Container, Direction, Layout, Rect, Tile } from "~/floor/types"
+import type { BeltTile, Container, Direction, Intake, Layout, Rect, Tile } from "~/floor/types"
 import { SHEET, sheetFrame } from "./sprites"
-import { TEXT_PX_PER_TILE, bubbleTexture, floorTexture, labelTexture } from "./textures"
+import { TEXT_PX_PER_TILE, bubbleTexture, countTexture, floorTexture, labelTexture } from "./textures"
 
 /** Heights in tiles. */
 export const BENCH_H = 0.5
@@ -18,6 +18,9 @@ const CONTAINER_FLOOR_H = 0.1
 const WALL_H = 1.4
 const WALL_T = 0.1
 const DOOR_H = 2.2
+/** How high over the floor the hopper's mouth is, where new boxes drop from. */
+const HOPPER_MOUTH_H = 1.9
+const HOPPER_H = 0.9
 export const AGENT_H = 1.5
 /** A box's edge, in tiles. */
 export const BOX_SIZE = 0.6
@@ -34,6 +37,7 @@ const COLOR = {
   tablet: 0x1a2634,
   door: 0x4b5260,
   doorFrame: 0xd9b23c,
+  hopper: 0xd9b23c,
   beltFrame: 0x2b2f36,
   pallet: 0x8b6b3e,
   container: 0x9c4a2f,
@@ -131,6 +135,50 @@ export function door(tile: Tile): THREE.Group {
   return group
 }
 
+/** The hopper over the intake: a funnel on four legs, its mouth over the middle of the intake, that new boxes drop out of. */
+export function hopper(intake: Intake): THREE.Group {
+  const group = new THREE.Group()
+  const mouth = hopperMouth(intake)
+  // Four segments make a square funnel; turned so its sides run with the grid. The radius is to a corner.
+  const funnel = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.8 * Math.SQRT2, 0.3 * Math.SQRT2, HOPPER_H, 4, 1, true),
+    new THREE.MeshLambertMaterial({ color: COLOR.hopper, side: THREE.DoubleSide }),
+  )
+  funnel.rotation.y = Math.PI / 4
+  funnel.position.set(mouth.x, HOPPER_MOUTH_H + HOPPER_H / 2, mouth.z)
+  group.add(funnel)
+  const legMaterial = new THREE.MeshLambertMaterial({ color: COLOR.beltFrame })
+  const legH = HOPPER_MOUTH_H + HOPPER_H
+  for (const dx of [-0.95, 0.95]) {
+    for (const dz of [-0.95, 0.95]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, legH, 0.08), legMaterial)
+      leg.position.set(mouth.x + dx, legH / 2, mouth.z + dz)
+      group.add(leg)
+    }
+  }
+  return group
+}
+
+/** Where new boxes come out of the hopper: over the middle of the intake. */
+export function hopperMouth(intake: Intake): THREE.Vector3 {
+  const { x, y, w, h } = intake.rect
+  return new THREE.Vector3(x + w / 2, HOPPER_MOUTH_H, y + h / 2)
+}
+
+/** The count of boxes resting in the container, on a plate above its back wall over the mouth, where no stack rises in front of it. */
+export function containerCount(container: Container, count: number): THREE.Mesh {
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.6), new THREE.MeshBasicMaterial({ map: countTexture(count) }))
+  mesh.position.set(container.mouth.x + 0.5, WALL_H + 0.45, container.rect.y + WALL_T)
+  return mesh
+}
+
+/** Put a new count on the plate. */
+export function recount(plate: THREE.Mesh, count: number) {
+  const material = plate.material as THREE.MeshBasicMaterial
+  material.map = countTexture(count)
+  material.needsUpdate = true
+}
+
 /** A low wooden pallet where boxes wait with nothing carrying them. */
 export function pallet(tile: Tile): THREE.Mesh {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.9, PALLET_H, 0.9), new THREE.MeshLambertMaterial({ color: COLOR.pallet }))
@@ -173,10 +221,12 @@ export function heightsOver(layout: Layout): (tile: Tile) => number {
     }
   }
   for (const tile of layout.intake.pile) set(tile, PALLET_H)
-  for (const tile of layout.staging.pile.slice(1)) set(tile, PALLET_H)
   for (const belt of layout.belts) for (const tile of belt.tiles) set(tile, BELT_H)
   for (const bay of layout.bays) for (const station of bay.stations) set(station.bench, BENCH_H)
-  set(layout.staging.bench, BENCH_H)
+  if (layout.staging) {
+    for (const tile of layout.staging.pile.slice(1)) set(tile, PALLET_H)
+    set(layout.staging.bench, BENCH_H)
+  }
   return (tile) => heights.get(tileKey(tile)) ?? 0
 }
 

@@ -24,8 +24,13 @@ _Avoid_: Player, user, viewer
 Where new tasks enter the factory.
 _Avoid_: Source, spawn, backlog, inbox
 
+**Hopper**:
+The funnel over the intake that a new box drops out of onto the pile.
+_Avoid_: Spawner, chute, dispenser
+
 **Staging Area**:
-Where boxes wait for a human to review them before they ship.
+Where boxes wait for a human to review them before they ship. On unless the
+host switches it off, when the last bay ships straight into the container.
 _Avoid_: Review queue, inspection, outbox
 
 **Inspector**:
@@ -34,7 +39,8 @@ boxes.
 _Avoid_: Reviewer, QA, human
 
 **Shipping Container**:
-Where shipped boxes end up. A box in the container is finished for good.
+Where shipped boxes end up, under a count of them. A box in the container is
+there for good.
 _Avoid_: Done pile, archive
 
 ## Who works
@@ -199,7 +205,8 @@ area for the inspector.
 _Avoid_: Heap, buffer
 
 **Stack**:
-The shipped boxes accumulating in the shipping container.
+Shipped boxes piled on one tile of the shipping container, which has a stack
+per tile past its mouth, filled in order a layer at a time.
 _Avoid_: Archive, history
 
 ## Agent statuses

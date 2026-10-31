@@ -20,8 +20,10 @@ export interface FactoryProps {
   pipeline: Pipeline
   agents: Agent[]
   tasks: Task[]
-  /** Scales every belt. 1 is about two tiles a second. */
+  /** Scales every belt and walk. 1 is about two tiles a second. */
   speed?: number
+  /** Whether boxes pass the inspector before they ship. On unless switched off, when the last bay ships straight into the container. */
+  staging?: boolean
   /** What each status looks like, cell by cell over the defaults. Keep the same object between renders. */
   statusStyles?: StatusStyleOverrides
   /** The stock sheets each role's agents draw from, over the defaults. Keep the same object between renders. */
@@ -30,7 +32,7 @@ export interface FactoryProps {
   onLayout?: (layout: Layout, motions: Motions) => void
 }
 
-export function Factory({ pipeline, agents, tasks, speed = 1, statusStyles, wardrobes, onLayout }: FactoryProps) {
+export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, statusStyles, wardrobes, onLayout }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
@@ -58,7 +60,7 @@ export function Factory({ pipeline, agents, tasks, speed = 1, statusStyles, ward
 
   useEffect(() => {
     if (!view.current) return
-    const layout = layoutFloor(pipeline, { agents, tasks }, previous.current)
+    const layout = layoutFloor(pipeline, { agents, tasks }, previous.current, { staging })
     const traffic = comingsAndGoings(previous.current, layout)
     previous.current = layout
     let stale = false
@@ -73,7 +75,7 @@ export function Factory({ pipeline, agents, tasks, speed = 1, statusStyles, ward
     return () => {
       stale = true
     }
-  }, [pipeline, agents, tasks, statusStyles, wardrobes])
+  }, [pipeline, agents, tasks, staging, statusStyles, wardrobes])
 
   return <div ref={mount} className="factory" role="img" aria-label="Factory floor" data-drawn={drawn} />
 }

@@ -88,6 +88,9 @@ export function floorTexture(): THREE.CanvasTexture {
 
 const labels = new Map<string, THREE.CanvasTexture>()
 
+/** The font stack of every label, count and bubble. */
+const MONO = "ui-monospace, Menlo, Consolas, monospace"
+
 /** A box face: the task's colour with its label printed across it. Cached per label and colour. */
 export function labelTexture(label: string, color: string): THREE.CanvasTexture {
   const key = `${color}\n${label}`
@@ -100,7 +103,7 @@ export function labelTexture(label: string, color: string): THREE.CanvasTexture 
       ctx.lineWidth = 4
       ctx.strokeRect(2, 2, s - 4, s - 4)
       ctx.fillStyle = "#1c1711"
-      ctx.font = `bold ${Math.round(s * 0.34)}px ui-monospace, Menlo, monospace`
+      ctx.font = `bold ${Math.round(s * 0.34)}px ${MONO}`
       ctx.textAlign = "center"
       ctx.textBaseline = "middle"
       ctx.fillText(label, s / 2, s / 2 + 1, s - 10)
@@ -110,9 +113,33 @@ export function labelTexture(label: string, color: string): THREE.CanvasTexture 
   return texture
 }
 
+const counts = new Map<number, THREE.CanvasTexture>()
+
+/** A plate with a count on it, in safety yellow on dark: the container's total. */
+export function countTexture(count: number): THREE.CanvasTexture {
+  let texture = counts.get(count)
+  if (!texture) {
+    texture = canvasTexture(128, 64, (ctx, w, h) => {
+      ctx.fillStyle = "#1a2634"
+      ctx.fillRect(0, 0, w, h)
+      ctx.strokeStyle = "#ffd166"
+      ctx.lineWidth = 4
+      ctx.strokeRect(2, 2, w - 4, h - 4)
+      ctx.fillStyle = "#ffd166"
+      ctx.font = `bold 40px ${MONO}`
+      ctx.textAlign = "center"
+      ctx.textBaseline = "middle"
+      ctx.fillText(String(count), w / 2, h / 2 + 2, w - 16)
+    })
+    counts.set(count, texture)
+  }
+  return texture
+}
+
 /** Canvas pixels per tile for text: twice the base zoom, so it stays sharp zoomed in. */
 export const TEXT_PX_PER_TILE = 128
-const BUBBLE_FONT = "bold 24px ui-monospace, Menlo, Consolas, monospace"
+
+const BUBBLE_FONT = `bold 24px ${MONO}`
 const BUBBLE_PAD = 14
 const BUBBLE_BODY_H = 44
 const BUBBLE_TAIL_H = 8

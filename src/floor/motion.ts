@@ -7,9 +7,12 @@
 // each of its entries and off along each of its exits. Inside the intake, the
 // staging area and the container, boxes are carried, so any neighbouring
 // tile there is reachable too, except the one the inspector stands on, and
-// never against a belt.
+// never against a belt. A box already in the container is there for good:
+// when its resting place there changes, the container itself has moved, and
+// the box appears where the container now is rather than riding after it.
 
 import { entries, exits, travelDirection } from "./belts"
+import { inContainer } from "./layout"
 import { DIRECTIONS, directionBetween, opposite, sameTile, step, tileKey } from "./tiles"
 import type { BeltTile, Direction, Layout, Rect, Tile } from "./types"
 
@@ -40,8 +43,9 @@ export function restingTiles(layout: Layout): BoxTiles {
   return Object.fromEntries(layout.boxes.map((box) => [box.taskId, box.tile]))
 }
 
-export function motionsFor(layout: Layout, from: BoxTiles): Motions {
+export function motionsFor(layout: Layout, from: BoxTiles, previous?: Layout): Motions {
   const reach = routes(layout)
+  const restedInContainer = new Map(previous ? inContainer(previous).map((box) => [box.taskId, box.tile] as const) : [])
   const junctions = new Map(
     layout.belts.flatMap((belt) => belt.tiles.filter((t) => t.kind === "junction").map((t) => [tileKey(t), t] as const)),
   )
@@ -50,6 +54,8 @@ export function motionsFor(layout: Layout, from: BoxTiles): Motions {
   for (const box of layout.boxes) {
     const start = from[box.taskId]
     if (!start || sameTile(start, box.tile)) continue
+    const settled = restedInContainer.get(box.taskId)
+    if (settled && !sameTile(settled, box.tile)) continue
     const path = shortestPath(reach, { x: start.x, y: start.y }, box.tile)
     if (!path) {
       unrouted.push(box.taskId)
@@ -83,8 +89,8 @@ function routes(layout: Layout): Map<string, Tile[]> {
     const belt = beltTiles.get(tileKey(tile))
     return belt !== undefined && travelDirection(belt) === opposite(dir)
   }
-  const carried = [layout.intake.rect, layout.staging.rect, layout.container.rect]
-  const occupied = [layout.staging.inspectorTile]
+  const carried = [layout.intake.rect, ...(layout.staging ? [layout.staging.rect] : []), layout.container.rect]
+  const occupied = layout.staging ? [layout.staging.inspectorTile] : []
   const free = (tile: Tile) => !occupied.some((o) => sameTile(o, tile))
   for (const rect of carried) {
     for (const tile of tilesOf(rect)) {

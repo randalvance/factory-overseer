@@ -84,8 +84,8 @@ export interface Container {
   rect: Rect
   /** The last belt tile before boxes go in. */
   mouth: Tile
-  /** Where shipped boxes stack. */
-  stack: Tile
+  /** Where shipped boxes stack: the tiles past the mouth, filled in this order a layer at a time. */
+  stacks: Tile[]
 }
 
 export type BoxSpot =
@@ -110,10 +110,11 @@ export interface Layout {
   intake: Intake
   /** In order along the trunk, left to right. */
   bays: Bay[]
-  staging: StagingArea
+  /** None when the host has switched the staging area off: the last bay's trunk runs straight into the container. */
+  staging: StagingArea | undefined
   container: Container
   belts: Belt[]
   boxes: BoxPlacement[]
-  /** The tasks this layout had no place for: at an agent with no station. */
+  /** The tasks this layout had no place for: at an agent with no station, or at a staging area that is switched off. */
   unplaced: { taskIds: string[] }
 }

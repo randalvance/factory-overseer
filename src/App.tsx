@@ -23,6 +23,7 @@ export function App() {
   const [demo, setDemo] = useState<Demo>(atTheStart)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
+  const [staging, setStaging] = useState(true)
   /** What the factory last drew, for the debug view and the note. */
   const [drawn, setDrawn] = useState<{ layout: Layout; motions: Motions }>()
   const [view, setView] = useState<"factory" | "debug">("factory")
@@ -76,6 +77,9 @@ export function App() {
           <button type="button" onClick={() => setDemo((d) => ({ ...d, script: withAnotherTask(d.script) }))}>
             Add a task
           </button>
+          <button type="button" onClick={() => setStaging((on) => !on)}>
+            {staging ? "Staging off" : "Staging on"}
+          </button>
           <button type="button" onClick={() => setView((v) => (v === "factory" ? "debug" : "factory"))}>
             {view === "factory" ? "Debug view" : "3D view"}
           </button>
@@ -88,6 +92,7 @@ export function App() {
           agents={snapshot.agents}
           tasks={snapshot.tasks}
           speed={speed}
+          staging={staging}
           onLayout={(layout, motions) => setDrawn({ layout, motions })}
         />
       </section>

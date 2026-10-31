@@ -70,25 +70,38 @@ export interface Handoff {
 }
 
 /**
- * One task, t-37, across the whole line, as a host would report it over
- * successive snapshots: to the reviewer, back to the implementer as rework,
- * to the reviewer again and on. Each entry is the handoffs of one snapshot;
- * the other tasks make way so t-37 waits once, in the staging pile, and
- * never rides through a box.
+ * The line at work, as a host would report it over successive snapshots:
+ * t-37 goes to the reviewer, comes back as rework while t-38 goes on, and
+ * goes again; t-41 comes in from the intake; the inspector rejects t-31 and
+ * later passes it; and everything ships in the end. Each entry is the
+ * handoffs of one snapshot.
  */
 export const acrossTheLine: Handoff[][] = [
   [{ id: "t-37", to: { agent: "rev-1" } }],
-  [{ id: "t-37", to: { agent: "imp-1" } }],
-  [{ id: "t-37", to: { agent: "rev-1" } }],
   [
-    { id: "t-35", to: "staging" },
-    { id: "t-37", to: { agent: "qa-1" } },
+    { id: "t-38", to: { agent: "rev-1" } },
+    { id: "t-37", to: { agent: "imp-1" } },
   ],
+  [
+    { id: "t-37", to: { agent: "rev-1" } },
+    { id: "t-41", to: { agent: "imp-1" } },
+  ],
+  [
+    { id: "t-31", to: { agent: "qa-1" } },
+    { id: "t-35", to: "staging" },
+  ],
+  [{ id: "t-38", to: { agent: "qa-1" } }],
+  [
+    { id: "t-35", to: "shipped" },
+    { id: "t-31", to: "staging" },
+  ],
+  [{ id: "t-37", to: { agent: "qa-1" } }],
   [
     { id: "t-31", to: "shipped" },
-    { id: "t-37", to: "staging" },
+    { id: "t-38", to: "staging" },
   ],
-  [{ id: "t-35", to: "shipped" }],
+  [{ id: "t-37", to: "staging" }],
+  [{ id: "t-38", to: "shipped" }],
   [{ id: "t-37", to: "shipped" }],
 ]
 

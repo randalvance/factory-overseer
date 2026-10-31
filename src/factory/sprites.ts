@@ -38,6 +38,9 @@ export const DEFAULT_WARDROBES: Readonly<Wardrobes> = {
   qa: [32, 38, 44, 48, 49, 51, 52, 75, 111, 112, 113, 121, 123],
 }
 
+/** The inspector's one fixed sheet: the trench coat and hat. */
+export const INSPECTOR_SHEET = 119
+
 /**
  * The sheet an agent wears: the stock sheet of an explicit index, an explicit
  * URL as it is, or a stock sheet derived from the id, so the agent looks the

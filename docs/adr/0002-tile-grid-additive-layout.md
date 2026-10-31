@@ -7,9 +7,10 @@ roles are added or removed. A role that appears later is appended to the end
 of the line even when it logically sits mid-pipeline, and the belts loop to
 reach it; only an explicit request from the overseer recomputes a compact
 layout. The one exception is the two ends of the line: when a bay is
-appended, the staging area, the container and the belts that run into them
-are laid out again further right to make room, because a bay cannot
-otherwise be appended between the last bay and the ends. Bays, stations and
+appended, the staging area, the container and the belts that run into and
+out of them, the staging area's stretch of the return belt included, are laid
+out again further right to make room, because a bay cannot otherwise be
+appended between the last bay and the ends. Bays, stations and
 the belts between bays never move.
 
 A junction is shaped once for everything that may ever join or leave it: a

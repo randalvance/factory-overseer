@@ -29,7 +29,7 @@ export function LayoutDebugView({ layout, motions = [] }: { layout: Layout; moti
       {layout.bays.map((bay) => (
         <Zone key={bay.role} rect={bay.rect} label={bay.role} fill="#275c4d" />
       ))}
-      <Zone rect={layout.staging.rect} label="staging" fill="#6b4a23" />
+      {layout.staging && <Zone rect={layout.staging.rect} label="staging" fill="#6b4a23" />}
       <Zone rect={layout.container.rect} label="container" fill="#5a3366" />
 
       {layout.belts.flatMap((belt) =>
@@ -44,8 +44,12 @@ export function LayoutDebugView({ layout, motions = [] }: { layout: Layout; moti
           </g>
         )),
       )}
-      <Cell tile={layout.staging.bench} fill="#8a7a3a" label="bench" />
-      <Cell tile={layout.staging.inspectorTile} fill="#3f8f5f" label="inspector" />
+      {layout.staging && (
+        <g>
+          <Cell tile={layout.staging.bench} fill="#8a7a3a" label="bench" />
+          <Cell tile={layout.staging.inspectorTile} fill="#3f8f5f" label="inspector" />
+        </g>
+      )}
       <Cell tile={layout.container.mouth} fill="#444" label="mouth" />
       <Cell tile={layout.door} fill="#7a5c2e" label="door" />
 
