@@ -20,6 +20,6 @@ gh auth setup-git >/dev/null 2>&1 || true
 python3 -m pip install --user --quiet pillow
 
 bun install
-if [ -d node_modules/playwright ]; then
+if [ -d node_modules/@playwright/test ]; then
   bunx playwright install chromium
 fi

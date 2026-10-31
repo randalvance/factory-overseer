@@ -26,8 +26,12 @@ Then open <http://localhost:3000>.
 | --- | --- |
 | `bun run dev` | the demo on :3000 |
 | `bun run build` | the demo, built |
-| `bun run test` | the tests, no WebGL needed |
+| `bun run test` | the unit tests, no WebGL needed |
+| `bun run smoke` | boots the demo in headless Chromium, fails on console errors, saves `test-results/demo.png` |
 | `bun run typecheck` | `tsc --noEmit` |
+
+The smoke test writes its screenshot wherever `SCREENSHOT` points, which is how
+the milestone screenshots under `docs/screenshots` are taken.
 
 The 3D pieces are built by Blender scripts under `tools/blender`, run on the
 host rather than in the container, and committed as GLB files under

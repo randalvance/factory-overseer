@@ -77,6 +77,19 @@ A station whose agent has left. It keeps its place until an agent of the same
 role takes it.
 _Avoid_: Empty, free, unassigned
 
+## How agents look
+
+**Sheet** (stock sheet):
+One agent's sprite sheet in the stock layout: six columns of 32 by 48 pixel
+cells, one row per facing. Every agent wears one, chosen by index, by URL, or
+derived from its id.
+_Avoid_: Spritesheet, atlas, skin, costume
+
+**Cast**:
+The stock sheets that ship with the package, which agents with no sheet of
+their own draw from.
+_Avoid_: Library, pack, roster
+
 ## What moves
 
 **Task**:

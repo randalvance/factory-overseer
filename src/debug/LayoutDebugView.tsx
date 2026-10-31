@@ -3,6 +3,7 @@
 // a toggle afterwards. No layout logic lives here: it only draws what it is
 // given.
 
+import { travelDirection } from "~/floor/belts"
 import type { BeltTile, Layout, Rect, Tile } from "~/floor/types"
 
 const TILE = 28
@@ -98,7 +99,7 @@ const ARROW: Record<BeltTile["kind"], string> = { straight: "→", corner: "↳"
 const ROTATION = { e: 0, s: 90, w: 180, n: 270 } as const
 
 function BeltMark({ tile }: { tile: BeltTile }) {
-  const dir = tile.kind === "corner" ? tile.to : tile.dir
+  const dir = travelDirection(tile)
   const { cx, cy } = center(tile)
   return (
     <g>
