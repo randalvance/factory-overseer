@@ -10,6 +10,7 @@
   "portsAttributes": {
     "3000": { "label": "demo", "onAutoForward": "notify" }
   },
+  "appPort": [3000],
   "mounts": [
     "source=${localEnv:HOME}/.gitconfig,target=/home/node/.host-gitconfig,type=bind,readonly"
   ],
