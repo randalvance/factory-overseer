@@ -1,0 +1,38 @@
+# Factory Overseer
+
+A 3D factory that shows an agentic system at work. Each agent is a pixel-art
+worker at a station. Each task is a box that rides conveyor belts from one
+agent to the next, through a staging area where a human reviews it, and into a
+shipping container when it is done. Agents can join while the factory runs:
+the belts grow to reach them without rearranging what is already there.
+
+Early days: the floor is being laid. The vocabulary is in [GLOSSARY.md](GLOSSARY.md)
+and the decisions so far are in [docs/adr](docs/adr).
+
+## Develop
+
+Everything runs inside the devcontainer. In VS Code, open the folder and
+choose **Reopen in Container**. From a terminal, with Docker running and the
+[devcontainer CLI](https://github.com/devcontainers/cli) installed:
+
+```bash
+devcontainer up --workspace-folder .
+devcontainer exec --workspace-folder . bun run dev
+```
+
+Then open <http://localhost:3000>.
+
+| | |
+| --- | --- |
+| `bun run dev` | the demo on :3000 |
+| `bun run build` | the demo, built |
+| `bun run test` | the tests, no WebGL needed |
+| `bun run typecheck` | `tsc --noEmit` |
+
+The 3D pieces are built by Blender scripts under `tools/blender`, run on the
+host rather than in the container, and committed as GLB files under
+`public/assets`.
+
+## Licence
+
+MIT for the code. The art has its own terms: see [ASSETS.md](ASSETS.md).

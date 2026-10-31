@@ -1,0 +1,20 @@
+:root {
+  color-scheme: dark;
+  font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+  background: #0b0d12;
+  color: #e6e8ee;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+.placeholder {
+  display: grid;
+  place-content: center;
+  height: 100%;
+  text-align: center;
+}
