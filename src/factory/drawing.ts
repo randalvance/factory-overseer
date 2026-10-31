@@ -1,18 +1,13 @@
 // A layout drawn as one group of placeholder pieces. Built whole for every
-// snapshot and thrown away on the next. Boxes are not here: they stay from
-// one snapshot to the next so they can ride the belts between them.
+// snapshot and thrown away on the next. Boxes, agents and tablets are not
+// here: they stay from one snapshot to the next, so boxes can ride the belts
+// between them and agents can change status in place.
 
 import * as THREE from "three"
-import type { Layout, Station } from "~/floor/types"
-import { agentSprite, beltSurface, beltTile, bench, containerWalls, floorSlab, pallet, patch } from "./pieces"
+import type { Layout } from "~/floor/types"
+import { beltSurface, beltTile, bench, containerWalls, floorSlab, pallet, patch } from "./pieces"
 
-/** A station and the sheet its agent wears. */
-export interface Seated {
-  station: Station
-  sheet: THREE.Texture
-}
-
-export function drawFactory(layout: Layout, seated: Seated[], belt: THREE.Texture): THREE.Group {
+export function drawFactory(layout: Layout, belt: THREE.Texture): THREE.Group {
   const group = new THREE.Group()
   group.add(floorSlab(layout.bounds))
   group.add(patch(layout.intake.rect, "intake"))
@@ -28,21 +23,15 @@ export function drawFactory(layout: Layout, seated: Seated[], belt: THREE.Textur
   // The first staging spot is the bench itself; the rest are shelves beside the inspector.
   for (const tile of layout.staging.pile.slice(1)) group.add(pallet(tile))
   group.add(containerWalls(layout.container))
-
-  for (const { station, sheet } of seated) group.add(agentSprite(station.agentTile, sheet))
   return group
 }
 
-/** Free what a drawing owns: its geometries and materials, and the per-sprite sheet clones. Shared textures stay. */
-export function disposeDrawing(group: THREE.Group) {
-  group.traverse((object) => {
-    if (object instanceof THREE.Sprite) {
-      object.material.map?.dispose()
-      object.material.dispose()
-    } else if (object instanceof THREE.Mesh) {
-      object.geometry.dispose()
-      const materials: THREE.Material[] = Array.isArray(object.material) ? object.material : [object.material]
-      for (const material of materials) material.dispose()
-    }
+/** Let go of the geometries and materials of every mesh under an object. Shared textures stay. */
+export function disposeMeshes(root: THREE.Object3D) {
+  root.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return
+    object.geometry.dispose()
+    const materials: THREE.Material[] = Array.isArray(object.material) ? object.material : [object.material]
+    for (const material of materials) material.dispose()
   })
 }

@@ -68,8 +68,10 @@ it to the junction that collects from it.
 _Avoid_: Slot, branch, spur, row
 
 **Tablet**:
-The screen at a station that shows the agent's progress on the box in front
-of it. The box stays put until the tablet reports the work done.
+The screen at a station that shows what its agent is doing with the box in
+front of it: the work going by, its progress when the host reports it, or what
+the agent is waiting for. The box stays put until the tablet reports the work
+done.
 _Avoid_: Screen, terminal, monitor
 
 **Vacant**:
@@ -89,6 +91,17 @@ _Avoid_: Spritesheet, atlas, skin, costume
 The stock sheets that ship with the package, which agents with no sheet of
 their own draw from.
 _Avoid_: Library, pack, roster
+
+**Wardrobe**:
+The part of the cast a role's agents draw from when they wear no sheet of
+their own. Implementers, reviewers and qa have one by default; a role without
+one draws from the whole cast.
+_Avoid_: Pool, palette, outfit
+
+**Bubble**:
+The text over an agent's head: its activity, or its status's default when it
+has none.
+_Avoid_: Tooltip, caption
 
 ## What moves
 

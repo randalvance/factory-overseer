@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { CAST_SIZE, sheetFrame, sheetUrl } from "./sprites"
+import type { Agent } from "~/model/types"
+import { CAST_SIZE, DEFAULT_WARDROBES, type Wardrobes, sheetFrame, sheetUrl } from "./sprites"
 
 describe("sheet frame selection", () => {
   // The stock sheets are 6 by 4 cells of 32 by 48 pixels, one row per facing,
@@ -23,26 +24,66 @@ describe("sheet frame selection", () => {
   })
 })
 
+interface Wearing {
+  wears: string
+  agent: Pick<Agent, "id" | "role" | "sprite">
+  base?: string
+  wardrobes?: Wardrobes
+  url: string
+}
+
+interface Deriving {
+  who: string
+  agent: Pick<Agent, "id" | "role">
+  wardrobes?: Wardrobes
+  from: readonly number[]
+}
+
 describe("which sheet an agent wears", () => {
-  it("uses the stock sheet of an explicit index", () => {
-    expect(sheetUrl({ id: "imp-1", sprite: 7 })).toBe("/assets/characters/char_7.png")
+  const ada = { id: "imp-1", role: "implementer" }
+
+  it.each<Wearing>([
+    {
+      wears: "the stock sheet of an explicit index, whatever its wardrobe",
+      agent: { ...ada, sprite: 7 },
+      wardrobes: { implementer: [9] },
+      url: "/assets/characters/char_7.png",
+    },
+    { wears: "an explicit URL as it is", agent: { ...ada, sprite: "https://example.test/cast/ada.png" }, url: "https://example.test/cast/ada.png" },
+    { wears: "a stock sheet from under the app's base path", agent: { ...ada, sprite: 7 }, base: "/overseer/", url: "/overseer/assets/characters/char_7.png" },
+    { wears: "the host's wardrobe for its role", agent: ada, wardrobes: { implementer: [9] }, url: "/assets/characters/char_9.png" },
+    {
+      wears: "the host's wardrobe for a role with none by default",
+      agent: { id: "sec-1", role: "security" },
+      wardrobes: { security: [3] },
+      url: "/assets/characters/char_3.png",
+    },
+  ])("wears $wears", ({ agent, base, wardrobes, url }) => {
+    expect(sheetUrl(agent, base, wardrobes)).toBe(url)
   })
 
-  it("uses an explicit URL as it is", () => {
-    const url = "https://example.test/cast/ada.png"
-    expect(sheetUrl({ id: "imp-1", sprite: url })).toBe(url)
+  it.each<Deriving>([
+    { who: "an implementer", agent: ada, from: DEFAULT_WARDROBES["implementer"]! },
+    { who: "a reviewer", agent: { id: "rev-1", role: "reviewer" }, from: DEFAULT_WARDROBES["reviewer"]! },
+    { who: "a qa", agent: { id: "qa-1", role: "qa" }, from: DEFAULT_WARDROBES["qa"]! },
+    {
+      who: "a reviewer while another role's wardrobe is overridden",
+      agent: { id: "rev-1", role: "reviewer" },
+      wardrobes: { implementer: [9] },
+      from: DEFAULT_WARDROBES["reviewer"]!,
+    },
+    { who: "a role with no wardrobe, from the whole cast", agent: { id: "sec-1", role: "security" }, from: wholeCast },
+  ])("derives the sheet of $who from its id", ({ agent, wardrobes, from }) => {
+    expect(from).toContain(sheetIndex(sheetUrl(agent, "/", wardrobes)))
   })
 
-  it("serves stock sheets under the app's base path", () => {
-    expect(sheetUrl({ id: "imp-1", sprite: 7 }, "/overseer/")).toBe("/overseer/assets/characters/char_7.png")
-  })
-
-  it("derives a stable stock sheet from the id when none is given", () => {
-    const url = sheetUrl({ id: "imp-1" })
-    const index = Number(/char_(\d+)\.png$/.exec(url)?.[1])
-    expect(index).toBeGreaterThanOrEqual(0)
-    expect(index).toBeLessThan(CAST_SIZE)
-    expect(sheetUrl({ id: "imp-1" })).toBe(url)
-    expect(sheetUrl({ id: "imp-2" })).not.toBe(url)
+  it("tells agents of one role apart by their ids", () => {
+    expect(sheetUrl({ id: "imp-2", role: "implementer" })).not.toBe(sheetUrl(ada))
   })
 })
+
+const wholeCast = Array.from({ length: CAST_SIZE }, (_, i) => i)
+
+function sheetIndex(url: string): number {
+  return Number(/char_(\d+)\.png$/.exec(url)?.[1])
+}

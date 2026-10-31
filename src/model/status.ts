@@ -13,16 +13,19 @@ export const AGENT_STATUSES: readonly AgentStatus[] = [
 ]
 
 /** What the agent's body does while it has this status. */
-export type Motion = "stand" | "work" | "jump"
+export type BodyMotion = "stand" | "work" | "jump"
 
 /** The icon shown over the agent's head. */
 export type StatusIcon = "none" | "hand" | "warning" | "check"
+
+/** Every icon there is; each is a 16 by 16 image of that name under the icons folder of the assets. */
+export const STATUS_ICONS: readonly Exclude<StatusIcon, "none">[] = ["hand", "warning", "check"]
 
 /** The sheet pose held while standing or at the top of a jump. */
 export type Pose = "walk" | "hurt"
 
 export interface StatusStyle {
-  motion: Motion
+  motion: BodyMotion
   icon: StatusIcon
   /** Bubble text when the agent has no activity of its own. null hides it. */
   bubble: string | null

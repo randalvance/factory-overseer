@@ -3,7 +3,8 @@
 // across the whole line. There is no runtime yet; the demo only shows what
 // the floor core does.
 
-import type { Pipeline, Snapshot, TaskLocation } from "~/model/types"
+import { AGENT_STATUSES, type AgentStatus } from "~/model/status"
+import type { Agent, Pipeline, Snapshot, TaskLocation } from "~/model/types"
 
 export interface DemoScript {
   pipeline: Pipeline
@@ -21,7 +22,7 @@ export const opening: DemoScript = {
     tasks: [
       { id: "t-41", label: "t-41", at: "intake" },
       { id: "t-42", label: "t-42", at: "intake" },
-      { id: "t-37", label: "t-37", at: { agent: "imp-1" } },
+      { id: "t-37", label: "t-37", at: { agent: "imp-1" }, progress: 0.45 },
       { id: "t-38", label: "t-38", at: { agent: "imp-1" } },
       { id: "t-35", label: "t-35", at: { agent: "qa-1" } },
       { id: "t-31", label: "t-31", at: "staging" },
@@ -38,6 +39,23 @@ export function withAnotherRole({ pipeline, snapshot }: DemoScript): DemoScript 
     pipeline: { roles: [...pipeline.roles, role] },
     snapshot: { ...snapshot, agents: [...snapshot.agents, { id: `${role}-1`, name: role, role, status: "idle" }] },
   }
+}
+
+/** What the cycled agent says in each status; in the rest it falls back to the status default. */
+const SAID: Partial<Record<AgentStatus, string>> = {
+  working: "Writing the parser",
+  waiting: "Needs the API key",
+  error: "The build is broken",
+}
+
+/** One agent takes the next status in the table, round and round, saying what it says in that status. */
+export function withNextStatus({ pipeline, snapshot }: DemoScript, agentId: string): DemoScript {
+  const agents = snapshot.agents.map((agent): Agent => {
+    if (agent.id !== agentId) return agent
+    const status = AGENT_STATUSES[(AGENT_STATUSES.indexOf(agent.status) + 1) % AGENT_STATUSES.length]!
+    return { ...agent, status, activity: SAID[status] }
+  })
+  return { pipeline, snapshot: { ...snapshot, agents } }
 }
 
 /** A new task arrives at the intake. */

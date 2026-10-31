@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Agent, Pipeline, Snapshot, Task } from "~/model/types"
-import { bayId, layoutFloor } from "./layout"
+import { bayId, layoutFloor, stationed } from "./layout"
 import type { Belt, Layout } from "./types"
 
 const pipeline: Pipeline = { roles: ["implementer", "reviewer", "qa"] }
@@ -260,5 +260,33 @@ describe("what the first floor cannot place", () => {
     expect(layout.unplaced.agentIds).toEqual(["imp-2"])
     expect(layout.unplaced.taskIds).toEqual(["t-2", "t-3"])
     expect(layout.boxes.map((b) => b.taskId)).toEqual(["t-1"])
+  })
+})
+
+describe("stationed", () => {
+  const pipeline = { roles: ["implementer", "reviewer"] }
+  const agents = [
+    { id: "imp-1", name: "Ada", role: "implementer", status: "working" as const },
+    { id: "rev-1", name: "Grace", role: "reviewer", status: "idle" as const },
+  ]
+
+  it("pairs every station with the agent at it", () => {
+    const layout = layoutFloor(pipeline, { agents, tasks: [] })
+    expect(stationed(layout, agents).map(({ station, agent }) => [station.role, agent?.id])).toEqual([
+      ["implementer", "imp-1"],
+      ["reviewer", "rev-1"],
+    ])
+  })
+
+  it("pairs a station with no agent when the snapshot no longer has the one it seated", () => {
+    const layout = layoutFloor(pipeline, { agents, tasks: [] })
+    const without = agents.filter((agent) => agent.id !== "rev-1")
+    expect(stationed(layout, without).map(({ agent }) => agent?.id)).toEqual(["imp-1", undefined])
+  })
+
+  it("has no station for a role with no agent yet", () => {
+    const [ada] = agents
+    const layout = layoutFloor(pipeline, { agents: [ada!], tasks: [] })
+    expect(stationed(layout, [ada!]).map(({ station }) => station.role)).toEqual(["implementer"])
   })
 })

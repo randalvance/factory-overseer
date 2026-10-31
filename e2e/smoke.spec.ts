@@ -58,6 +58,19 @@ test("handoffs ride the belts without errors", async ({ page }) => {
   await page.waitForTimeout(500)
 })
 
+test("an agent is shown in every status without errors", async ({ page }) => {
+  const factory = await openFactory(page)
+  // Ada opens working; each click takes her to the next status in the table and, at the end, back to working.
+  const reached = ["waiting", "done", "error", "offline", "idle", "working"]
+  for (const [i, status] of reached.entries()) {
+    await page.getByRole("button", { name: "Next status" }).click()
+    await expect(factory).toHaveAttribute("data-drawn", String(i + 2))
+    // Let the pose, the jump and the sparks play for a moment.
+    await page.waitForTimeout(400)
+    await page.screenshot({ path: `${screenshots}/status-${status}.png` })
+  }
+})
+
 test("the flat debug view is still there behind a toggle", async ({ page }) => {
   await openFactory(page)
   const debugView = page.getByRole("img", { name: "Floor layout" })

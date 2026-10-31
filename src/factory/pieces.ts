@@ -8,18 +8,21 @@ import { travelDirection } from "~/floor/belts"
 import { tileKey } from "~/floor/tiles"
 import type { BeltTile, Container, Direction, Layout, Rect, Tile } from "~/floor/types"
 import { SHEET, sheetFrame } from "./sprites"
-import { floorTexture, labelTexture } from "./textures"
+import { TEXT_PX_PER_TILE, bubbleTexture, floorTexture, labelTexture } from "./textures"
 
 /** Heights in tiles. */
-const BENCH_H = 0.5
+export const BENCH_H = 0.5
 const BELT_H = 0.12
 const PALLET_H = 0.1
 const CONTAINER_FLOOR_H = 0.1
 const WALL_H = 1.4
 const WALL_T = 0.1
-const AGENT_H = 1.5
+export const AGENT_H = 1.5
 /** A box's edge, in tiles. */
 export const BOX_SIZE = 0.6
+/** A status icon's edge, in tiles: its 16 pixels shown two for one at the base zoom, so they stay whole. */
+export const ICON_SIZE = 0.5
+const SPARK_SIZE = 0.08
 
 const COLOR = {
   intake: 0x3b5bb5,
@@ -27,11 +30,11 @@ const COLOR = {
   staging: 0xc08a2e,
   bench: 0x6b7f99,
   tablet: 0x1a2634,
-  tabletFace: 0x2e6a8a,
   beltFrame: 0x2b2f36,
   pallet: 0x8b6b3e,
   container: 0x9c4a2f,
   box: "#d9a559",
+  sparks: [0xffd166, 0xffb347, 0xfff3c4],
 }
 
 export function tileCenter(tile: Tile): { x: number; z: number } {
@@ -79,22 +82,32 @@ export function beltTile(tile: BeltTile, surface: THREE.Material): THREE.Group {
   return group
 }
 
-/** A bench with its tablet at the back corner, where the box does not hide it. */
-export function bench(tile: Tile): THREE.Group {
-  const group = new THREE.Group()
-  const top = new THREE.Mesh(new THREE.BoxGeometry(0.9, BENCH_H, 0.7), new THREE.MeshLambertMaterial({ color: COLOR.bench }))
-  top.position.y = BENCH_H / 2
-  group.add(top)
-  const body = () => new THREE.MeshLambertMaterial({ color: COLOR.tablet })
-  const face = new THREE.MeshLambertMaterial({ color: COLOR.tabletFace, emissive: 0x163a4d })
-  // Box faces in order: right, left, top, bottom, front, back. The front faces the camera.
-  const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.04), [body(), body(), body(), body(), face, body()])
-  tablet.position.set(0.28, BENCH_H + 0.1, -0.2)
-  tablet.rotation.x = -0.5
-  group.add(tablet)
+/** A bench, the width of its tile so the belts meet it. The box sits on it; the tablet is a piece of its own, since its face changes with the agent's status. */
+export function bench(tile: Tile): THREE.Mesh {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, BENCH_H, 0.7), new THREE.MeshLambertMaterial({ color: COLOR.bench }))
   const { x, z } = tileCenter(tile)
-  group.position.set(x, 0, z)
-  return group
+  mesh.position.set(x, BENCH_H / 2, z)
+  return mesh
+}
+
+/** A tablet as the agents keep it: the group goes at its bench's tile, and the face wears the texture of its look. */
+export interface TabletPiece {
+  group: THREE.Group
+  face: THREE.MeshBasicMaterial
+}
+
+/** A tablet at the right end of a bench, clear of the box. */
+export function tablet(): TabletPiece {
+  const body = new THREE.MeshLambertMaterial({ color: COLOR.tablet })
+  const face = new THREE.MeshBasicMaterial()
+  // Box faces in order: right, left, top, bottom, front, back. The front faces the camera.
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.2, 0.04), [body, body, body, body, face, body])
+  // The box on the bench is BOX_SIZE wide about the centre, so the tablet starts just past its edge.
+  mesh.position.set(BOX_SIZE / 2 + 0.13, BENCH_H + 0.1, -0.15)
+  mesh.rotation.x = -0.5
+  const group = new THREE.Group()
+  group.add(mesh)
+  return { group, face }
 }
 
 /** A low wooden pallet where boxes wait with nothing carrying them. */
@@ -160,8 +173,8 @@ export function box(tile: Tile, underside: number, label: string, color?: string
   return mesh
 }
 
-/** An agent: one cell of its sheet on a billboard of fixed height, standing on its tile, facing the camera. */
-export function agentSprite(tile: Tile, sheet: THREE.Texture): THREE.Sprite {
+/** An agent: one cell of its sheet on a billboard of fixed height, standing at the origin, facing the camera. Which cell shows is set on its map. */
+export function agentSprite(sheet: THREE.Texture): THREE.Sprite {
   const map = sheet.clone()
   const frame = sheetFrame(0, "down")
   map.offset.set(frame.offset.x, frame.offset.y)
@@ -169,7 +182,31 @@ export function agentSprite(tile: Tile, sheet: THREE.Texture): THREE.Sprite {
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, alphaTest: 0.5 }))
   sprite.center.set(0.5, 0)
   sprite.scale.set(AGENT_H * (SHEET.cellW / SHEET.cellH), AGENT_H, 1)
-  const { x, z } = tileCenter(tile)
-  sprite.position.set(x, 0.01, z)
+  sprite.position.y = 0.01
+  return sprite
+}
+
+/** A status icon on a billboard, centred where it is put. The texture is shared, never disposed with the sprite. */
+export function statusIcon(icon: THREE.Texture): THREE.Sprite {
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: icon, alphaTest: 0.5 }))
+  sprite.scale.set(ICON_SIZE, ICON_SIZE, 1)
+  return sprite
+}
+
+/** A bubble of text on a billboard, the tip of its tail where it is put. */
+export function bubble(text: string): THREE.Sprite {
+  const texture = bubbleTexture(text)
+  const { width, height } = texture.image as HTMLCanvasElement
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }))
+  sprite.center.set(0.5, 0)
+  sprite.scale.set(width / TEXT_PX_PER_TILE, height / TEXT_PX_PER_TILE, 1)
+  return sprite
+}
+
+/** One spark: a fleck of hot colour. */
+export function spark(): THREE.Sprite {
+  const color = COLOR.sparks[Math.floor(Math.random() * COLOR.sparks.length)]
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ color }))
+  sprite.scale.set(SPARK_SIZE, SPARK_SIZE, 1)
   return sprite
 }

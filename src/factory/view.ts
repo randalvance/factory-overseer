@@ -1,30 +1,41 @@
 // The factory in 3D: a layout and a snapshot in, a drawing on a canvas out,
 // with plain three.js behind an imperative handle (ADR 0004). The view owns
-// the renderer, the camera and the render loop; the pieces and the drawing
-// are built elsewhere.
+// the renderer, the camera and the render loop; the pieces, the drawing, the
+// agents and the boxes are built elsewhere.
 
 import * as THREE from "three"
+import { stationed } from "~/floor/layout"
 import { type Motions, motionsFor } from "~/floor/motion"
 import type { Layout, Rect } from "~/floor/types"
+import { type AgentStatus, STATUS_ICONS, type StatusStyle } from "~/model/status"
 import type { Agent, Snapshot } from "~/model/types"
+import { type Icons, createAgents } from "./agents"
 import { BELT_SPEED, createBoxes } from "./boxes"
 import { type CameraPose, PITCH, PX_PER_TILE, clampToFloor, fitFloor, panBy, zoomBy } from "./camera"
 import { attachControls } from "./controls"
-import { type Seated, disposeDrawing, drawFactory } from "./drawing"
-import { sheetUrl } from "./sprites"
-import { beltTexture, loadSheet } from "./textures"
+import { disposeMeshes, drawFactory } from "./drawing"
+import { type Wardrobes, sheetUrl } from "./sprites"
+import { beltTexture, blankTexture, loadTexture } from "./textures"
 
 export interface FactoryView {
   /**
-   * Draw a layout with its agents and tasks; the boxes whose place changed
-   * ride there from wherever they are. Resolves with the motions played once
-   * drawn, or with none once a newer snapshot has taken its place. The rides
-   * play on after that.
+   * Draw a layout with its agents and tasks, the agents looking as the
+   * styling says; the boxes whose place changed ride there from wherever they
+   * are. Resolves with the motions played once drawn, or with none once a
+   * newer snapshot has taken its place. The rides play on after that.
    */
-  show(layout: Layout, snapshot: Snapshot): Promise<Motions>
+  show(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Motions>
   /** Scale every belt. */
   setSpeed(speed: number): void
   dispose(): void
+}
+
+/** How the host wants agents to look. */
+export interface Styling {
+  /** What each status looks like, resolved. */
+  styles: Readonly<Record<AgentStatus, StatusStyle>>
+  /** The stock sheets each role draws from, over the defaults. */
+  wardrobes: Wardrobes
 }
 
 export interface FactoryViewOptions {
@@ -63,6 +74,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   const belt = beltTexture()
   let drawing = new THREE.Group()
   scene.add(drawing)
+  const agents = createAgents(scene)
   const boxes = createBoxes(scene)
   let speed = 1
 
@@ -114,6 +126,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   renderer.setAnimationLoop((time) => {
     const dt = lastFrame === undefined ? 0 : Math.min((time - lastFrame) / 1000, MAX_FRAME_S)
     lastFrame = time
+    agents.tick(dt)
     boxes.tick(dt, speed)
     beltTravel += dt * BELT_SPEED * speed
     belt.offset.x = -beltTravel % 1
@@ -122,17 +135,21 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
 
   let generation = 0
 
-  async function show(layout: Layout, snapshot: Snapshot): Promise<Motions> {
+  async function show(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Motions> {
     const call = ++generation
-    const seated = await seatedAgents(layout, snapshot.agents, assetBase)
+    const [sheets, icons] = await Promise.all([
+      sheetsOf(layout, snapshot.agents, assetBase, styling.wardrobes),
+      iconsAt(assetBase),
+    ])
     // A newer snapshot arrived while the sheets loaded; it will be drawn instead.
     if (call !== generation) return { toPlay: [], unrouted: [] }
 
     floor = layout.bounds
     scene.remove(drawing)
-    disposeDrawing(drawing)
-    drawing = drawFactory(layout, seated, belt)
+    disposeMeshes(drawing)
+    drawing = drawFactory(layout, belt)
     scene.add(drawing)
+    agents.update(layout, snapshot, sheets, { styles: styling.styles, icons })
     // Planned only now, after the wait, so rides still playing are picked up from where they are.
     const motions = motionsFor(layout, boxes.tiles())
     boxes.update(layout, snapshot.tasks, motions.toPlay)
@@ -146,7 +163,8 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     renderer.setAnimationLoop(null)
     observer.disconnect()
     detachControls()
-    disposeDrawing(drawing)
+    disposeMeshes(drawing)
+    agents.dispose()
     boxes.dispose()
     renderer.dispose()
     canvas.remove()
@@ -161,25 +179,40 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   }
 }
 
-/** Every station that has an agent, with that agent's sheet loaded. */
-async function seatedAgents(layout: Layout, agents: Agent[], assetBase: string): Promise<Seated[]> {
-  const byId = new Map(agents.map((agent) => [agent.id, agent]))
-  const stations = layout.bays.flatMap((bay) => bay.stations)
-  const seated = stations.flatMap((station) => {
-    const agent = station.agentId === null ? undefined : byId.get(station.agentId)
-    return agent ? [{ station, agent }] : []
-  })
-  const sheets = await Promise.all(seated.map(({ agent }) => sheetFor(agent, assetBase)))
-  return seated.map(({ station }, i) => ({ station, sheet: sheets[i]! }))
+/** The sheet of every agent the layout has a station for, by agent id. */
+async function sheetsOf(
+  layout: Layout,
+  agents: Agent[],
+  assetBase: string,
+  wardrobes: Wardrobes,
+): Promise<Map<string, THREE.Texture>> {
+  const standing = stationed(layout, agents).flatMap(({ agent }) => (agent ? [agent] : []))
+  const sheets = await Promise.all(standing.map((agent) => sheetOf(agent, assetBase, wardrobes)))
+  return new Map(standing.map((agent, i) => [agent.id, sheets[i]!]))
 }
 
-/** The agent's own sheet, or the stock sheet derived from its id when its own cannot be loaded. */
-function sheetFor(agent: Agent, assetBase: string): Promise<THREE.Texture> {
-  const own = sheetUrl(agent, assetBase)
-  const fallback = sheetUrl({ id: agent.id }, assetBase)
-  return loadSheet(own).catch((error: unknown) => {
+/** The agent's own sheet, or the one derived from its id when its own cannot be loaded. */
+function sheetOf(agent: Agent, assetBase: string, wardrobes: Wardrobes): Promise<THREE.Texture> {
+  const own = sheetUrl(agent, assetBase, wardrobes)
+  const fallback = sheetUrl({ id: agent.id, role: agent.role }, assetBase, wardrobes)
+  return loadTexture(own).catch((error: unknown) => {
     if (own === fallback) throw error
     console.warn(`Agent ${agent.id} wears ${fallback}: its sheet ${own} could not be loaded`, error)
-    return loadSheet(fallback)
+    return loadTexture(fallback)
   })
+}
+
+/** The status icons, loaded from under the base path. One that cannot be loaded shows nothing, rather than stopping the floor. */
+async function iconsAt(assetBase: string): Promise<Icons> {
+  const loaded = await Promise.all(
+    STATUS_ICONS.map(async (name) => {
+      const url = `${assetBase}assets/icons/${name}.png`
+      const texture = await loadTexture(url).catch((error: unknown) => {
+        console.warn(`The ${name} icon at ${url} could not be loaded, so it is not shown`, error)
+        return blankTexture()
+      })
+      return [name, texture] as const
+    }),
+  )
+  return Object.fromEntries(loaded) as Icons
 }

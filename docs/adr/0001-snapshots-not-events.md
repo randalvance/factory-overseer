@@ -7,5 +7,7 @@ holder changed rides the belts there, a new agent walks in, a removed one
 fades. We chose this over an ordered event stream because a snapshot is
 idempotent. It behaves the same over polling, SSE or websockets, a dropped
 message cannot leave the floor out of sync, and a host adapter is one mapping
-function rather than a protocol. Things that are not state, such as a speech
-bubble or focusing the camera on a task, go through a small imperative handle.
+function rather than a protocol. Things that are not state, such as a passing
+remark over an agent's head or focusing the camera on a task, go through a
+small imperative handle. An agent's activity, shown as its bubble, is state
+and comes in the snapshot.

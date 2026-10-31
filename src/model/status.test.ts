@@ -55,19 +55,15 @@ describe("resolveStatusStyles", () => {
 })
 
 describe("bubbleText", () => {
-  it("prefers the agent's own activity, trimmed", () => {
-    expect(bubbleText("working", "  Writing tests ")).toBe("Writing tests")
-  })
-
-  it("falls back to the status default when the activity is empty", () => {
-    expect(bubbleText("working", "")).toBe("Working…")
-    expect(bubbleText("working", "   ")).toBe("Working…")
-    expect(bubbleText("waiting", undefined)).toBe("Needs you")
-  })
-
-  it("shows nothing for statuses whose default bubble is hidden", () => {
-    expect(bubbleText("idle", undefined)).toBeNull()
-    expect(bubbleText("offline", undefined)).toBeNull()
+  it.each([
+    { shows: "the agent's own activity, trimmed", status: "working", activity: "  Writing tests ", text: "Writing tests" },
+    { shows: "the status default when the activity is empty", status: "working", activity: "", text: "Working…" },
+    { shows: "the status default when the activity is blank", status: "working", activity: "   ", text: "Working…" },
+    { shows: "the status default when there is no activity", status: "waiting", activity: undefined, text: "Needs you" },
+    { shows: "nothing for idle, whose default is hidden", status: "idle", activity: undefined, text: null },
+    { shows: "nothing for offline, whose default is hidden", status: "offline", activity: undefined, text: null },
+  ] as const)("shows $shows", ({ status, activity, text }) => {
+    expect(bubbleText(status, activity)).toBe(text)
   })
 
   it("reads overrides when given a resolved table", () => {

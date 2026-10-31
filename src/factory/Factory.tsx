@@ -9,7 +9,9 @@ import { useEffect, useRef, useState } from "react"
 import { layoutFloor } from "~/floor/layout"
 import type { Motions } from "~/floor/motion"
 import type { Layout } from "~/floor/types"
+import { type StatusStyleOverrides, resolveStatusStyles } from "~/model/status"
 import type { Agent, Pipeline, Task } from "~/model/types"
+import type { Wardrobes } from "./sprites"
 import { type FactoryView, createFactoryView } from "./view"
 
 export interface FactoryProps {
@@ -18,11 +20,15 @@ export interface FactoryProps {
   tasks: Task[]
   /** Scales every belt. 1 is about two tiles a second. */
   speed?: number
+  /** What each status looks like, cell by cell over the defaults. Keep the same object between renders. */
+  statusStyles?: StatusStyleOverrides
+  /** The stock sheets each role's agents draw from, over the defaults. Keep the same object between renders. */
+  wardrobes?: Wardrobes
   /** Called with each layout once drawn, and the motions played for it, for anything that shows the same floor another way. */
   onLayout?: (layout: Layout, motions: Motions) => void
 }
 
-export function Factory({ pipeline, agents, tasks, speed = 1, onLayout }: FactoryProps) {
+export function Factory({ pipeline, agents, tasks, speed = 1, statusStyles, wardrobes, onLayout }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
@@ -54,7 +60,7 @@ export function Factory({ pipeline, agents, tasks, speed = 1, onLayout }: Factor
     previous.current = layout
     let stale = false
     view.current
-      .show(layout, { agents, tasks })
+      .show(layout, { agents, tasks }, { styles: resolveStatusStyles(statusStyles), wardrobes: wardrobes ?? {} })
       .then((motions) => {
         if (stale) return
         latestOnLayout.current?.(layout, motions)
@@ -64,7 +70,7 @@ export function Factory({ pipeline, agents, tasks, speed = 1, onLayout }: Factor
     return () => {
       stale = true
     }
-  }, [pipeline, agents, tasks])
+  }, [pipeline, agents, tasks, statusStyles, wardrobes])
 
   return <div ref={mount} className="factory" role="img" aria-label="Factory floor" data-drawn={drawn} />
 }

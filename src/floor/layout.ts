@@ -2,7 +2,7 @@
 // no renderer, no time, no randomness. Everything sits on a tile grid along
 // one trunk row, left to right: intake, one bay per role, staging, container.
 
-import type { Pipeline, Snapshot, Task } from "~/model/types"
+import type { Agent, Pipeline, Snapshot, Task } from "~/model/types"
 import type {
   Bay,
   Belt,
@@ -225,4 +225,12 @@ function placeBoxes(tasks: Task[], places: Places): { boxes: BoxPlacement[]; unp
     }
   }
   return { boxes, unplacedTaskIds }
+}
+
+/** Every station, each with the agent at it, or none while it is vacant. */
+export function stationed(layout: Layout, agents: Agent[]): { station: Station; agent: Agent | undefined }[] {
+  const byId = new Map(agents.map((agent) => [agent.id, agent]))
+  return layout.bays.flatMap((bay) =>
+    bay.stations.map((station) => ({ station, agent: station.agentId === null ? undefined : byId.get(station.agentId) })),
+  )
 }

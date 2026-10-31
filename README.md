@@ -35,7 +35,8 @@ the milestone screenshots under `docs/screenshots` are copies of those.
 
 The 3D pieces are built by Blender scripts under `tools/blender`, run on the
 host rather than in the container, and committed as GLB files under
-`public/assets`.
+`public/assets`. The status icons are drawn by a script under `tools/icons`,
+run in the container, and committed as PNG files there too.
 
 ## Licence
 
