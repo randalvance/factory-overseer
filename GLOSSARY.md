@@ -36,6 +36,11 @@ Where the line leaves the edge of one band and comes down into the next: the
 trunk's way down and the return belt's way up, side by side.
 _Avoid_: U-turn, bend, elbow, switchback
 
+**Crossing**:
+The junction on a band's trunk where the return belt from the band below
+crosses it on its way up the turn, shaped for it from the start.
+_Avoid_: Intersection, crossover, bridge
+
 **Overseer**:
 The human watching the factory. The overseer is a point of view, not a
 character on the floor.

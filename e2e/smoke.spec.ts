@@ -87,6 +87,26 @@ test("rework from the staging area rides back, and the rest ships into the conta
   await page.screenshot({ path: `${screenshots}/shipped.png` })
 })
 
+test("the line wraps into bands within the window, and a task rides around the turn and back up it, without errors", async ({ page }) => {
+  const factory = await openFactory(page)
+  const next = page.getByRole("button", { name: "Next handoff" })
+  // At 1280 pixels the floor is twenty tiles wide: the qa bay, the staging area and the container are in a second band.
+  await page.getByRole("combobox", { name: "Speed" }).selectOption("4")
+
+  // The fifth handoff sends t-38 from the reviewer around the turn to qa.
+  for (let i = 1; i <= 5; i++) {
+    await next.click()
+    await expect(factory).toHaveAttribute("data-drawn", String(i + 1))
+  }
+  await page.waitForTimeout(1500)
+  await page.screenshot({ path: `${screenshots}/turn.png` })
+  // The sixth hands it back to the reviewer: up the turn beside the trunk and along the first band's return belt.
+  await next.click()
+  await expect(factory).toHaveAttribute("data-drawn", "7")
+  await page.waitForTimeout(3500)
+  await page.screenshot({ path: `${screenshots}/turn-back.png` })
+})
+
 test("the staging area can be switched off and on without errors", async ({ page }) => {
   const factory = await openFactory(page)
 

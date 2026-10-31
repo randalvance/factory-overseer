@@ -34,6 +34,15 @@ function beltTiles(layout: Layout): Map<string, BeltTile> {
   return new Map(layout.belts.flatMap((b) => b.tiles).map((t) => [tileKey(t), t]))
 }
 
+/** Everything placed before stays as it was, bar the two ends and the belts into and out of them (ADR 0002). */
+function expectPlacedToStay(before: Layout, after: Layout) {
+  expect(after.bays.slice(0, before.bays.length)).toEqual(before.bays)
+  expect(after.intake).toEqual(before.intake)
+  expect(after.door).toEqual(before.door)
+  expect(after.bounds.w).toBe(before.bounds.w)
+  for (const belt of beltsBetweenBays(before)) expect(after.belts.find((b) => b.id === belt.id)).toEqual(belt)
+}
+
 describe("the first floor", () => {
   it("lays out the intake, one bay per declared role in order, the staging area and the container left to right", () => {
     const layout = layoutFloor(pipeline, oneOfEach)
@@ -56,8 +65,8 @@ describe("the first floor", () => {
       expect(bay.stations).toHaveLength(1)
       const station = bay.stations[0]!
       expect(station.lane).toBe(0)
-      expect(station.bench.y).toBe(layout.trunkRow)
-      expect(station.agentTile).toEqual({ x: station.bench.x, y: layout.trunkRow - 1 })
+      expect(station.bench.y).toBe(layout.bands[0]!.trunkRow)
+      expect(station.agentTile).toEqual({ x: station.bench.x, y: layout.bands[0]!.trunkRow - 1 })
     }
   })
 
@@ -89,12 +98,12 @@ describe("the first floor", () => {
     // A bay is entered at the column before its bench and left at the one after.
     const first = (i: number) => trunk[i]!.tiles[0]!
     const last = (i: number) => trunk[i]!.tiles.at(-1)!
-    expect(first(0)).toMatchObject({ x: layout.intake.rect.x + layout.intake.rect.w, y: layout.trunkRow })
-    expect(last(0)).toMatchObject({ x: imp!.bench.x - 2, y: layout.trunkRow })
-    expect(first(1)).toMatchObject({ x: imp!.bench.x + 2, y: layout.trunkRow })
-    expect(last(1)).toMatchObject({ x: rev!.bench.x - 2, y: layout.trunkRow })
-    expect(last(2)).toMatchObject({ x: qa!.bench.x - 2, y: layout.trunkRow })
-    expect(last(3)).toMatchObject({ x: layout.staging!.bench.x - 1, y: layout.trunkRow })
+    expect(first(0)).toMatchObject({ x: layout.intake.rect.x + layout.intake.rect.w, y: layout.bands[0]!.trunkRow })
+    expect(last(0)).toMatchObject({ x: imp!.bench.x - 2, y: layout.bands[0]!.trunkRow })
+    expect(first(1)).toMatchObject({ x: imp!.bench.x + 2, y: layout.bands[0]!.trunkRow })
+    expect(last(1)).toMatchObject({ x: rev!.bench.x - 2, y: layout.bands[0]!.trunkRow })
+    expect(last(2)).toMatchObject({ x: qa!.bench.x - 2, y: layout.bands[0]!.trunkRow })
+    expect(last(3)).toMatchObject({ x: layout.staging!.bench.x - 1, y: layout.bands[0]!.trunkRow })
     expect(last(4)).toMatchObject(layout.container.mouth)
   })
 
@@ -166,14 +175,14 @@ describe("the first floor", () => {
     const byTask = boxesByTask(layout)
 
     expect(byTask["a"]!.spot).toEqual({ kind: "bench", stationId: imp.id })
-    expect(byTask["b"]!.tile).toMatchObject({ x: imp.bench.x - 1, y: layout.trunkRow })
+    expect(byTask["b"]!.tile).toMatchObject({ x: imp.bench.x - 1, y: layout.bands[0]!.trunkRow })
     expect(byTask["b"]!.spot).toEqual({ kind: "queue", stationId: imp.id, index: 1 })
-    expect(byTask["c"]!.tile).toMatchObject({ x: imp.bench.x - 2, y: layout.trunkRow })
+    expect(byTask["c"]!.tile).toMatchObject({ x: imp.bench.x - 2, y: layout.bands[0]!.trunkRow })
 
     // Behind the bay's split junction the trunk into the bay has two tiles; the queue piles up at its first.
     expect(inbound.tiles).toHaveLength(2)
-    expect(byTask["d"]!.tile).toMatchObject({ x: inbound.tiles[0]!.x, y: layout.trunkRow })
-    expect(byTask["e"]!.tile).toMatchObject({ x: inbound.tiles[0]!.x, y: layout.trunkRow })
+    expect(byTask["d"]!.tile).toMatchObject({ x: inbound.tiles[0]!.x, y: layout.bands[0]!.trunkRow })
+    expect(byTask["e"]!.tile).toMatchObject({ x: inbound.tiles[0]!.x, y: layout.bands[0]!.trunkRow })
     expect(byTask["e"]!.spot).toEqual({ kind: "queue", stationId: imp.id, index: 4 })
   })
 
@@ -200,30 +209,49 @@ describe("growing the floor", () => {
     expect(layoutFloor(pipeline, oneOfEach, before)).toEqual(before)
   })
 
-  it("appends a bay for a role that appears later; bays, stations and the belts between bays stay put, the ends slide right", () => {
-    const before = layoutFloor(pipeline, oneOfEach)
+  it("appends a bay that fits in its band after the last bay, and moves the ends along the line past it", () => {
+    const thirtyTwoWide = { width: 32 }
+    const before = layoutFloor(pipeline, oneOfEach, undefined, thirtyTwoWide)
     const after = layoutFloor(
       { roles: [...pipeline.roles, "security"] },
       { ...oneOfEach, agents: [...oneOfEach.agents, agent("sec-1", "security")] },
       before,
+      thirtyTwoWide,
     )
 
     expect(after.bays.map((b) => b.role)).toEqual(["implementer", "reviewer", "qa", "security"])
-    expect(after.bays.slice(0, 3)).toEqual(before.bays)
-    for (const belt of beltsBetweenBays(before)) {
-      expect(after.belts.find((b) => b.id === belt.id)).toEqual(belt)
-    }
+    expectPlacedToStay(before, after)
+    expect(after.bays[3]).toMatchObject({ rect: { x: 19, y: 2, w: 3, h: 2 }, stations: [{ agentId: "sec-1" }] })
+    expect(before.staging!.rect.x).toBe(19)
+    expect(after.staging!.rect.x).toBe(24)
+    expect(after.container.rect.x).toBe(29)
+    expect(after.bands).toEqual(before.bands)
+    expect(after.bounds).toEqual(before.bounds)
+  })
 
-    const newBay = after.bays[3]!
-    const lastOld = before.bays[2]!
-    expect(newBay.rect.x).toBeGreaterThanOrEqual(lastOld.rect.x + lastOld.rect.w)
-    expect(newBay.rect.x + newBay.rect.w).toBeLessThanOrEqual(after.staging!.rect.x)
-    expect(newBay.stations[0]!.agentId).toBe("sec-1")
+  it("starts a new band for a bay that does not fit in the last bay's band, the ends after it, and leaves what came before as it was", () => {
+    // Twenty-three wide with the staging area off, the container just fits after the qa bay; a bay there would not.
+    const narrow = { width: 23, staging: false }
+    const before = layoutFloor(pipeline, oneOfEach, undefined, narrow)
+    const after = layoutFloor(
+      { roles: [...pipeline.roles, "security"] },
+      { ...oneOfEach, agents: [...oneOfEach.agents, agent("sec-1", "security")] },
+      before,
+      narrow,
+    )
 
-    const slide = after.staging!.rect.x - before.staging!.rect.x
-    expect(slide).toBeGreaterThan(0)
-    expect(after.container.rect.x - before.container.rect.x).toBe(slide)
-    expect(after.bounds.w - before.bounds.w).toBe(slide)
+    expect(before.bands).toHaveLength(1)
+    expect(before.container.rect).toEqual({ x: 19, y: 2, w: 3, h: 2 })
+    expectPlacedToStay(before, after)
+    expect(after.bands[1]).toEqual({ dir: "w", returnRow: 11, trunkRow: 13 })
+    expect(after.bays[3]).toMatchObject({ rect: { x: 16, y: 12, w: 3, h: 2 }, stations: [{ bench: { x: 17, y: 13 } }] })
+    expect(after.container).toMatchObject({ rect: { x: 11, y: 12, w: 3, h: 2 }, mouth: { x: 13, y: 13 } })
+    expect(after.bounds).toEqual({ x: 0, y: 0, w: 23, h: 15 })
+    const turn = after.belts.find((b) => b.id === "bay:qa>bay:security")!
+    expect(turn.tiles[0]).toEqual({ kind: "straight", x: 17, y: 3, dir: "e" })
+    expect(turn.tiles).toContainEqual({ kind: "corner", x: 22, y: 3, from: "e", to: "s" })
+    expect(turn.tiles).toContainEqual({ kind: "corner", x: 22, y: 13, from: "s", to: "w" })
+    expect(turn.tiles.at(-1)).toEqual({ kind: "straight", x: 19, y: 13, dir: "w" })
   })
 
   it("keeps a late role at the end even when the pipeline now lists it mid-line", () => {
@@ -466,7 +494,7 @@ describe("the return belt", () => {
   it("is laid along the back wall the first time a task goes back, right to left from the staging area's riser past every bay to the first bay's drop", () => {
     const before = layoutFloor(pipeline, atReviewer)
     const after = layoutFloor(pipeline, backAtImplementer, before)
-    const run = after.belts.find((b) => b.id === "return")!
+    const run = after.belts.find((b) => b.id === "return:0")!
 
     expect(run).toMatchObject({ kind: "return", from: "staging", to: bayId("implementer") })
     expect(run.tiles).toEqual([
@@ -490,7 +518,7 @@ describe("the return belt", () => {
       { kind: "junction", x: 4, y: 1, dir: "w", entries: ["w"], exits: ["w", "s"] },
     ])
     expect(returnBelts(after).map((b) => [b.id, b.kind, b.tiles])).toEqual([
-      ["return", "return", run.tiles],
+      ["return:0", "return", run.tiles],
       ["staging>return", "riser", [{ kind: "straight", x: 21, y: 2, dir: "n" }]],
       [`${bayId("implementer")}>return`, "riser", [{ kind: "straight", x: 6, y: 2, dir: "n" }]],
       [`return>${bayId("implementer")}`, "drop", [{ kind: "straight", x: 4, y: 2, dir: "s" }]],
@@ -509,7 +537,29 @@ describe("the return belt", () => {
     expect(returnBelts(later)).toEqual(returnBelts(laid))
   })
 
-  it("extends right to a bay appended after it was laid, its tiles so far unchanged", () => {
+  it("extends along the line to a bay appended after it was laid, its tiles so far unchanged", () => {
+    const wide = { width: 32 }
+    const before = layoutFloor(pipeline, atReviewer, undefined, wide)
+    const laid = layoutFloor(pipeline, backAtImplementer, before, wide)
+    const appended = layoutFloor(
+      { roles: [...pipeline.roles, "security"] },
+      { agents: [...oneOfEach.agents, agent("sec-1", "security")], tasks: backAtImplementer.tasks },
+      laid,
+      wide,
+    )
+    const run = appended.belts.find((b) => b.id === "return:0")!
+
+    expect(run.tiles[0]).toEqual({ kind: "corner", x: 26, y: 1, from: "n", to: "w" })
+    expect(run.tiles.find((t) => t.x === 21)).toEqual({ kind: "junction", x: 21, y: 1, dir: "w", entries: ["w", "n"], exits: ["w"] })
+    // The ends of the line slide right to make room, the staging area's stretch of the return belt with them
+    // (ADR 0002); the stretch over the bays laid so far does not.
+    const appendedTiles = beltTiles(appended)
+    const overTheBays = returnBelts(laid).flatMap((b) => b.tiles).filter((t) => t.x <= 16)
+    for (const tile of overTheBays) expect(appendedTiles.get(tileKey(tile))).toEqual(tile)
+  })
+
+  it("is laid again from the ends' new band when they wrap on an append, the stretch over the bays laid so far unchanged", () => {
+    // Twenty-seven wide, the first line just fits; a fourth bay fits after the qa bay, and the ends go on into a band below.
     const before = layoutFloor(pipeline, atReviewer)
     const laid = layoutFloor(pipeline, backAtImplementer, before)
     const appended = layoutFloor(
@@ -517,12 +567,25 @@ describe("the return belt", () => {
       { agents: [...oneOfEach.agents, agent("sec-1", "security")], tasks: backAtImplementer.tasks },
       laid,
     )
-    const run = appended.belts.find((b) => b.id === "return")!
+    const belt = (id: string) => appended.belts.find((b) => b.id === id)!
 
-    expect(run.tiles[0]).toEqual({ kind: "corner", x: 26, y: 1, from: "n", to: "w" })
-    expect(run.tiles.find((t) => t.x === 21)).toEqual({ kind: "junction", x: 21, y: 1, dir: "w", entries: ["w", "n"], exits: ["w"] })
-    // The ends of the line slide right to make room, the staging area's stretch of the return belt with them
-    // (ADR 0002); the stretch over the bays laid so far does not.
+    expect(appended.staging).toMatchObject({ band: 1, bench: { x: 21, y: 13 } })
+    expect(belt("staging>return")).toMatchObject({ to: "return:1", tiles: [{ kind: "straight", x: 20, y: 12, dir: "n" }] })
+    expect(belt("return:1").tiles).toEqual([
+      { kind: "corner", x: 20, y: 11, from: "n", to: "e" },
+      ...[21, 22, 23, 24].map((x) => ({ kind: "straight", x, y: 11, dir: "e" })),
+      { kind: "corner", x: 25, y: 11, from: "e", to: "n" },
+      ...[10, 9, 8, 7, 6, 5, 4].map((y) => ({ kind: "straight", x: 25, y, dir: "n" })),
+    ])
+    expect(belt("return:1>return:0").tiles).toEqual([{ kind: "straight", x: 25, y: 2, dir: "n" }])
+    expect(belt("return:0")).toMatchObject({ from: "return:1", to: bayId("implementer") })
+    expect(belt("return:0").tiles.slice(0, 7)).toEqual([
+      { kind: "corner", x: 25, y: 1, from: "n", to: "w" },
+      ...[24, 23, 22].map((x) => ({ kind: "straight", x, y: 1, dir: "w" })),
+      { kind: "junction", x: 21, y: 1, dir: "w", entries: ["w", "n"], exits: ["w"] },
+      { kind: "straight", x: 20, y: 1, dir: "w" },
+      { kind: "junction", x: 19, y: 1, dir: "w", entries: ["w"], exits: ["w", "s"] },
+    ])
     const appendedTiles = beltTiles(appended)
     const overTheBays = returnBelts(laid).flatMap((b) => b.tiles).filter((t) => t.x <= 16)
     for (const tile of overTheBays) expect(appendedTiles.get(tileKey(tile))).toEqual(tile)
@@ -585,6 +648,7 @@ describe("the ends of the line", () => {
     const layout = layoutFloor(pipeline, { ...oneOfEach, tasks: ["a", "b", "c", "d", "e"].map((id) => task(id, "shipped")) })
 
     expect(layout.container).toEqual({
+      band: 0,
       rect: { x: 24, y: 2, w: 3, h: 2 },
       mouth: { x: 24, y: 3 },
       stacks: [
@@ -622,10 +686,10 @@ describe("the ends of the line", () => {
       id: "staging>return",
       kind: "riser",
       from: "staging",
-      to: "return",
+      to: "return:0",
       tiles: [{ kind: "straight", x: 21, y: 2, dir: "n" }],
     })
-    const run = rejected.belts.find((b) => b.id === "return")!
+    const run = rejected.belts.find((b) => b.id === "return:0")!
     expect(run.from).toBe("staging")
     expect(run.tiles.slice(0, 6)).toEqual([
       { kind: "corner", x: 21, y: 1, from: "n", to: "w" },
@@ -648,6 +712,7 @@ describe("with the staging area switched off", () => {
     expect(layout.staging).toBeUndefined()
     expect(trunk.map((b) => b.id)).toEqual(["intake>bay:implementer", "bay:implementer>bay:reviewer", "bay:reviewer>bay:qa", "bay:qa>container"])
     expect(layout.container).toEqual({
+      band: 0,
       rect: { x: 19, y: 2, w: 3, h: 2 },
       mouth: { x: 19, y: 3 },
       stacks: [
@@ -671,10 +736,135 @@ describe("with the staging area switched off", () => {
   it("starts the return belt at the last bay's riser", () => {
     const before = layoutFloor(pipeline, { ...oneOfEach, tasks: [task("t-1", { agent: "qa-1" })] }, undefined, noStaging)
     const after = layoutFloor(pipeline, { ...oneOfEach, tasks: [task("t-1", { agent: "imp-1" })] }, before, noStaging)
-    const run = after.belts.find((b) => b.id === "return")!
+    const run = after.belts.find((b) => b.id === "return:0")!
 
     expect(run.from).toBe(bayId("qa"))
     expect(run.tiles[0]).toEqual({ kind: "junction", x: 16, y: 1, dir: "w", entries: ["w", "n"], exits: ["w"] })
     expect(after.belts.find((b) => b.id === "staging>return")).toBeUndefined()
+  })
+})
+
+// Twenty tiles wide, the intake, the implementer bay and the reviewer bay fill
+// the first band; the trunk turns at the east edge, down column 19 with the
+// return belt's way up beside it in column 18, and the qa bay, the staging
+// area and the container run back westward along a second band below, whose
+// return belt is on row 11 and trunk on row 13.
+
+describe("the floor's width", () => {
+  const twentyWide = { width: 20 }
+
+  it("lays the first line in bands within the host's width when it does not fit in one, each band running the other way", () => {
+    const layout = layoutFloor(pipeline, oneOfEach, undefined, twentyWide)
+
+    expect(layout.bounds).toEqual({ x: 0, y: 0, w: 20, h: 15 })
+    expect(layout.bands).toEqual([
+      { dir: "e", returnRow: 1, trunkRow: 3 },
+      { dir: "w", returnRow: 11, trunkRow: 13 },
+    ])
+    expect(layout.bays.map((b) => [b.role, b.band, b.rect])).toEqual([
+      ["implementer", 0, { x: 4, y: 2, w: 3, h: 2 }],
+      ["reviewer", 0, { x: 9, y: 2, w: 3, h: 2 }],
+      ["qa", 1, { x: 13, y: 12, w: 3, h: 2 }],
+    ])
+    expect(layout.bays[2]!.stations[0]).toMatchObject({ bench: { x: 14, y: 13 }, agentTile: { x: 14, y: 12 } })
+    expect(layout.staging).toEqual({
+      band: 1,
+      rect: { x: 8, y: 12, w: 3, h: 2 },
+      bench: { x: 9, y: 13 },
+      inspectorTile: { x: 9, y: 12 },
+      pile: [
+        { x: 9, y: 13 },
+        { x: 10, y: 12 },
+      ],
+    })
+    expect(layout.container).toEqual({
+      band: 1,
+      rect: { x: 3, y: 12, w: 3, h: 2 },
+      mouth: { x: 5, y: 13 },
+      stacks: [
+        { x: 4, y: 13 },
+        { x: 3, y: 13 },
+        { x: 4, y: 12 },
+        { x: 3, y: 12 },
+      ],
+    })
+  })
+
+  it("turns the trunk at the edge and brings it down into the next band, where the bays face the other way", () => {
+    const layout = layoutFloor(pipeline, oneOfEach, undefined, twentyWide)
+    const tiles = beltTiles(layout)
+    const at = (x: number, y: number) => tiles.get(tileKey({ x, y }))
+    const turn = layout.belts.find((b) => b.id === "bay:reviewer>bay:qa")!
+
+    expect(turn.tiles).toEqual([
+      ...[12, 13, 14, 15, 16, 17].map((x) => ({ kind: "straight", x, y: 3, dir: "e" })),
+      // Where the band below's return belt will cross on its way up, shaped for it now.
+      { kind: "junction", x: 18, y: 3, dir: "e", entries: ["e", "n"], exits: ["e", "n"] },
+      { kind: "corner", x: 19, y: 3, from: "e", to: "s" },
+      ...[4, 5, 6, 7, 8, 9, 10, 11, 12].map((y) => ({ kind: "straight", x: 19, y, dir: "s" })),
+      { kind: "corner", x: 19, y: 13, from: "s", to: "w" },
+      ...[18, 17, 16].map((x) => ({ kind: "straight", x, y: 13, dir: "w" })),
+    ])
+    // The qa bay is entered from the east and left to the west.
+    expect(at(15, 13)).toEqual({ kind: "junction", x: 15, y: 13, dir: "w", entries: ["w", "s"], exits: ["w", "s"] })
+    expect(at(13, 13)).toEqual({ kind: "junction", x: 13, y: 13, dir: "w", entries: ["w", "n"], exits: ["w", "n"] })
+    expect(layout.belts.find((b) => b.id === "bay:qa>staging")!.tiles.map((t) => t.x)).toEqual([12, 11, 10])
+    expect(layout.belts.find((b) => b.id === "staging>container")!.tiles).toEqual([
+      { kind: "junction", x: 8, y: 13, dir: "w", entries: ["w"], exits: ["w", "n"] },
+      { kind: "straight", x: 7, y: 13, dir: "w" },
+      { kind: "straight", x: 6, y: 13, dir: "w" },
+      { kind: "straight", x: 5, y: 13, dir: "w" },
+    ])
+  })
+
+  it("is as wide as the first line when the host gives no width, and never narrower than a band holding a turn and the two ends", () => {
+    expect(layoutFloor(pipeline, oneOfEach).bounds.w).toBe(27)
+    expect(layoutFloor(pipeline, oneOfEach, undefined, { width: 5 }).bounds.w).toBe(12)
+  })
+
+  it("keeps the width the first layout was laid at, whatever the host says later", () => {
+    const first = layoutFloor(pipeline, oneOfEach, undefined, twentyWide)
+    expect(layoutFloor(pipeline, oneOfEach, first, { width: 40 }).bounds.w).toBe(20)
+  })
+
+  it("lays the return belt from the staging area back along its band, up the turn beside the trunk's way down, and on along the band above", () => {
+    const atQa = layoutFloor(pipeline, { ...oneOfEach, tasks: [task("t-1", { agent: "qa-1" })] }, undefined, twentyWide)
+    const backAtImp = layoutFloor(pipeline, { ...oneOfEach, tasks: [task("t-1", { agent: "imp-1" })] }, atQa, twentyWide)
+    const belt = (id: string) => backAtImp.belts.find((b) => b.id === id)!
+
+    expect(belt("return:1")).toMatchObject({ kind: "return", from: "staging", to: "return:0" })
+    expect(belt("return:1").tiles).toEqual([
+      { kind: "corner", x: 8, y: 11, from: "n", to: "e" },
+      ...[9, 10, 11, 12].map((x) => ({ kind: "straight", x, y: 11, dir: "e" })),
+      { kind: "junction", x: 13, y: 11, dir: "e", entries: ["e", "n"], exits: ["e"] },
+      { kind: "straight", x: 14, y: 11, dir: "e" },
+      { kind: "junction", x: 15, y: 11, dir: "e", entries: ["e"], exits: ["e", "s"] },
+      ...[16, 17].map((x) => ({ kind: "straight", x, y: 11, dir: "e" })),
+      { kind: "corner", x: 18, y: 11, from: "e", to: "n" },
+      ...[10, 9, 8, 7, 6, 5, 4].map((y) => ({ kind: "straight", x: 18, y, dir: "n" })),
+    ])
+    // Over the crossing on the trunk, one tile of riser joins the band above's belt.
+    expect(belt("return:1>return:0")).toEqual({
+      id: "return:1>return:0",
+      kind: "riser",
+      from: "return:1",
+      to: "return:0",
+      tiles: [{ kind: "straight", x: 18, y: 2, dir: "n" }],
+    })
+    expect(belt("return:0")).toMatchObject({ kind: "return", from: "return:1", to: bayId("implementer") })
+    expect(belt("return:0").tiles).toEqual([
+      { kind: "corner", x: 18, y: 1, from: "n", to: "w" },
+      ...[17, 16, 15, 14, 13, 12].map((x) => ({ kind: "straight", x, y: 1, dir: "w" })),
+      { kind: "junction", x: 11, y: 1, dir: "w", entries: ["w", "n"], exits: ["w"] },
+      { kind: "straight", x: 10, y: 1, dir: "w" },
+      { kind: "junction", x: 9, y: 1, dir: "w", entries: ["w"], exits: ["w", "s"] },
+      ...[8, 7].map((x) => ({ kind: "straight", x, y: 1, dir: "w" })),
+      { kind: "junction", x: 6, y: 1, dir: "w", entries: ["w", "n"], exits: ["w"] },
+      { kind: "straight", x: 5, y: 1, dir: "w" },
+      { kind: "junction", x: 4, y: 1, dir: "w", entries: ["w"], exits: ["w", "s"] },
+    ])
+    expect(belt("staging>return")).toMatchObject({ to: "return:1", tiles: [{ kind: "straight", x: 8, y: 12, dir: "n" }] })
+    expect(belt(`${bayId("qa")}>return`).tiles).toEqual([{ kind: "straight", x: 13, y: 12, dir: "n" }])
+    expect(belt(`return>${bayId("qa")}`).tiles).toEqual([{ kind: "straight", x: 15, y: 12, dir: "s" }])
   })
 })

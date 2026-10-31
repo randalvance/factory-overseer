@@ -36,6 +36,19 @@ describe("the way in", () => {
   ])("takes $who from the door along the back wall, down the aisle before its bay and in to its tile", ({ id, path }) => {
     expect(wayIn(layout, station(id))).toEqual(path)
   })
+
+  // Twenty tiles wide, the qa bay is in the band below, facing west: its bench
+  // at (14, 13), its aisle the column before it the way its band runs, x = 16.
+  it("takes an agent of a bay in the band below down the door's column, along the floor before the band, down its aisle and in", () => {
+    const wrapped = layoutFloor(pipeline, { ...twoImplementers, agents: [...twoImplementers.agents, agent("qa-1", "qa")] }, undefined, { width: 20 })
+    const qa = wrapped.bays[2]!.stations[0]!
+
+    expect(wayIn(wrapped, qa)).toEqual([
+      ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((y) => ({ x: 2, y })),
+      ...[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].map((x) => ({ x, y: 10 })),
+      ...tiles([16, 11], [16, 12], [15, 12], [14, 12]),
+    ])
+  })
 })
 
 describe("who comes and goes", () => {

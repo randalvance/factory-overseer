@@ -24,6 +24,12 @@ export interface FactoryProps {
   speed?: number
   /** Whether boxes pass the inspector before they ship. On unless switched off, when the last bay ships straight into the container. */
   staging?: boolean
+  /**
+   * The floor's width in tiles, fixed when the first snapshot is drawn: the
+   * line wraps into bands within it rather than run past it (ADR 0006). As
+   * wide as the first line needs when not given.
+   */
+  width?: number
   /** What each status looks like, cell by cell over the defaults. Keep the same object between renders. */
   statusStyles?: StatusStyleOverrides
   /** The stock sheets each role's agents draw from, over the defaults. Keep the same object between renders. */
@@ -32,7 +38,7 @@ export interface FactoryProps {
   onLayout?: (layout: Layout, motions: Motions) => void
 }
 
-export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, statusStyles, wardrobes, onLayout }: FactoryProps) {
+export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, width, statusStyles, wardrobes, onLayout }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
@@ -60,7 +66,7 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, st
 
   useEffect(() => {
     if (!view.current) return
-    const layout = layoutFloor(pipeline, { agents, tasks }, previous.current, { staging })
+    const layout = layoutFloor(pipeline, { agents, tasks }, previous.current, { staging, width })
     const traffic = comingsAndGoings(previous.current, layout)
     previous.current = layout
     let stale = false
@@ -75,7 +81,7 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, st
     return () => {
       stale = true
     }
-  }, [pipeline, agents, tasks, staging, statusStyles, wardrobes])
+  }, [pipeline, agents, tasks, staging, width, statusStyles, wardrobes])
 
   return <div ref={mount} className="factory" role="img" aria-label="Factory floor" data-drawn={drawn} />
 }

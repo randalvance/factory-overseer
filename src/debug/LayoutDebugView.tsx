@@ -6,7 +6,7 @@
 import { carriesRework, travelDirection } from "~/floor/belts"
 import type { JunctionSetting, Motion } from "~/floor/motion"
 import { step } from "~/floor/tiles"
-import type { BeltTile, Layout, Rect, Tile } from "~/floor/types"
+import type { Band, BeltTile, Layout, Rect, Tile } from "~/floor/types"
 
 const TILE = 28
 
@@ -24,6 +24,9 @@ export function LayoutDebugView({ layout, motions = [] }: { layout: Layout; moti
     >
       <rect width={width} height={height} fill="#141821" />
       <Grid w={layout.bounds.w} h={layout.bounds.h} />
+      {layout.bands.map((band, i) => (
+        <BandMark key={band.returnRow} band={band} index={i} w={layout.bounds.w} />
+      ))}
 
       <Zone rect={layout.intake.rect} label="intake" fill="#2c3e6b" />
       {layout.bays.map((bay) => (
@@ -86,6 +89,19 @@ function Grid({ w, h }: { w: number; h: number }) {
     lines.push(<line key={`y${y}`} x1={0} y1={y * TILE} x2={w * TILE} y2={y * TILE} stroke="#1f2531" />)
   }
   return <g>{lines}</g>
+}
+
+/** A band's back, and which way the line runs along it. */
+function BandMark({ band, index, w }: { band: Band; index: number; w: number }) {
+  const y = band.returnRow * TILE
+  return (
+    <g>
+      <line x1={0} y1={y} x2={w * TILE} y2={y} stroke="#3b4454" strokeDasharray="4 4" />
+      <text x={3} y={y - 4} fill="#8f9bb0" fontSize={10}>
+        {`band ${index} ${band.dir === "e" ? "→" : "←"}`}
+      </text>
+    </g>
+  )
 }
 
 function Zone({ rect, label, fill }: { rect: Rect; label: string; fill: string }) {

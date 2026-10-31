@@ -73,8 +73,9 @@ export interface Handoff {
  * The line at work, as a host would report it over successive snapshots:
  * t-37 goes to the reviewer, comes back as rework while t-38 goes on, and
  * goes again; t-41 comes in from the intake; the inspector rejects t-31 and
- * later passes it; and everything ships in the end. Each entry is the
- * handoffs of one snapshot.
+ * later passes it; t-38 reaches qa and comes back to the reviewer, around the
+ * turn and back up it when the line wraps; and everything ships in the end.
+ * Each entry is the handoffs of one snapshot.
  */
 export const acrossTheLine: Handoff[][] = [
   [{ id: "t-37", to: { agent: "rev-1" } }],
@@ -93,7 +94,11 @@ export const acrossTheLine: Handoff[][] = [
   [{ id: "t-38", to: { agent: "qa-1" } }],
   [
     { id: "t-35", to: "shipped" },
+    { id: "t-38", to: { agent: "rev-1" } },
+  ],
+  [
     { id: "t-31", to: "staging" },
+    { id: "t-38", to: { agent: "qa-1" } },
   ],
   [{ id: "t-37", to: { agent: "qa-1" } }],
   [

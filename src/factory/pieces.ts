@@ -197,12 +197,14 @@ export function containerWalls(container: Container): THREE.Group {
     mesh.position.set(px, sy / 2, pz)
     return mesh
   }
+  // The side the trunk reaches is open at the mouth; the far side is a wall.
+  const [mouthSide, farSide] = container.mouth.x === x ? [x + WALL_T / 2, x + w - WALL_T / 2] : [x + w - WALL_T / 2, x + WALL_T / 2]
   group.add(slab(w, CONTAINER_FLOOR_H, h, x + w / 2, y + h / 2))
   group.add(slab(w, WALL_H, WALL_T, x + w / 2, y + WALL_T / 2))
-  group.add(slab(WALL_T, WALL_H, h, x + w - WALL_T / 2, y + h / 2))
+  group.add(slab(WALL_T, WALL_H, h, farSide, y + h / 2))
   group.add(slab(w, WALL_H / 3, WALL_T, x + w / 2, y + h - WALL_T / 2))
   for (let row = y; row < y + h; row++) {
-    if (row !== container.mouth.y) group.add(slab(WALL_T, WALL_H, 1, x + WALL_T / 2, row + 0.5))
+    if (row !== container.mouth.y) group.add(slab(WALL_T, WALL_H, 1, mouthSide, row + 0.5))
   }
   return group
 }

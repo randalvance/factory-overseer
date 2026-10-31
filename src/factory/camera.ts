@@ -50,14 +50,22 @@ export function clampToFloor(pose: CameraPose, floor: Rect): CameraPose {
   }
 }
 
-/** The pose that shows the whole floor, as the view opens. */
+/**
+ * The pose the view opens on: the floor's width filling the viewport, so the
+ * overseer never scrolls sideways, and the whole floor when it fits; when it
+ * is taller than the viewport, the back of it, from where the overseer pans
+ * toward the camera. On screen a tile of depth is foreshortened by the pitch,
+ * and what stands on the floor rises above the back wall by the headroom.
+ */
 export function fitFloor(floor: Rect, viewport: Viewport): CameraPose {
+  const zoom = clamp(viewport.width / ((floor.w + 2 * FIT_MARGIN) * PX_PER_TILE), ZOOM_MIN, ZOOM_MAX)
   const screenDepth = floor.h * Math.sin(PITCH) + HEADROOM * Math.cos(PITCH)
-  const zoom = Math.min(
-    viewport.width / ((floor.w + 2 * FIT_MARGIN) * PX_PER_TILE),
-    viewport.height / ((screenDepth + 2 * FIT_MARGIN) * PX_PER_TILE),
-  )
-  return { x: floor.x + floor.w / 2, z: floor.y + floor.h / 2, zoom: clamp(zoom, ZOOM_MIN, ZOOM_MAX) }
+  const screenHalfHeight = viewport.height / PX_PER_TILE / zoom / 2
+  const fits = screenDepth + 2 * FIT_MARGIN <= 2 * screenHalfHeight
+  const z = fits
+    ? floor.y + floor.h / 2
+    : floor.y + (screenHalfHeight - FIT_MARGIN - HEADROOM * Math.cos(PITCH)) / Math.sin(PITCH)
+  return { x: floor.x + floor.w / 2, z, zoom }
 }
 
 function clamp(value: number, min: number, max: number): number {

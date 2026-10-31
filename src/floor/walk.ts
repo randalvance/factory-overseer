@@ -1,8 +1,9 @@
 // Who comes and goes between one layout and the next, and the way in for
-// those who come: through the door in the back wall, along the wall, down
-// the aisle before their bay and in to their tile. Pure, like the rest of
-// the floor core; the view walks the sprites and fades them.
+// those who come: through the door in the back wall, to the back of their
+// band, along it, down the aisle before their bay and in to their tile. Pure,
+// like the rest of the floor core; the view walks the sprites and fades them.
 
+import { aisleColumn } from "./layout"
 import { sameTile } from "./tiles"
 import type { Layout, Station, Tile } from "./types"
 
@@ -38,14 +39,22 @@ function seated(layout: Layout): Station[] {
   return layout.bays.flatMap((bay) => bay.stations).filter((station) => !station.vacant)
 }
 
-/** The way in to a station: from the door, along the back wall, down the aisle before its bay, in to its tile. */
+/**
+ * The way in to a station: from the door, down its column to the row before
+ * the station's band, which is the back wall for the first band and the floor
+ * in front of the band above for any other, along it to the aisle before the
+ * bay, down the aisle, and in to the station's tile.
+ */
 export function wayIn(layout: Layout, station: Station): Tile[] {
   const bay = layout.bays.find((b) => b.role === station.role)
   if (!bay) return []
-  const aisle = bay.rect.x - 1
+  const band = layout.bands[bay.band]!
+  const aisle = aisleColumn(bay, band)
+  const back = band.returnRow - 1
   const corners: Tile[] = [
     layout.door,
-    { x: aisle, y: layout.door.y },
+    { x: layout.door.x, y: back },
+    { x: aisle, y: back },
     { x: aisle, y: station.agentTile.y },
     station.agentTile,
   ]

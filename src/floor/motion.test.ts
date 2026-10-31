@@ -300,3 +300,61 @@ describe("with the staging area switched off", () => {
     expect(motions.toPlay[0]!.path).toEqual(tiles([23, 3], [24, 3], [25, 3]))
   })
 })
+
+// Twenty tiles wide, the line wraps: the implementer's and the reviewer's
+// bays are in the first band, the trunk turns down column 19 at the edge, and
+// the qa bay (its bench at x = 14 on row 13), the staging area and the
+// container run westward along the band below. Rework from there rises in
+// column 18 beside the trunk's way down, across it at (18, 3), to the first
+// band's return belt.
+
+describe("across a turn", () => {
+  const twentyWide = { width: 20 }
+  const wrapped = (tasks: Record<string, TaskLocation>, before?: Layout): Layout =>
+    layoutFloor(pipeline, snapshot(tasks), before, twentyWide)
+
+  it("rides the trunk through the turn to a bay in the band below, the crossing set to let it through", () => {
+    const before = wrapped({ "t-1": { agent: "rev-1" } })
+    const after = wrapped({ "t-1": { agent: "qa-1" } }, before)
+
+    const motions = motionsFor(after, restingTiles(before))
+
+    expect(motions.unrouted).toEqual([])
+    expect(motions.toPlay[0]!.path).toEqual(
+      tiles([10, 3], [11, 3], [12, 3], [13, 3], [14, 3], [15, 3], [16, 3], [17, 3], [18, 3], [19, 3], [19, 4], [19, 5], [19, 6], [19, 7], [19, 8], [19, 9], [19, 10], [19, 11], [19, 12], [19, 13], [18, 13], [17, 13], [16, 13], [15, 13], [14, 13]),
+    )
+    expect(motions.toPlay[0]!.junctions).toEqual([
+      { tile: { x: 11, y: 3 }, exit: "e" },
+      { tile: { x: 18, y: 3 }, exit: "e" },
+      { tile: { x: 15, y: 13 }, exit: "w" },
+    ])
+  })
+
+  it("rides rework from the band below up the turn, across the trunk, and along the band above's return belt to an earlier bay", () => {
+    const before = wrapped({ "t-1": { agent: "qa-1" } })
+    const after = wrapped({ "t-1": { agent: "imp-1" } }, before)
+
+    const motions = motionsFor(after, restingTiles(before))
+
+    expect(motions.unrouted).toEqual([])
+    expect(motions.toPlay[0]!.path).toEqual(
+      tiles(
+        [14, 13], [13, 13], [13, 12], [13, 11], [14, 11], [15, 11], [16, 11], [17, 11], [18, 11],
+        [18, 10], [18, 9], [18, 8], [18, 7], [18, 6], [18, 5], [18, 4], [18, 3], [18, 2], [18, 1],
+        [17, 1], [16, 1], [15, 1], [14, 1], [13, 1], [12, 1], [11, 1], [10, 1], [9, 1], [8, 1], [7, 1], [6, 1], [5, 1], [4, 1],
+        [4, 2], [4, 3], [5, 3],
+      ),
+    )
+    expect(motions.toPlay[0]!.junctions).toEqual([
+      { tile: { x: 13, y: 13 }, exit: "n" },
+      { tile: { x: 13, y: 11 }, exit: "e" },
+      { tile: { x: 15, y: 11 }, exit: "e" },
+      { tile: { x: 18, y: 3 }, exit: "n" },
+      { tile: { x: 11, y: 1 }, exit: "w" },
+      { tile: { x: 9, y: 1 }, exit: "w" },
+      { tile: { x: 6, y: 1 }, exit: "w" },
+      { tile: { x: 4, y: 1 }, exit: "s" },
+      { tile: { x: 4, y: 3 }, exit: "e" },
+    ])
+  })
+})

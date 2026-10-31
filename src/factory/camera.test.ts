@@ -57,10 +57,10 @@ describe("pan limits", () => {
   })
 })
 
-describe("framing the whole line", () => {
+describe("framing the floor's width", () => {
   const viewport = { width: 1280, height: 800 }
 
-  it("looks at the middle of the floor", () => {
+  it("looks at the middle of a floor that fits the viewport", () => {
     expect(fitFloor({ x: 0, y: 0, w: 10, h: 5 }, viewport)).toMatchObject({ x: 5, z: 2.5 })
   })
 
@@ -68,6 +68,21 @@ describe("framing the whole line", () => {
   // zoom 1, so 1280 pixels fit at 1.6667; the depth would allow more.
   it("zooms so a short floor fills the width with a tile of margin", () => {
     expect(fitFloor({ x: 0, y: 0, w: 10, h: 5 }, viewport).zoom).toBeCloseTo(1.6667, 3)
+  })
+
+  // Twenty tiles plus the margins fill 1280 pixels at 0.9091, though the
+  // floor's twenty-five rows would need 0.56 to fit: the width wins, so the
+  // overseer never scrolls sideways.
+  it("zooms to the width however tall the floor is", () => {
+    expect(fitFloor({ x: 0, y: 0, w: 20, h: 25 }, viewport).zoom).toBeCloseTo(0.9091, 3)
+  })
+
+  // At that zoom the viewport is 13.75 tiles tall on screen; with a tile of
+  // margin and two tiles of headroom foreshortened by the pitch above the
+  // back wall, the centre of the screen falls 5.99 tiles into the floor.
+  it("starts at the back of a floor taller than the viewport, from where the overseer pans toward the camera", () => {
+    expect(fitFloor({ x: 0, y: 0, w: 20, h: 25 }, viewport)).toMatchObject({ x: 10 })
+    expect(fitFloor({ x: 0, y: 0, w: 20, h: 25 }, viewport).z).toBeCloseTo(5.991, 2)
   })
 
   it("never zooms past the limits to fit", () => {

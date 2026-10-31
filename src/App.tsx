@@ -12,12 +12,17 @@ import {
   withoutAnImplementer,
 } from "~/demo/scripted"
 import { Factory } from "~/factory/Factory"
+import { PX_PER_TILE } from "~/factory/camera"
 import type { Motions } from "~/floor/motion"
 import type { Layout } from "~/floor/types"
 
 const SPEEDS = [0.5, 1, 2, 4]
 /** Between snapshots while playing, at speed 1: long enough for a handoff between neighbouring bays. */
 const PLAY_INTERVAL_MS = 3000
+/** No wider than this, so the opening line of three bays, the staging area and the container wraps on any window. */
+const WIDEST_FLOOR = 24
+/** The floor as wide as the window at zoom 1, so the line wraps into bands below rather than run off the edge. */
+const floorWidth = Math.min(WIDEST_FLOOR, Math.floor(window.innerWidth / PX_PER_TILE))
 
 export function App() {
   const [demo, setDemo] = useState<Demo>(atTheStart)
@@ -93,6 +98,7 @@ export function App() {
           tasks={snapshot.tasks}
           speed={speed}
           staging={staging}
+          width={floorWidth}
           onLayout={(layout, motions) => setDrawn({ layout, motions })}
         />
       </section>
