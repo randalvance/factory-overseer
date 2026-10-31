@@ -15,6 +15,27 @@ _Avoid_: Room, map, scene
 Where every bay, station, belt and end of the line sits on the floor.
 _Avoid_: Arrangement, graph, plan
 
+**Line**:
+The path of boxes through the factory: the intake, each bay in turn, the
+staging area and the shipping container, joined by the trunk.
+_Avoid_: Pipeline (the host's order of roles), route, path
+
+**Floor Width**:
+How many tiles wide the floor is, fixed when the first layout is laid. The
+line wraps into bands rather than run past it.
+_Avoid_: Width budget, max width, wrap width
+
+**Band**:
+One pass of the line across the floor: its return belt along the back, its
+trunk, and the lanes of its bays toward the camera. Each band runs the
+opposite way to the one above it.
+_Avoid_: Row, tier, pass, strip, level
+
+**Turn**:
+Where the line leaves the edge of one band and comes down into the next: the
+trunk's way down and the return belt's way up, side by side.
+_Avoid_: U-turn, bend, elbow, switchback
+
 **Overseer**:
 The human watching the factory. The overseer is a point of view, not a
 character on the floor.
@@ -60,8 +81,14 @@ The order of roles a task normally passes through, as the host declares it.
 _Avoid_: Workflow, flow, chain
 
 **Bay**:
-The area holding every station of one role.
+The area holding a role's stations, one lane each, with room for a fixed
+number of them.
 _Avoid_: Group, column, pool, team
+
+**Annex**:
+A further bay for a role whose bay has no lane left, appended at the end of
+the line like any other bay.
+_Avoid_: Overflow bay, second bay, extension
 
 **Station**:
 A bench with a tablet where one agent works. The box sits on the bench while
@@ -85,8 +112,8 @@ junction and back onto the trunk.
 _Avoid_: Outbound column, merger
 
 **Aisle**:
-The column of floor before a bay, which agents walk down from the back wall to
-reach their lane.
+The column of floor before a bay, which agents walk down from the back of its
+band to reach their lane.
 _Avoid_: Corridor, walkway
 
 **Door**:
@@ -95,8 +122,8 @@ its station.
 _Avoid_: Entrance, spawn point
 
 **Way In**:
-The tile path a new agent walks from the door to its station: along the back
-wall, down the aisle before its bay, and in to its tile.
+The tile path a new agent walks from the door to its station: to the back of
+its band, down the aisle before its bay, and in to its tile.
 _Avoid_: Route, spawn path
 
 **Tablet**:
@@ -151,11 +178,14 @@ to another.
 _Avoid_: Conveyor, line, pipe, edge
 
 **Trunk**:
-The belt that carries boxes forward from one bay to the next.
+The belt that carries boxes forward along the line, from one bay to the next
+and through each turn.
 _Avoid_: Main line, bus, highway
 
 **Return Belt**:
-The belt that carries rework back toward earlier bays, along the back wall.
+The belt that carries boxes back along the line, along the back of each band
+and up the turn to the band above: rework, and forward handoffs to a bay that
+lies behind.
 _Avoid_: Return lane, back edge, loop, rejection belt
 
 **Drop**:
@@ -180,8 +210,7 @@ _Avoid_: Transfer, pass, move
 
 **Rework**:
 A handoff back to an earlier role, or across to another lane of the same bay,
-whether from a station or from the staging area. Rework rides the return
-belt, which is laid the first time it is needed.
+whether from a station or from the staging area. It rides the return belt.
 _Avoid_: Bounce, return, rejection, send-back
 
 **Motion**:
