@@ -42,6 +42,7 @@ body,
   gap: 0.5rem;
 }
 
+.demo-actions select,
 .demo-actions button {
   font: inherit;
   font-size: 0.8rem;
@@ -55,6 +56,11 @@ body,
 
 .demo-actions button:hover {
   background: #2c3442;
+}
+
+.demo-actions button:disabled {
+  color: #6b7280;
+  cursor: default;
 }
 
 .demo-floor {

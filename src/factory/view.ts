@@ -4,8 +4,10 @@
 // are built elsewhere.
 
 import * as THREE from "three"
+import { type Motions, motionsFor } from "~/floor/motion"
 import type { Layout, Rect } from "~/floor/types"
 import type { Agent, Snapshot } from "~/model/types"
+import { BELT_SPEED, createBoxes } from "./boxes"
 import { type CameraPose, PITCH, PX_PER_TILE, clampToFloor, fitFloor, panBy, zoomBy } from "./camera"
 import { attachControls } from "./controls"
 import { type Seated, disposeDrawing, drawFactory } from "./drawing"
@@ -13,8 +15,15 @@ import { sheetUrl } from "./sprites"
 import { beltTexture, loadSheet } from "./textures"
 
 export interface FactoryView {
-  /** Draw a layout with its agents and tasks. Resolves once it is drawn, or once a newer snapshot has taken its place. */
-  show(layout: Layout, snapshot: Snapshot): Promise<void>
+  /**
+   * Draw a layout with its agents and tasks; the boxes whose place changed
+   * ride there from wherever they are. Resolves with the motions played once
+   * drawn, or with none once a newer snapshot has taken its place. The rides
+   * play on after that.
+   */
+  show(layout: Layout, snapshot: Snapshot): Promise<Motions>
+  /** Scale every belt. */
+  setSpeed(speed: number): void
   dispose(): void
 }
 
@@ -24,10 +33,10 @@ export interface FactoryViewOptions {
 }
 
 const BACKGROUND = 0x0b0d12
-/** Belt travel in tiles per second; the belt texture repeats once per tile. */
-const BELT_SPEED = 1
 /** How far back along its line of sight the camera sits from the point it looks at. */
 const CAMERA_DISTANCE = 60
+/** The longest step the clock may take between frames, so a tab coming back does not leap. */
+const MAX_FRAME_S = 0.1
 
 export function createFactoryView(mount: HTMLElement, options: FactoryViewOptions = {}): FactoryView {
   const assetBase = options.assetBase ?? "/"
@@ -54,6 +63,8 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   const belt = beltTexture()
   let drawing = new THREE.Group()
   scene.add(drawing)
+  const boxes = createBoxes(scene)
+  let speed = 1
 
   /** Frame the whole line once both the floor and the viewport are known; from then on keep the camera on its pose. */
   function aimCamera() {
@@ -97,27 +108,37 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     },
   })
 
+  // The belt texture repeats once per tile, so it scrolls as far as the boxes ride.
+  let beltTravel = 0
+  let lastFrame: number | undefined
   renderer.setAnimationLoop((time) => {
-    if (!visible) return
-    belt.offset.x = -((time / 1000) * BELT_SPEED) % 1
-    renderer.render(scene, camera)
+    const dt = lastFrame === undefined ? 0 : Math.min((time - lastFrame) / 1000, MAX_FRAME_S)
+    lastFrame = time
+    boxes.tick(dt, speed)
+    beltTravel += dt * BELT_SPEED * speed
+    belt.offset.x = -beltTravel % 1
+    if (visible) renderer.render(scene, camera)
   })
 
   let generation = 0
 
-  async function show(layout: Layout, snapshot: Snapshot): Promise<void> {
+  async function show(layout: Layout, snapshot: Snapshot): Promise<Motions> {
     const call = ++generation
     const seated = await seatedAgents(layout, snapshot.agents, assetBase)
     // A newer snapshot arrived while the sheets loaded; it will be drawn instead.
-    if (call !== generation) return
+    if (call !== generation) return { toPlay: [], unrouted: [] }
 
     floor = layout.bounds
     scene.remove(drawing)
     disposeDrawing(drawing)
-    drawing = drawFactory(layout, snapshot.tasks, seated, belt)
+    drawing = drawFactory(layout, seated, belt)
     scene.add(drawing)
+    // Planned only now, after the wait, so rides still playing are picked up from where they are.
+    const motions = motionsFor(layout, boxes.tiles())
+    boxes.update(layout, snapshot.tasks, motions.toPlay)
     aimCamera()
     if (visible) renderer.render(scene, camera)
+    return motions
   }
 
   function dispose() {
@@ -126,11 +147,18 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     observer.disconnect()
     detachControls()
     disposeDrawing(drawing)
+    boxes.dispose()
     renderer.dispose()
     canvas.remove()
   }
 
-  return { show, dispose }
+  return {
+    show,
+    setSpeed: (next) => {
+      speed = next
+    },
+    dispose,
+  }
 }
 
 /** Every station that has an agent, with that agent's sheet loaded. */

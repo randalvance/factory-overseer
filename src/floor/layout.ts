@@ -70,11 +70,11 @@ export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: L
     rect: footprint(x, STAGING_W),
     bench: { x: x + 1, y: TRUNK_ROW },
     inspectorTile: { x: x + 1, y: TRUNK_ROW - 1 },
-    // Waiting boxes stay inside the area: on the bench, then on the shelf
-    // either side of the inspector.
+    // Waiting boxes stay inside the area: on the bench, then piled on the
+    // shelf before it, from where the next one rolls onto the bench when it
+    // frees. The shelf past the bench would only be reachable against the belt.
     pile: [
       { x: x + 1, y: TRUNK_ROW },
-      { x: x + 2, y: TRUNK_ROW - 1 },
       { x, y: TRUNK_ROW - 1 },
     ],
   }
@@ -131,6 +131,8 @@ interface TrunkStop {
   exit: number
   /** The first tile of the stop along the trunk; the belt in ends before it. */
   entry: number
+  /** The bay's belt out starts with the station's outbound junction, set toward the destination before a box leaves. */
+  outboundJunction?: boolean
 }
 
 /**
@@ -142,7 +144,12 @@ function trunkBelts(intake: Intake, bays: Bay[], staging: StagingArea, container
   const stops: TrunkStop[] = [
     { id: "intake", exit: intake.rect.x + intake.rect.w - 1, entry: intake.rect.x },
     ...bays.flatMap((bay) =>
-      bay.stations.map((station) => ({ id: bayId(bay.role), exit: station.bench.x, entry: station.bench.x })),
+      bay.stations.map((station) => ({
+        id: bayId(bay.role),
+        exit: station.bench.x,
+        entry: station.bench.x,
+        outboundJunction: true,
+      })),
     ),
     { id: "staging", exit: staging.bench.x, entry: staging.bench.x },
     // The mouth is the belt's last tile, so the container's entry is past it.
@@ -154,7 +161,12 @@ function trunkBelts(intake: Intake, bays: Bay[], staging: StagingArea, container
     const to = stops[i]!
     const tiles: BeltTile[] = []
     for (let bx = from.exit + 1; bx < to.entry; bx++) {
-      tiles.push({ kind: "straight", x: bx, y: TRUNK_ROW, dir: "e" })
+      const first = bx === from.exit + 1
+      tiles.push(
+        first && from.outboundJunction
+          ? { kind: "junction", x: bx, y: TRUNK_ROW, dir: "e", exits: ["e"] }
+          : { kind: "straight", x: bx, y: TRUNK_ROW, dir: "e" },
+      )
     }
     belts.push({ id: `${from.id}>${to.id}`, from: from.id, to: to.id, tiles })
   }

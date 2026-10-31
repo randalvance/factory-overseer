@@ -1,11 +1,13 @@
 // The embeddable component: the pipeline, agents and tasks in as props, the
 // factory drawn in 3D. React owns only this shell; the view behind the
-// imperative handle does the drawing (ADR 0004). The layout is laid out
-// additively from one snapshot to the next, so the floor never rearranges
-// itself under the overseer (ADR 0002).
+// imperative handle does the drawing (ADR 0004). Each snapshot is laid out
+// additively on the last, so the floor never rearranges itself under the
+// overseer (ADR 0002), and the boxes whose place changed ride the belts there
+// from wherever they are.
 
 import { useEffect, useRef, useState } from "react"
 import { layoutFloor } from "~/floor/layout"
+import type { Motions } from "~/floor/motion"
 import type { Layout } from "~/floor/types"
 import type { Agent, Pipeline, Task } from "~/model/types"
 import { type FactoryView, createFactoryView } from "./view"
@@ -14,11 +16,13 @@ export interface FactoryProps {
   pipeline: Pipeline
   agents: Agent[]
   tasks: Task[]
-  /** Called with each layout as it is drawn, for anything that wants to show the same floor another way. */
-  onLayout?: (layout: Layout) => void
+  /** Scales every belt. 1 is about two tiles a second. */
+  speed?: number
+  /** Called with each layout once drawn, and the motions played for it, for anything that shows the same floor another way. */
+  onLayout?: (layout: Layout, motions: Motions) => void
 }
 
-export function Factory({ pipeline, agents, tasks, onLayout }: FactoryProps) {
+export function Factory({ pipeline, agents, tasks, speed = 1, onLayout }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
@@ -41,15 +45,20 @@ export function Factory({ pipeline, agents, tasks, onLayout }: FactoryProps) {
   }, [])
 
   useEffect(() => {
+    view.current?.setSpeed(speed)
+  }, [speed])
+
+  useEffect(() => {
     if (!view.current) return
     const layout = layoutFloor(pipeline, { agents, tasks }, previous.current)
     previous.current = layout
-    latestOnLayout.current?.(layout)
     let stale = false
     view.current
       .show(layout, { agents, tasks })
-      .then(() => {
-        if (!stale) setDrawn((n) => n + 1)
+      .then((motions) => {
+        if (stale) return
+        latestOnLayout.current?.(layout, motions)
+        setDrawn((n) => n + 1)
       })
       .catch((error: unknown) => console.error("The factory could not be drawn", error))
     return () => {

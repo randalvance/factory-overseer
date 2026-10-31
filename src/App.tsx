@@ -1,25 +1,58 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { LayoutDebugView } from "~/debug/LayoutDebugView"
-import { type DemoScript, opening, withAnotherRole, withAnotherTask } from "~/demo/scripted"
+import { type Demo, atTheStart, nextHandoff, tripOver, withAnotherRole, withAnotherTask } from "~/demo/scripted"
 import { Factory } from "~/factory/Factory"
+import type { Motions } from "~/floor/motion"
 import type { Layout } from "~/floor/types"
 
+const SPEEDS = [0.5, 1, 2, 4]
+/** Between snapshots while playing, at speed 1: long enough for a handoff between neighbouring bays. */
+const PLAY_INTERVAL_MS = 3000
+
 export function App() {
-  const [script, setScript] = useState<DemoScript>(opening)
-  /** The layout the factory last drew, for the debug view and the note. */
-  const [layout, setLayout] = useState<Layout>()
+  const [demo, setDemo] = useState<Demo>(atTheStart)
+  const [playing, setPlaying] = useState(false)
+  const [speed, setSpeed] = useState(1)
+  /** What the factory last drew, for the debug view and the note. */
+  const [drawn, setDrawn] = useState<{ layout: Layout; motions: Motions }>()
   const [view, setView] = useState<"factory" | "debug">("factory")
-  const unplaced = layout ? layout.unplaced.agentIds.length + layout.unplaced.taskIds.length : 0
+
+  const over = tripOver(demo)
+  useEffect(() => {
+    if (!playing || over) return
+    const timer = setInterval(() => setDemo(nextHandoff), PLAY_INTERVAL_MS / speed)
+    return () => clearInterval(timer)
+  }, [playing, over, speed])
+  useEffect(() => {
+    if (over) setPlaying(false)
+  }, [over])
+
+  const { pipeline, snapshot } = demo.script
+  const noPlace = drawn ? [...drawn.layout.unplaced.agentIds, ...drawn.layout.unplaced.taskIds] : []
+  const noRoute = drawn?.motions.unrouted ?? []
 
   return (
     <main className="demo">
       <header className="demo-header">
         <h1>Factory Overseer</h1>
         <span className="demo-actions">
-          <button type="button" onClick={() => setScript(withAnotherRole)}>
+          <button type="button" onClick={() => setDemo(nextHandoff)} disabled={over}>
+            Next handoff
+          </button>
+          <button type="button" onClick={() => setPlaying((p) => !p)} disabled={over}>
+            {playing ? "Pause" : "Play"}
+          </button>
+          <select aria-label="Speed" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
+            {SPEEDS.map((s) => (
+              <option key={s} value={s}>
+                {s}× speed
+              </option>
+            ))}
+          </select>
+          <button type="button" onClick={() => setDemo((d) => ({ ...d, script: withAnotherRole(d.script) }))}>
             Add a role
           </button>
-          <button type="button" onClick={() => setScript(withAnotherTask)}>
+          <button type="button" onClick={() => setDemo((d) => ({ ...d, script: withAnotherTask(d.script) }))}>
             Add a task
           </button>
           <button type="button" onClick={() => setView((v) => (v === "factory" ? "debug" : "factory"))}>
@@ -27,22 +60,23 @@ export function App() {
           </button>
         </span>
       </header>
-      {/* Both stay mounted: the factory keeps its additive layout across toggles. */}
+      {/* Both stay mounted: the factory keeps its additive layout and its rides across toggles. */}
       <section className="demo-factory" hidden={view !== "factory"}>
         <Factory
-          pipeline={script.pipeline}
-          agents={script.snapshot.agents}
-          tasks={script.snapshot.tasks}
-          onLayout={setLayout}
+          pipeline={pipeline}
+          agents={snapshot.agents}
+          tasks={snapshot.tasks}
+          speed={speed}
+          onLayout={(layout, motions) => setDrawn({ layout, motions })}
         />
       </section>
       <section className="demo-floor" hidden={view !== "debug"}>
-        {layout && <LayoutDebugView layout={layout} />}
+        {drawn && <LayoutDebugView layout={drawn.layout} motions={drawn.motions.toPlay} />}
       </section>
-      {layout && unplaced > 0 && (
+      {(noPlace.length > 0 || noRoute.length > 0) && (
         <p className="demo-note">
-          No place yet for agents {layout.unplaced.agentIds.join(", ") || "none"} and tasks{" "}
-          {layout.unplaced.taskIds.join(", ") || "none"}.
+          {noPlace.length > 0 && `No place yet for ${noPlace.join(", ")}. `}
+          {noRoute.length > 0 && `No route for ${noRoute.join(", ")}, so they appear where they are. `}
         </p>
       )}
     </main>

@@ -4,11 +4,13 @@
 // given.
 
 import { travelDirection } from "~/floor/belts"
+import type { JunctionSetting, Motion } from "~/floor/motion"
+import { step } from "~/floor/tiles"
 import type { BeltTile, Layout, Rect, Tile } from "~/floor/types"
 
 const TILE = 28
 
-export function LayoutDebugView({ layout }: { layout: Layout }) {
+export function LayoutDebugView({ layout, motions = [] }: { layout: Layout; motions?: Motion[] }) {
   const width = layout.bounds.w * TILE
   const height = layout.bounds.h * TILE
   return (
@@ -47,6 +49,13 @@ export function LayoutDebugView({ layout }: { layout: Layout }) {
       {layout.boxes.map((box, i) => (
         <BoxMark key={box.taskId} tile={box.tile} label={box.taskId} stackIndex={sharedTileCount(layout, i)} />
       ))}
+
+      {motions.map((motion) => (
+        <PathMark key={motion.taskId} path={motion.path} />
+      ))}
+      {motions.flatMap((motion) =>
+        motion.junctions.map((setting) => <JunctionMark key={`${motion.taskId}:${setting.tile.x},${setting.tile.y}`} setting={setting} />),
+      )}
     </svg>
   )
 }
@@ -115,6 +124,38 @@ function BeltMark({ tile }: { tile: BeltTile }) {
         {ARROW[tile.kind]}
       </text>
     </g>
+  )
+}
+
+/** The tiles a box rides for this snapshot, with a dot where it ends. */
+function PathMark({ path }: { path: Tile[] }) {
+  const points = path.map((tile) => {
+    const { cx, cy } = center(tile)
+    return `${cx},${cy}`
+  })
+  const end = center(path[path.length - 1]!)
+  return (
+    <g>
+      <polyline points={points.join(" ")} fill="none" stroke="#ffb86b" strokeWidth={2} strokeOpacity={0.85} />
+      <circle cx={end.cx} cy={end.cy} r={3} fill="#ffb86b" />
+    </g>
+  )
+}
+
+/** A junction set toward the exit the next box takes. */
+function JunctionMark({ setting }: { setting: JunctionSetting }) {
+  const { cx, cy } = center(setting.tile)
+  const toward = step({ x: 0, y: 0 }, setting.exit)
+  return (
+    <line
+      x1={cx}
+      y1={cy}
+      x2={cx + toward.x * (TILE / 2 - 2)}
+      y2={cy + toward.y * (TILE / 2 - 2)}
+      stroke="#ffd166"
+      strokeWidth={4}
+      strokeLinecap="round"
+    />
   )
 }
 

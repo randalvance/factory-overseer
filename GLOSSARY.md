@@ -127,6 +127,12 @@ A handoff back to an earlier role, whether from a station or from the staging
 area.
 _Avoid_: Bounce, return, rejection, send-back
 
+**Motion**:
+The tile path a box rides for one snapshot, from where it is to where the
+layout now rests it, with the junctions set on the way. No box changes place
+without one.
+_Avoid_: Animation, tween, transition, move
+
 **Shipped**:
 The state of a task that has reached the shipping container. Terminal.
 _Avoid_: Done, complete, finished

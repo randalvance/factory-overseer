@@ -5,7 +5,8 @@
 
 import * as THREE from "three"
 import { travelDirection } from "~/floor/belts"
-import type { BeltTile, BoxSpot, Container, Direction, Rect, Tile } from "~/floor/types"
+import { tileKey } from "~/floor/tiles"
+import type { BeltTile, Container, Direction, Layout, Rect, Tile } from "~/floor/types"
 import { SHEET, sheetFrame } from "./sprites"
 import { floorTexture, labelTexture } from "./textures"
 
@@ -124,25 +125,35 @@ export function containerWalls(container: Container): THREE.Group {
   return group
 }
 
-/** How high a box's underside sits for the spot it rests on. */
-export function restingHeight(spot: BoxSpot): number {
-  switch (spot.kind) {
-    case "bench":
-      return BENCH_H
-    case "queue":
-      return BELT_H
-    case "intake":
-      return PALLET_H
-    case "staging":
-      return spot.index === 0 ? BENCH_H : PALLET_H
-    case "container":
-      return CONTAINER_FLOOR_H
+/**
+ * How high a box's underside sits over each tile of a layout, riding or at
+ * rest: on the belt, on a bench, on a pallet, on the container's floor, else
+ * on the ground.
+ */
+export function heightsOver(layout: Layout): (tile: Tile) => number {
+  const heights = new Map<string, number>()
+  const set = (tile: Tile, height: number) => heights.set(tileKey(tile), height)
+  for (let y = layout.container.rect.y; y < layout.container.rect.y + layout.container.rect.h; y++) {
+    for (let x = layout.container.rect.x; x < layout.container.rect.x + layout.container.rect.w; x++) {
+      set({ x, y }, CONTAINER_FLOOR_H)
+    }
   }
+  for (const tile of layout.intake.pile) set(tile, PALLET_H)
+  for (const tile of layout.staging.pile.slice(1)) set(tile, PALLET_H)
+  for (const belt of layout.belts) for (const tile of belt.tiles) set(tile, BELT_H)
+  for (const bay of layout.bays) for (const station of bay.stations) set(station.bench, BENCH_H)
+  set(layout.staging.bench, BENCH_H)
+  return (tile) => heights.get(tileKey(tile)) ?? 0
+}
+
+/** The face of a box: its task's label on the task's colour, or on cardboard. */
+export function boxFace(label: string, color?: string): THREE.Texture {
+  return labelTexture(label, color ?? COLOR.box)
 }
 
 /** A box with its task's label on every face, its underside at the given height. */
-export function box(tile: Tile, underside: number, label: string, color = COLOR.box): THREE.Mesh {
-  const material = new THREE.MeshLambertMaterial({ map: labelTexture(label, color) })
+export function box(tile: Tile, underside: number, label: string, color?: string): THREE.Mesh {
+  const material = new THREE.MeshLambertMaterial({ map: boxFace(label, color) })
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE), material)
   const { x, z } = tileCenter(tile)
   mesh.position.set(x, underside + BOX_SIZE / 2, z)

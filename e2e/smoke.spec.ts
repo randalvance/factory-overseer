@@ -2,9 +2,9 @@ import { expect, type Locator, type Page, test as base } from "@playwright/test"
 
 // The demo page is the one seam the 3D view is tested at: boot the demo in
 // headless Chromium, wait for the factory to draw, fail on console errors and
-// save a screenshot. Pass SCREENSHOT=path to keep a milestone screenshot
-// somewhere else.
-const screenshot = process.env.SCREENSHOT ?? "test-results/demo.png"
+// save screenshots. They go under test-results, which every run wipes, or
+// under SCREENSHOT_DIR to keep them.
+const screenshots = process.env.SCREENSHOT_DIR ?? "test-results"
 
 /** Console errors and uncaught exceptions on the page. Any of them fails the test, checked as it ends. */
 const test = base.extend<{ pageErrors: string[] }>({
@@ -33,7 +33,7 @@ async function openFactory(page: Page): Promise<Locator> {
 
 test("the demo opens on the factory in 3D and draws it without errors", async ({ page }) => {
   await openFactory(page)
-  await page.screenshot({ path: screenshot })
+  await page.screenshot({ path: `${screenshots}/demo.png` })
 })
 
 test("a role and a task joining are drawn without errors", async ({ page }) => {
@@ -43,6 +43,19 @@ test("a role and a task joining are drawn without errors", async ({ page }) => {
   await expect(factory).toHaveAttribute("data-drawn", "2")
   await page.getByRole("button", { name: "Add a task" }).click()
   await expect(factory).toHaveAttribute("data-drawn", "3")
+})
+
+test("handoffs ride the belts without errors", async ({ page }) => {
+  const factory = await openFactory(page)
+
+  await page.getByRole("button", { name: "Next handoff" }).click()
+  await expect(factory).toHaveAttribute("data-drawn", "2")
+  // Let the boxes ride for a moment, then hand one on while it is still riding.
+  await page.waitForTimeout(1000)
+  await page.screenshot({ path: `${screenshots}/handoff.png` })
+  await page.getByRole("button", { name: "Next handoff" }).click()
+  await expect(factory).toHaveAttribute("data-drawn", "3")
+  await page.waitForTimeout(500)
 })
 
 test("the flat debug view is still there behind a toggle", async ({ page }) => {
