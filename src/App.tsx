@@ -2,6 +2,7 @@
 // a control panel to push it around by hand. The runtime only produces
 // snapshots; the factory only draws them.
 
+import { RoutingDemo } from "~/demo/RoutingDemo"
 import { useEffect, useMemo, useState } from "react"
 import { LayoutDebugView } from "~/debug/LayoutDebugView"
 import { ControlPanel } from "~/demo/ControlPanel"
@@ -19,6 +20,10 @@ const WIDEST_FLOOR = 24
 const floorWidth = Math.min(WIDEST_FLOOR, Math.floor(window.innerWidth / PX_PER_TILE))
 
 export function App() {
+  return new URLSearchParams(window.location.search).has("layout") ? <PipelineDemo /> : <RoutingDemo />
+}
+
+function PipelineDemo() {
   const roomLayout = new URLSearchParams(window.location.search).get("layout") !== "legacy"
   const [runtime, setRuntime] = useState<Runtime>(() => opening())
   const snapshot = useMemo(() => snapshotOf(runtime), [runtime])

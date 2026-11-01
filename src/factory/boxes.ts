@@ -55,7 +55,7 @@ export interface Boxes {
    * floor, or to its resting place when it has no route on from there, and
    * rides on once there.
    */
-  update(layout: Layout, tasks: Task[], motions: Motion[], pieces: Pieces, slid?: BoxTiles): void
+  update(layout: Layout, tasks: Task[], motions: Motion[], pieces: Pieces, slid?: BoxTiles, blocked?: ReadonlySet<string>): void
   /**
    * Where each box is once the floor has slid from the layout shown to the
    * next, as the overseer's Reorganize has it: a box in transit over the
@@ -84,7 +84,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
   /** Whether a snapshot has been shown: the first finds its boxes in place, later ones drop newcomers out of the hopper. */
   let opened = false
 
-  function update(layout: Layout, tasks: Task[], motions: Motion[], pieces: Pieces, slid?: BoxTiles) {
+  function update(layout: Layout, tasks: Task[], motions: Motion[], pieces: Pieces, slid?: BoxTiles, blocked?: ReadonlySet<string>) {
     const taskById = new Map(tasks.map((task) => [task.id, task]))
     const motionOf = new Map(motions.map((motion) => [motion.taskId, motion]))
     const heightOver = heightsOver(layout)
@@ -98,6 +98,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
 
     for (const placement of layout.boxes) {
       kept.add(placement.taskId)
+      if (blocked?.has(placement.taskId) && boxes.has(placement.taskId)) continue
       const task = taskById.get(placement.taskId)
       const label = task?.label ?? placement.taskId
       const stacked = stackedAt.get(tileKey(placement.tile)) ?? 0
@@ -164,7 +165,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
       const rest = resting[taskId]
       const at = now[taskId]
       if (!rest || !at) continue
-      slid[taskId] = (floorBox.ride && !sameTile(at, rest) && tileAfterSlide(shown, next, at)) ||
+      slid[taskId] = (floorBox.ride && !sameTile(at, rest) && tileAfterSlide(shown, next, at, taskId)) ||
         (next.rooms && restingTileAfterSlide(shown, next, taskId)) || rest
     }
     return slid

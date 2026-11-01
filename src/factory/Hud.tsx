@@ -2,14 +2,15 @@
 // and the card for whatever the overseer clicked. React owns it, like the
 // shell around the canvas (ADR 0004); nothing here touches the scene.
 
-import type { ReactNode } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { counts } from "~/model/counts"
 import { type AgentStatus, type StatusStyle, bubbleText } from "~/model/status"
 import { tasksAt } from "~/model/tasks"
 import { type Trails, placeText, whereText } from "~/model/trails"
-import type { Snapshot, Subject } from "~/model/types"
+import type { RoomFactoryState, RoomTask, Snapshot, Subject } from "~/model/types"
 
 export interface HudProps {
+  roomState?: RoomFactoryState
   snapshot: Snapshot
   trails: Trails
   /** The tasks whose boxes are still riding to where the snapshot puts them. */
@@ -26,8 +27,17 @@ export interface HudProps {
 }
 
 /** The header with the counts and the Fit all and Reorganize buttons, and the card for what the overseer clicked, if anything. */
-export function Hud({ snapshot, trails, riding, styles, picked, ready, onClose, onFitAll, onReorganize }: HudProps) {
+export function Hud({ snapshot, roomState, trails, riding, styles, picked, ready, onClose, onFitAll, onReorganize }: HudProps) {
   const tally = counts(snapshot)
+  const [roomTrails, setRoomTrails] = useState<Record<string, string[]>>({})
+  useEffect(() => {
+    if (!roomState) return
+    setRoomTrails((before) => Object.fromEntries(roomState.snapshot.tasks.map((task) => {
+      const label = roomPlace(task, roomState)
+      const trail = before[task.id] ?? []
+      return [task.id, trail.at(-1) === label ? trail : [...trail, label]]
+    })))
+  }, [roomState])
   return (
     <div className="factory-hud">
       <header className="factory-hud-header">
@@ -48,7 +58,7 @@ export function Hud({ snapshot, trails, riding, styles, picked, ready, onClose, 
       </header>
       {picked && "agent" in picked && <AgentCard id={picked.agent} snapshot={snapshot} styles={styles} onClose={onClose} />}
       {picked && "task" in picked && (
-        <BoxCard taskId={picked.task} snapshot={snapshot} trails={trails} riding={riding.has(picked.task)} onClose={onClose} />
+        <BoxCard roomState={roomState} roomTrail={roomTrails[picked.task]} taskId={picked.task} snapshot={snapshot} trails={trails} riding={riding.has(picked.task)} onClose={onClose} />
       )}
     </div>
   )
@@ -85,12 +95,16 @@ function AgentCard({
 
 /** A box's label, where it is, and its trail this session. Nothing once the task is off the floor. */
 function BoxCard({
+  roomState,
+  roomTrail,
   taskId,
   snapshot,
   trails,
   riding,
   onClose,
 }: {
+  roomState?: RoomFactoryState
+  roomTrail?: string[]
   taskId: string
   snapshot: Snapshot
   trails: Trails
@@ -100,12 +114,13 @@ function BoxCard({
   const task = snapshot.tasks.find((t) => t.id === taskId)
   if (!task) return null
   const trail = trails[taskId] ?? [task.at]
+  const roomTask = roomState?.snapshot.tasks.find((task) => task.id === taskId)
   return (
     <Card title={task.label} onClose={onClose}>
       <dt>Where</dt>
-      <dd>{whereText(task, snapshot, riding ? "riding" : "arrived")}</dd>
+      <dd>{roomTask && roomState ? `${riding ? "Riding to " : ""}${roomPlace(roomTask, roomState)}` : whereText(task, snapshot, riding ? "riding" : "arrived")}</dd>
       <dt>Trail</dt>
-      <dd>{trail.map((place) => placeText(place, snapshot.agents)).join(" → ")}</dd>
+      <dd>{roomState ? roomTrail?.join(" → ") : trail.map((place) => placeText(place, snapshot.agents)).join(" → ")}</dd>
     </Card>
   )
 }
@@ -120,4 +135,12 @@ function Card({ title, onClose, children }: { title: string; onClose: () => void
       <dl>{children}</dl>
     </aside>
   )
+}
+
+function roomPlace(task: RoomTask, state: RoomFactoryState): string {
+  const label = state.configuration.rooms.find((room) => room.id === task.at.roomId)?.label ?? task.at.roomId
+  if (task.at.kind === "shipped") return `Shipped from ${label}`
+  const holder = task.at.assignment?.agentIds[0]
+  const agent = state.snapshot.agents.find((agent) => agent.id === holder)
+  return holder ? `${label} — ${agent?.name ?? holder}` : `${label} — waiting for assignment`
 }

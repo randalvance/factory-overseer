@@ -83,15 +83,20 @@ pieces are listed in `ASSETS.md`. The status icons are drawn by a script under
 
 MIT for the code. The art has its own terms: see [ASSETS.md](ASSETS.md).
 
-## Room contract (in development)
+## Configurable rooms
 
-The next host contract models configurable agent rooms and directed belt
-transitions. See [the room contract](docs/room-contract.md) for types, checked
-examples, validation and migration. The demo now opens with separated, expandable rooms. Add agents of a role to
-grow its room, then pan toward the front to see the additional stations.
-Use `?layout=legacy` to compare with the original bay layout.
+The demo at localhost:3000 now shows the configured intake, planning,
+implementation, code review and deployment rooms. Select a task and use
+**Send to …** to watch a handoff. One opening task needs planning; the other
+goes directly to implementation. **Return to planning** demonstrates rework.
+**Include QA room** adds an intermediate step through configuration, and
+**Unstaff planning** demonstrates a queue waiting for agents.
 
-The current Factory component accepts `roomLayout` alongside the legacy
-pipeline/snapshot props. This #20 bridge retains the existing task flow;
-the new room-configuration API and configurable transitions are integrated
-in #21. Physical image billboards and themes follow in #24–26.
+The embeddable `RoomFactory` accepts a `RoomFactoryState` as its `state`
+prop. See [the room contract](docs/room-contract.md) for the public types,
+validation, checked examples and migration, and
+[ADR 0011](docs/adr/0011-configured-room-conveyors.md) for physical routing.
+
+The earlier room-growth demo remains at `?layout=rooms`, and the original
+bay demo at `?layout=legacy`. Physical image billboards, themes and human
+question handling follow in their separate tickets.

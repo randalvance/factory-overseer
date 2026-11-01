@@ -143,6 +143,7 @@ export interface RoomFootprint {
 }
 
 export interface Layout {
+  routing?: import("./configuredRooms").RoomRouting
   /** Present in room mode; bay records then hold one room's stations each. */
   rooms?: RoomFootprint[]
 

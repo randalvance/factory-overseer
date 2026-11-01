@@ -4,7 +4,7 @@ test("rooms expand around a growing team while tasks and controls remain usable"
   const errors: string[] = []
   page.on("pageerror", (error) => errors.push(error.message))
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()) })
-  await page.goto("/")
+  await page.goto("/?layout=rooms")
   const factory = page.getByRole("img", { name: "Factory floor" })
   await expect(factory).toHaveAttribute("data-drawn", "1")
   await expect(factory).toHaveAttribute("data-rooms", "6")
@@ -34,7 +34,7 @@ test("a new role gets a room and rapid updates during growth keep working", asyn
   const errors: string[] = []
   page.on("pageerror", (error) => errors.push(error.message))
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()) })
-  await page.goto("/")
+  await page.goto("/?layout=rooms")
   const factory = page.getByRole("img", { name: "Factory floor" })
   await expect(factory).toHaveAttribute("data-drawn", "1")
   await page.getByRole("button", { name: "Pause", exact: true }).click()

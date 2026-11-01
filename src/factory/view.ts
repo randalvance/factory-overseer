@@ -308,7 +308,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     // Derived only now, after the wait, so rides still playing are picked up from where they are, or from where the slide leaves them.
     const slid = settling === "glide" && shown ? boxes.tilesAfterSlide(shown, layout) : undefined
     const motions = motionsFor(layout, slid ?? boxes.tiles(), shown)
-    boxes.update(layout, snapshot.tasks, motions.toPlay, ready.pieces, slid)
+    boxes.update(layout, snapshot.tasks, motions.toPlay, ready.pieces, slid, layout.routing ? new Set(motions.unrouted) : undefined)
     shown = layout
     laidAfresh = false
     aimCamera()
