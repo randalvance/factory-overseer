@@ -212,6 +212,16 @@ The places a task has been this session, in order, as its card tells it: the
 intake, each station, the staging area, the container.
 _Avoid_: History, path, route, log
 
+## How the floor looks
+
+**Piece**:
+What the factory is drawn with, one model to one tile, built by a script and
+never by hand: a tile of belt, straight, turning or with a junction's arm; a
+tile of floor; a bench; a tablet; a box; a segment of the back wall, plain,
+with a window, or the door; a lamp. Every piece fits its tile exactly, so
+neighbours meet edge to edge.
+_Avoid_: Mesh, prefab, tile model
+
 ## How agents look
 
 **Sheet** (stock sheet):

@@ -27,6 +27,8 @@ export function tabletTexture(look: TabletLook): THREE.CanvasTexture {
   let texture = faces.get(key)
   if (!texture) {
     texture = pixelated(canvasTexture(FACE_PX.w, FACE_PX.h, (ctx, w, h) => drawFace(ctx, w, h, look)))
+    // The tablet piece's face reads its texture from the top, as the GLB's textures are, so the canvas goes on unflipped.
+    texture.flipY = false
     if (look.kind === "lines") texture.wrapT = THREE.RepeatWrapping
     faces.set(key, texture)
   }

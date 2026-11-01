@@ -1,8 +1,9 @@
-// The placeholder textures, drawn on canvases so nothing has to be fetched,
-// and the loader for what is fetched: sheets and icons. Pixel art is
-// nearest-filtered so the look is chunky pixels, not blur; bubble text is
-// not. Textures are shared and cached for the life of the page, so nothing
-// here is disposed. The tablet faces, drawn the same way, are in tablets.ts.
+// The textures drawn on canvases, labels, counts and bubbles, and the loader
+// for what is fetched: sheets and icons. The pieces bring their own textures
+// in their GLB. Pixel art is nearest-filtered so the look is chunky pixels,
+// not blur; bubble text is not. Textures are shared and cached for the life
+// of the page, so nothing here is disposed. The tablet faces, drawn the same
+// way, are in tablets.ts.
 
 import * as THREE from "three"
 
@@ -34,80 +35,32 @@ function pixelTexture(size: number, draw: (ctx: CanvasRenderingContext2D, size: 
   return pixelated(canvasTexture(size, size, (ctx, s) => draw(ctx, s)))
 }
 
-let belt: THREE.CanvasTexture | undefined
-let returnBelt: THREE.CanvasTexture | undefined
-
-/** A belt's surface: a dark band between two rails with a chevron, one tile long, repeating along its travel. */
-export function beltTexture(): THREE.CanvasTexture {
-  belt ??= beltBand({ band: "#24483a", rail: "#172e25", chevron: "#5fb48c" })
-  return belt
-}
-
-/** The return belt's surface: the same band in rust, so rework reads differently from the trunk at a glance. */
-export function returnBeltTexture(): THREE.CanvasTexture {
-  returnBelt ??= beltBand({ band: "#4a2c1e", rail: "#2d1a10", chevron: "#e39b5c" })
-  return returnBelt
-}
-
-function beltBand(colors: { band: string; rail: string; chevron: string }): THREE.CanvasTexture {
-  const texture = pixelTexture(32, (ctx, s) => {
-    ctx.fillStyle = colors.band
-    ctx.fillRect(0, 0, s, s)
-    ctx.fillStyle = colors.rail
-    ctx.fillRect(0, 0, s, 3)
-    ctx.fillRect(0, s - 3, s, 3)
-    ctx.strokeStyle = colors.chevron
-    ctx.lineWidth = 4
-    ctx.beginPath()
-    ctx.moveTo(11, 7)
-    ctx.lineTo(21, s / 2)
-    ctx.lineTo(11, s - 7)
-    ctx.stroke()
-  })
-  texture.wrapS = THREE.RepeatWrapping
-  return texture
-}
-
-let floor: THREE.CanvasTexture | undefined
-
-/** One concrete floor tile with a grout line around it. Repeats once per tile. */
-export function floorTexture(): THREE.CanvasTexture {
-  floor ??= pixelTexture(32, (ctx, s) => {
-    ctx.fillStyle = "#7d8593"
-    ctx.fillRect(0, 0, s, s)
-    ctx.fillStyle = "#737b89"
-    for (const [x, y] of [[6, 9], [20, 4], [13, 22], [25, 18], [3, 26]]) ctx.fillRect(x!, y!, 2, 2)
-    ctx.strokeStyle = "#5e6674"
-    ctx.lineWidth = 2
-    ctx.strokeRect(1, 1, s - 2, s - 2)
-  })
-  floor.wrapS = THREE.RepeatWrapping
-  floor.wrapT = THREE.RepeatWrapping
-  return floor
-}
-
 const labels = new Map<string, THREE.CanvasTexture>()
 
 /** The font stack of every label, count and bubble. */
 const MONO = "ui-monospace, Menlo, Consolas, monospace"
 
-/** A box face: the task's colour with its label printed across it. Cached per label and colour. */
-export function labelTexture(label: string, color: string): THREE.CanvasTexture {
+/** A box's face: its label on a plate in a colour, stuck on the cardboard. Cached per label and colour; the cardboard is the same for every box. */
+export function labelTexture(label: string, color: string, cardboard: CanvasImageSource): THREE.CanvasTexture {
   const key = `${color}\n${label}`
   let texture = labels.get(key)
   if (!texture) {
     texture = pixelTexture(64, (ctx, s) => {
+      ctx.imageSmoothingEnabled = false
+      ctx.drawImage(cardboard, 0, 0, s, s)
       ctx.fillStyle = color
-      ctx.fillRect(0, 0, s, s)
+      ctx.fillRect(8, 18, s - 16, s - 36)
       ctx.strokeStyle = "rgba(0, 0, 0, 0.35)"
-      ctx.lineWidth = 4
-      ctx.strokeRect(2, 2, s - 4, s - 4)
+      ctx.lineWidth = 2
+      ctx.strokeRect(9, 19, s - 18, s - 38)
       ctx.fillStyle = "#1c1711"
-      ctx.font = `bold ${Math.round(s * 0.34)}px ${MONO}`
+      ctx.font = `bold ${Math.round(s * 0.3)}px ${MONO}`
       ctx.textAlign = "center"
       ctx.textBaseline = "middle"
-      ctx.fillText(label, s / 2, s / 2 + 1, s - 10)
+      ctx.fillText(label, s / 2, s / 2 + 1, s - 20)
     })
+    // The box piece's faces read their texture from the top, as the GLB's textures are, so the canvas goes on unflipped.
+    texture.flipY = false
     labels.set(key, texture)
   }
   return texture

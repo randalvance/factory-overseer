@@ -12,16 +12,17 @@ import type { Layout, Rect } from "~/floor/types"
 import { type AgentStatus, STATUS_ICONS, type StatusStyle } from "~/model/status"
 import type { ComingsAndGoings } from "~/floor/walk"
 import type { Agent, Snapshot, Subject } from "~/model/types"
-import { INSPECTOR, type Icons, type Settling, type StatusLooks, createAgents } from "./agents"
+import { INSPECTOR, type Dressed, type Icons, type Settling, createAgents } from "./agents"
 import { BELT_SPEED, createBoxes } from "./boxes"
 import { type CameraPose, PITCH, PX_PER_TILE, clampToFloor, fitFloor, panBy, pinchBy, zoomBy, zoomStep } from "./camera"
 import { type Point, attachControls } from "./controls"
 import { disposeMeshes, drawFactory } from "./drawing"
+import { type BeltTextures, loadPieces } from "./models"
 import { nearer } from "./picking"
 import { BOX_SIZE, halo } from "./pieces"
 import { type Slide, startSlide } from "./slide"
 import { type Wardrobes, sheetUrl } from "./sprites"
-import { beltTexture, blankTexture, loadTexture, returnBeltTexture } from "./textures"
+import { blankTexture, loadTexture } from "./textures"
 
 export interface FactoryView {
   /**
@@ -76,12 +77,6 @@ const MAX_FRAME_S = 0.1
 /** What a drawing overtaken by a newer one plays. */
 const NONE: Motions = { toPlay: [], unrouted: [] }
 
-/** What a snapshot's figures wear and how they look, loaded. */
-interface Dressed {
-  sheets: Map<string, THREE.Texture>
-  looks: StatusLooks
-}
-
 export function createFactoryView(mount: HTMLElement, options: FactoryViewOptions = {}): FactoryView {
   const assetBase = options.assetBase ?? "/"
   const canvas = document.createElement("canvas")
@@ -106,7 +101,8 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   /** The last layout drawn, so the next one's motions know where every box rested. */
   let shown: Layout | undefined
 
-  const surfaces = { forward: beltTexture(), rework: returnBeltTexture() }
+  /** The belts' moving surfaces, once the pieces are loaded. */
+  let belts: BeltTextures | undefined
   let drawing = new THREE.Group()
   scene.add(drawing)
   /** The pass from the drawing before to this one, while the floor slides. */
@@ -237,7 +233,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     agents.tick(dt, speed, landings)
     for (const landing of landings) options.onLanded?.(landing.taskId)
     beltTravel += dt * BELT_SPEED * speed
-    for (const surface of Object.values(surfaces)) surface.offset.x = -beltTravel % 1
+    if (belts) for (const surface of [belts.forward, belts.rework]) surface.offset.x = -beltTravel % 1
     if (following) {
       const at = boxes.positionOf(following)
       if (at) lookAt(at.x, at.z)
@@ -255,14 +251,15 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
    */
   let laidAfresh = false
 
-  /** The sheets and icons a snapshot needs, or nothing once a newer one has been asked for while they loaded. */
+  /** The sheets, icons and pieces a snapshot needs, or nothing once a newer one has been asked for while they loaded. */
   async function dressed(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Dressed | undefined> {
     const call = ++generation
-    const [sheets, icons] = await Promise.all([
+    const [sheets, icons, pieces] = await Promise.all([
       sheetsOf(layout, snapshot.agents, assetBase, styling.wardrobes),
       iconsAt(assetBase),
+      loadPieces(`${assetBase}assets/models/pieces.glb`),
     ])
-    return call === generation ? { sheets, looks: { styles: styling.styles, icons } } : undefined
+    return call === generation ? { sheets, looks: { styles: styling.styles, icons }, pieces } : undefined
   }
 
   async function show(layout: Layout, snapshot: Snapshot, styling: Styling, traffic: ComingsAndGoings): Promise<Motions> {
@@ -284,7 +281,8 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     floor = layout.bounds
     slide?.end()
     const stood = drawing
-    drawing = drawFactory(layout, surfaces)
+    belts = ready.pieces.belts
+    drawing = drawFactory(layout, ready.pieces)
     scene.add(drawing)
     if (settling === "glide") {
       slide = startSlide(stood, drawing)
@@ -293,11 +291,11 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
       scene.remove(stood)
       disposeMeshes(stood)
     }
-    agents.update(layout, snapshot, ready.sheets, ready.looks, traffic, settling)
+    agents.update(layout, snapshot, ready, traffic, settling)
     // Derived only now, after the wait, so rides still playing are picked up from where they are, or from where the slide leaves them.
     const slid = settling === "glide" && shown ? boxes.tilesAfterSlide(shown, layout) : undefined
     const motions = motionsFor(layout, slid ?? boxes.tiles(), shown)
-    boxes.update(layout, snapshot.tasks, motions.toPlay, slid)
+    boxes.update(layout, snapshot.tasks, motions.toPlay, ready.pieces, slid)
     shown = layout
     laidAfresh = false
     aimCamera()

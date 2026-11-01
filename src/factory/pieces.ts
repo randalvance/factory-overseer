@@ -1,23 +1,24 @@
-// The placeholder pieces the factory is drawn with, each on the tile grid:
-// plain boxes and planes in flat colours until the Blender pieces replace
-// them. One tile is one world unit; a tile's x is world x and its y is world
-// z, so the back wall is at z = 0 and the camera looks in from positive z.
+// What the factory is drawn with, each piece on the tile grid: the
+// Blender-built pieces placed as copies, and the placeholders in plain boxes
+// and planes that the hero props have yet to replace. One tile is one world
+// unit; a tile's x is world x and its y is world z, so the back wall is at
+// z = 0 and the camera looks in from positive z.
 
 import * as THREE from "three"
-import { travelDirection } from "~/floor/belts"
 import { tileKey } from "~/floor/tiles"
-import type { BeltTile, Container, Direction, Intake, Layout, Rect, Tile } from "~/floor/types"
+import type { BeltTile, Container, Intake, Layout, Rect, Tile } from "~/floor/types"
+import { type BeltSurface, beltPieces } from "./beltPieces"
+import { type Pieces, TABLET_FACE, replaceMaterials } from "./models"
 import { SHEET, sheetFrame } from "./sprites"
-import { TEXT_PX_PER_TILE, bubbleTexture, countTexture, floorTexture, labelTexture } from "./textures"
+import { TEXT_PX_PER_TILE, bubbleTexture, countTexture, labelTexture } from "./textures"
 
-/** Heights in tiles. */
+/** Heights in tiles. The belt's and the bench's are the pieces' own, built to these numbers in tools/blender. */
 export const BENCH_H = 0.5
 const BELT_H = 0.12
 const PALLET_H = 0.1
 const CONTAINER_FLOOR_H = 0.1
 const WALL_H = 1.4
 const WALL_T = 0.1
-const DOOR_H = 2.2
 /** How high over the floor the hopper's mouth is, where new boxes drop from. */
 const HOPPER_MOUTH_H = 1.9
 const HOPPER_H = 0.9
@@ -27,18 +28,15 @@ export const BOX_SIZE = 0.6
 /** A status icon's edge, in tiles: its 16 pixels shown two for one at the base zoom, so they stay whole. */
 export const ICON_SIZE = 0.5
 const SPARK_SIZE = 0.08
+/** How much of its colour a vacant bench keeps. */
+const VACANT_DIM = 0.55
 
 const COLOR = {
   intake: 0x3b5bb5,
   bay: 0x3a7a62,
   staging: 0xc08a2e,
-  bench: 0x6b7f99,
-  vacantBench: 0x3e4756,
-  tablet: 0x1a2634,
-  door: 0x4b5260,
-  doorFrame: 0xd9b23c,
   hopper: 0xd9b23c,
-  beltFrame: 0x2b2f36,
+  darkSteel: 0x2b2f36,
   pallet: 0x8b6b3e,
   container: 0x9c4a2f,
   box: "#d9a559",
@@ -50,11 +48,13 @@ export function tileCenter(tile: Tile): { x: number; z: number } {
   return { x: tile.x + 0.5, z: tile.y + 0.5 }
 }
 
-/** The whole floor, one concrete tile per grid tile. */
-export function floorSlab(bounds: Rect): THREE.Mesh {
-  const texture = floorTexture()
-  texture.repeat.set(bounds.w, bounds.h)
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(bounds.w, bounds.h), new THREE.MeshLambertMaterial({ map: texture }))
+/** The whole floor, wearing the floor tile's texture once per grid tile. */
+export function floorSlab(bounds: Rect, tile: THREE.Texture): THREE.Mesh {
+  const geometry = new THREE.PlaneGeometry(bounds.w, bounds.h)
+  // The repeat is in the geometry's own texture coordinates, so the texture stays shared and untouched.
+  const uv = geometry.getAttribute("uv")
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * bounds.w, uv.getY(i) * bounds.h)
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ map: tile }))
   mesh.rotation.x = -Math.PI / 2
   mesh.position.set(bounds.x + bounds.w / 2, 0, bounds.y + bounds.h / 2)
   return mesh
@@ -69,23 +69,14 @@ export function patch(rect: Rect, area: "intake" | "bay" | "staging"): THREE.Mes
   return mesh
 }
 
-/** The moving surface shared by every belt tile of one drawing. */
-export function beltSurface(texture: THREE.Texture): THREE.Material {
-  return new THREE.MeshLambertMaterial({ map: texture })
-}
-
-const YAW: Record<Direction, number> = { e: 0, n: Math.PI / 2, w: Math.PI, s: -Math.PI / 2 }
-
-/** A belt tile: a dark frame with the moving surface on top, turned so the texture runs the way boxes travel. */
-export function beltTile(tile: BeltTile, surface: THREE.Material): THREE.Group {
+/** A belt tile: its pieces, a straight or a corner and a junction's arms, each turned its way, with the surface the belt wears. */
+export function beltTile(tile: BeltTile, surface: BeltSurface, pieces: Pieces): THREE.Group {
   const group = new THREE.Group()
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(1, BELT_H, 0.8), new THREE.MeshLambertMaterial({ color: COLOR.beltFrame }))
-  frame.position.y = BELT_H / 2
-  group.add(frame)
-  const top = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.7).rotateX(-Math.PI / 2), surface)
-  top.position.y = BELT_H + 0.005
-  top.rotation.y = YAW[travelDirection(tile)]
-  group.add(top)
+  for (const { piece, yaw } of beltPieces(tile, surface)) {
+    const laid = pieces.clone(piece)
+    laid.rotation.y = yaw
+    group.add(laid)
+  }
   const { x, z } = tileCenter(tile)
   group.position.set(x, 0, z)
   return group
@@ -96,12 +87,21 @@ export function beltTile(tile: BeltTile, surface: THREE.Material): THREE.Group {
  * The box sits on it; the tablet is a piece of its own, since its face
  * changes with the agent's status.
  */
-export function bench(tile: Tile, vacant = false): THREE.Mesh {
-  const material = new THREE.MeshLambertMaterial({ color: vacant ? COLOR.vacantBench : COLOR.bench })
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, BENCH_H, 0.7), material)
+export function bench(tile: Tile, vacant: boolean, pieces: Pieces): THREE.Object3D {
+  const piece = pieces.clone("bench")
+  if (vacant) dim(piece, VACANT_DIM)
   const { x, z } = tileCenter(tile)
-  mesh.position.set(x, BENCH_H / 2, z)
-  return mesh
+  piece.position.set(x, 0, z)
+  return piece
+}
+
+/** Put every mesh of a piece on its own darker copies of its materials, which go when the piece does. */
+function dim(piece: THREE.Object3D, keep: number) {
+  replaceMaterials(piece, (material) => {
+    const copy = material.clone() as THREE.MeshLambertMaterial
+    copy.color.multiplyScalar(keep)
+    return copy
+  })
 }
 
 /** A tablet as the agents keep it: the group goes at its bench's tile, and the face wears the texture of its look. */
@@ -110,30 +110,24 @@ export interface TabletPiece {
   face: THREE.MeshBasicMaterial
 }
 
-/** A tablet at the right end of a bench, clear of the box. */
-export function tablet(): TabletPiece {
-  const body = new THREE.MeshLambertMaterial({ color: COLOR.tablet })
+/** A tablet at the right end of a bench, clear of the box, tilted toward the camera; its face is its own, for the view to draw on. */
+export function tablet(pieces: Pieces): TabletPiece {
+  const piece = pieces.clone("tablet")
   const face = new THREE.MeshBasicMaterial()
-  // Box faces in order: right, left, top, bottom, front, back. The front faces the camera.
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.2, 0.04), [body, body, body, body, face, body])
+  replaceMaterials(piece, (material) => (material.name === TABLET_FACE ? face : material))
   // The box on the bench is BOX_SIZE wide about the centre, so the tablet starts just past its edge.
-  mesh.position.set(BOX_SIZE / 2 + 0.13, BENCH_H + 0.1, -0.15)
-  mesh.rotation.x = -0.5
+  piece.position.set(BOX_SIZE / 2 + 0.13, BENCH_H + 0.1, -0.15)
+  piece.rotation.x = -0.5
   const group = new THREE.Group()
-  group.add(mesh)
+  group.add(piece)
   return { group, face }
 }
 
-/** The door in the back wall: a roll-up door's panel in a frame, standing at the back edge of its tile. */
-export function door(tile: Tile): THREE.Group {
-  const group = new THREE.Group()
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(1.3, DOOR_H, 0.12), new THREE.MeshLambertMaterial({ color: COLOR.doorFrame }))
-  frame.position.set(0, DOOR_H / 2, 0.06)
-  const panel = new THREE.Mesh(new THREE.BoxGeometry(1.1, DOOR_H - 0.1, 0.06), new THREE.MeshLambertMaterial({ color: COLOR.door }))
-  panel.position.set(0, (DOOR_H - 0.1) / 2, 0.15)
-  group.add(frame, panel)
-  group.position.set(tile.x + 0.5, 0, tile.y)
-  return group
+/** The door in the back wall: the door segment standing in the wall's plane at the back edge of its tile. */
+export function door(tile: Tile, pieces: Pieces): THREE.Object3D {
+  const piece = pieces.clone("door")
+  piece.position.set(tile.x + 0.5, 0, tile.y)
+  return piece
 }
 
 /** The hopper over the intake: a funnel on four legs, its mouth over the middle of the intake, that new boxes drop out of. */
@@ -148,7 +142,7 @@ export function hopper(intake: Intake): THREE.Group {
   funnel.rotation.y = Math.PI / 4
   funnel.position.set(mouth.x, HOPPER_MOUTH_H + HOPPER_H / 2, mouth.z)
   group.add(funnel)
-  const legMaterial = new THREE.MeshLambertMaterial({ color: COLOR.beltFrame })
+  const legMaterial = new THREE.MeshLambertMaterial({ color: COLOR.darkSteel })
   const legH = HOPPER_MOUTH_H + HOPPER_H
   for (const dx of [-0.95, 0.95]) {
     for (const dz of [-0.95, 0.95]) {
@@ -233,15 +227,16 @@ export function heightsOver(layout: Layout): (tile: Tile) => number {
   return (tile) => heights.get(tileKey(tile)) ?? 0
 }
 
-/** The face of a box: its task's label on the task's colour, or on cardboard. */
-export function boxFace(label: string, color?: string): THREE.Texture {
-  return labelTexture(label, color ?? COLOR.box)
+/** The face of a box: its task's label on a plate in the task's colour, or in cardboard's, stuck on the box piece's cardboard. */
+export function boxFace(label: string, color: string | undefined, cardboard: THREE.Texture): THREE.Texture {
+  return labelTexture(label, color ?? COLOR.box, cardboard.image as CanvasImageSource)
 }
 
-/** A box with its task's label on every face, its underside at the given height. */
-export function box(tile: Tile, underside: number, label: string, color?: string): THREE.Mesh {
-  const material = new THREE.MeshLambertMaterial({ map: boxFace(label, color) })
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE), material)
+/** A box with its task's label on every face over the piece's cardboard, its underside at the given height. The material is the box's own. */
+export function box(tile: Tile, underside: number, label: string, color: string | undefined, pieces: Pieces): THREE.Mesh {
+  const mesh = pieces.clone("box")
+  if (!(mesh instanceof THREE.Mesh)) throw new Error("The box piece is not one mesh")
+  mesh.material = new THREE.MeshLambertMaterial({ map: boxFace(label, color, pieces.cardboard) })
   const { x, z } = tileCenter(tile)
   mesh.position.set(x, underside + BOX_SIZE / 2, z)
   return mesh

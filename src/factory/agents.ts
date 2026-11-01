@@ -19,6 +19,7 @@ import type { Agent, Snapshot, Task } from "~/model/types"
 import type { Landing } from "./boxes"
 import { type Candidate, nearestOf } from "./picking"
 import { disposeMeshes } from "./drawing"
+import type { Pieces } from "./models"
 import { type Glide, glide, startGlide } from "./slide"
 import {
   AGENT_H,
@@ -48,6 +49,13 @@ export interface StatusLooks {
   icons: Icons
 }
 
+/** What a snapshot's figures wear and how they look, and the pieces their tablets are, all loaded. */
+export interface Dressed {
+  sheets: ReadonlyMap<string, THREE.Texture>
+  looks: StatusLooks
+  pieces: Pieces
+}
+
 export interface Agents {
   /**
    * Stand every agent the layout has a station for at it, in its sheet,
@@ -58,14 +66,7 @@ export interface Agents {
    * Reorganize has it, every figure and tablet already there glides to its
    * station instead of standing there at once.
    */
-  update(
-    layout: Layout,
-    snapshot: Snapshot,
-    sheets: ReadonlyMap<string, THREE.Texture>,
-    looks: StatusLooks,
-    traffic: ComingsAndGoings,
-    settling?: Settling,
-  ): void
+  update(layout: Layout, snapshot: Snapshot, dressed: Dressed, traffic: ComingsAndGoings, settling?: Settling): void
   /**
    * Carry every walk, fade, pose, jump, spark and tablet dt seconds on; the
    * inspector stamps each box that has just landed on the staging bench.
@@ -184,14 +185,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
   /** Tablet faces the lines have scrolled by. */
   let scrolled = 0
 
-  function update(
-    layout: Layout,
-    snapshot: Snapshot,
-    sheets: ReadonlyMap<string, THREE.Texture>,
-    looks: StatusLooks,
-    traffic: ComingsAndGoings,
-    settling: Settling = "stand",
-  ) {
+  function update(layout: Layout, snapshot: Snapshot, { sheets, looks, pieces }: Dressed, traffic: ComingsAndGoings, settling: Settling = "stand") {
     const wayInOf = new Map(traffic.arrivals.map((arrival) => [arrival.agentId, arrival.wayIn]))
     const taskById = new Map(snapshot.tasks.map((task) => [task.id, task]))
     const onBench = new Map<string, Task>()
@@ -212,7 +206,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
         stand(agent, posting, looks)
         standing.add(agent.id)
       }
-      showTablet(station.id, station.bench, tabletLook(style, onBench.get(station.id), looks.icons), settling)
+      showTablet(station.id, station.bench, tabletLook(style, onBench.get(station.id), looks.icons), settling, pieces)
       benches.add(station.id)
     }
     const inspectorSheet = sheets.get(INSPECTOR_ID)
@@ -221,7 +215,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
       const station = { agentTile: layout.staging.inspectorTile, bench }
       stand(INSPECTOR, { station, sheet: inspectorSheet, style: INSPECTOR_STYLE, bubble: null, settling }, looks)
       standing.add(INSPECTOR_ID)
-      showTablet("staging", bench, { kind: "dim" }, settling)
+      showTablet("staging", bench, { kind: "dim" }, settling, pieces)
       benches.add("staging")
     }
 
@@ -361,12 +355,12 @@ export function createAgents(parent: THREE.Object3D): Agents {
   }
 
   /** Put the tablet at its bench, or glide it there from where it is while the floor slides. */
-  function showTablet(id: string, bench: Tile, look: TabletLook, settling: Settling) {
+  function showTablet(id: string, bench: Tile, look: TabletLook, settling: Settling, pieces: Pieces) {
     const { x, z } = tileCenter(bench)
     const at = new THREE.Vector3(x, 0, z)
     let shown = tablets.get(id)
     if (!shown) {
-      shown = { piece: tablet() }
+      shown = { piece: tablet(pieces) }
       shown.piece.group.position.copy(at)
       layer.add(shown.piece.group)
       tablets.set(id, shown)
@@ -432,7 +426,8 @@ export function createAgents(parent: THREE.Object3D): Agents {
     }
     scrolled += dt * LINES_PER_S
     // Up the face, the way a log scrolls.
-    tabletTexture({ kind: "lines" }).offset.y = -(scrolled % 1)
+    // The face reads from the top, so a growing offset sends the lines up it.
+    tabletTexture({ kind: "lines" }).offset.y = scrolled % 1
   }
 
   /** Fly the sparks over the box on the bench; each flies again when it has burnt out. */

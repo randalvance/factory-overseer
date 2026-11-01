@@ -56,10 +56,20 @@ Then open <http://localhost:3000>.
 The smoke test saves its screenshots under `SCREENSHOT_DIR` when that is set;
 the milestone screenshots under `docs/screenshots` are copies of those.
 
-The 3D pieces are built by Blender scripts under `tools/blender`, run on the
-host rather than in the container, and committed as GLB files under
-`public/assets`. The status icons are drawn by a script under `tools/icons`,
-run in the container, and committed as PNG files there too.
+The 3D pieces are built by a Blender script under `tools/blender`, run on the
+host rather than in the container, and committed as one GLB file under
+`public/assets/models`. From the repo root, with Blender 4 or later on the
+host (on macOS, `/Applications/Blender.app/Contents/MacOS/Blender` stands in
+for `blender`):
+
+```bash
+blender --background --python tools/blender/build_pieces.py
+```
+
+Running it again with the same Blender reproduces the file byte for byte. Add
+`-- --render gallery.png` to render every piece in a gallery to look at. The
+pieces are listed in `ASSETS.md`. The status icons are drawn by a script under
+`tools/icons`, run in the container, and committed as PNG files there too.
 
 ## Licence
 

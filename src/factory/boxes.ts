@@ -12,6 +12,7 @@ import { type BoxTiles, type Motion, restingTiles, tileAfterSlide } from "~/floo
 import { sameTile, tileKey } from "~/floor/tiles"
 import type { BoxSpot, Layout, Tile } from "~/floor/types"
 import type { Task } from "~/model/types"
+import type { Pieces } from "./models"
 import { BOX_SIZE, box, boxFace, containerCount, heightsOver, hopperMouth, recount, tileCenter } from "./pieces"
 import { type Candidate, nearestOf } from "./picking"
 import { type Glide, glide, startGlide } from "./slide"
@@ -54,7 +55,7 @@ export interface Boxes {
    * floor, or to its resting place when it has no route on from there, and
    * rides on once there.
    */
-  update(layout: Layout, tasks: Task[], motions: Motion[], slid?: BoxTiles): void
+  update(layout: Layout, tasks: Task[], motions: Motion[], pieces: Pieces, slid?: BoxTiles): void
   /**
    * Where each box is once the floor has slid from the layout shown to the
    * next, as the overseer's Reorganize has it: a box in transit over the
@@ -83,7 +84,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
   /** Whether a snapshot has been shown: the first finds its boxes in place, later ones drop newcomers out of the hopper. */
   let opened = false
 
-  function update(layout: Layout, tasks: Task[], motions: Motion[], slid?: BoxTiles) {
+  function update(layout: Layout, tasks: Task[], motions: Motion[], pieces: Pieces, slid?: BoxTiles) {
     const taskById = new Map(tasks.map((task) => [task.id, task]))
     const motionOf = new Map(motions.map((motion) => [motion.taskId, motion]))
     const heightOver = heightsOver(layout)
@@ -107,7 +108,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
 
       let floorBox = boxes.get(placement.taskId)
       if (!floorBox) {
-        const mesh = box(placement.tile, underside, label, task?.color)
+        const mesh = box(placement.tile, underside, label, task?.color, pieces)
         group.add(mesh)
         floorBox = { mesh, tile: placement.tile, spot: placement.spot, rest }
         boxes.set(placement.taskId, floorBox)
@@ -119,7 +120,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
         floorBox.tile = placement.tile
         floorBox.spot = placement.spot
         floorBox.rest = rest
-        ;(floorBox.mesh.material as THREE.MeshLambertMaterial).map = boxFace(label, task?.color)
+        ;(floorBox.mesh.material as THREE.MeshLambertMaterial).map = boxFace(label, task?.color, pieces.cardboard)
       }
 
       const motion = motionOf.get(placement.taskId)
@@ -186,7 +187,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
     const floorBox = boxes.get(taskId)
     if (!floorBox) return
     group.remove(floorBox.mesh)
-    floorBox.mesh.geometry.dispose()
+    // The geometry is the box piece's, shared; the material with the label is the box's own.
     ;(floorBox.mesh.material as THREE.Material).dispose()
     boxes.delete(taskId)
   }
