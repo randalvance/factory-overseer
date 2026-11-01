@@ -48,7 +48,20 @@ export interface Motions {
  * belt's last tile when it is now shorter. None when no belt stands for it,
  * or the tile was on no belt.
  */
-export function tileAfterSlide(previous: Layout, next: Layout, tile: Tile): Tile | undefined {
+export function tileAfterSlide(previous: Layout, next: Layout, tile: Tile, taskId?: string): Tile | undefined {
+  if (previous.routing && next.routing) {
+    const room = previous.rooms?.find((room) => inside(room.rect, tile))
+    const afterRoom = room && next.rooms?.find((next) => next.id === room.id)
+    if (room && afterRoom) return { x: afterRoom.rect.x + tile.x - room.rect.x, y: afterRoom.rect.y + Math.min(tile.y - room.rect.y, afterRoom.rect.h - 2) }
+    const selected = new Set(taskId ? previous.routing.taskEdges[taskId] ?? [] : [])
+    const connections = previous.routing.connections.filter((connection) => selected.size === 0 || selected.has(connection.transition.id))
+    for (const connection of connections) {
+      const index = connection.path.findIndex((at) => sameTile(at, tile))
+      if (index < 0) continue
+      const nextConnection = next.routing.connections.find((next) => next.transition.from === connection.transition.from && next.transition.to === connection.transition.to)
+      if (nextConnection) return nextConnection.path[Math.min(index, nextConnection.path.length - 1)]
+    }
+  }
   for (const belt of previous.belts) {
     const index = belt.tiles.findIndex((t) => sameTile(t, tile))
     if (index < 0) continue
@@ -77,7 +90,8 @@ export function motionsFor(layout: Layout, from: BoxTiles, previous?: Layout): M
     if (!start || sameTile(start, box.tile)) continue
     const settled = restedInContainer.get(box.taskId)
     if (settled && !sameTile(settled, box.tile)) continue
-    const path = shortestPath(reach, { x: start.x, y: start.y }, box.tile)
+    const permitted = permittedRouteTiles(layout, box.taskId)
+    const path = shortestPath(reach, { x: start.x, y: start.y }, box.tile, permitted)
     if (!path) {
       unrouted.push(box.taskId)
       continue
@@ -138,7 +152,7 @@ function inside(rect: Rect, tile: Tile): boolean {
 }
 
 /** Breadth first from start to goal; the fewest tiles wins, belts before carrying on ties. */
-function shortestPath(reach: Map<string, Tile[]>, start: Tile, goal: Tile): Tile[] | undefined {
+function shortestPath(reach: Map<string, Tile[]>, start: Tile, goal: Tile, permitted?: Set<string>): Tile[] | undefined {
   const cameFrom = new Map<string, Tile | null>([[tileKey(start), null]])
   const queue: Tile[] = [start]
   while (queue.length > 0) {
@@ -149,7 +163,7 @@ function shortestPath(reach: Map<string, Tile[]>, start: Tile, goal: Tile): Tile
       return path
     }
     for (const next of reach.get(tileKey(tile)) ?? []) {
-      if (cameFrom.has(tileKey(next))) continue
+      if (cameFrom.has(tileKey(next)) || (permitted && !permitted.has(tileKey(next)))) continue
       cameFrom.set(tileKey(next), tile)
       queue.push(next)
     }
@@ -177,8 +191,29 @@ export function restingTileAfterSlide(previous: Layout, next: Layout, taskId: st
   if (spot.kind === "bench") {
     return next.bays.flatMap((bay) => bay.stations).find((station) => station.id === spot.stationId)?.bench
   }
-  if (spot.kind === "queue") return tileAfterSlide(previous, next, box.tile)
+  if (spot.kind === "queue") {
+    if (next.routing && spot.stationId.startsWith("room:") && !spot.stationId.includes(":station:")) return next.routing.queues[spot.stationId.slice(5)]
+    return tileAfterSlide(previous, next, box.tile, taskId)
+  }
   if (spot.kind === "intake") return next.intake.pile[Math.min(spot.index, next.intake.pile.length - 1)]
   if (spot.kind === "staging") return next.staging?.pile[Math.min(spot.index, next.staging.pile.length - 1)]
   return next.container.stacks[spot.index % next.container.stacks.length]
+}
+
+/** Only selected graph connections and their rooms can carry this task. */
+function permittedRouteTiles(layout: Layout, taskId: string): Set<string> | undefined {
+  const routing = layout.routing
+  if (!routing) return undefined
+  const selected = new Set(routing.taskEdges[taskId] ?? [])
+  const roomIds = new Set([routing.taskOrigins[taskId], routing.taskRooms[taskId]])
+  const tiles = new Set<string>()
+  for (const connection of routing.connections) if (selected.has(connection.transition.id)) {
+    roomIds.add(connection.transition.from)
+    roomIds.add(connection.transition.to)
+    for (const tile of connection.path) tiles.add(tileKey(tile))
+  }
+  for (const room of layout.rooms ?? []) if (roomIds.has(room.id.slice(5))) {
+    for (const tile of tilesOf(room.rect)) tiles.add(tileKey(tile))
+  }
+  return tiles
 }

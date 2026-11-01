@@ -9,6 +9,8 @@
 // HUD over the canvas, the counts and the cards, is React too.
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import { layoutConfiguredRooms } from "~/floor/configuredRooms"
+import type { RoomFactoryState } from "~/model/types"
 import { layoutFloor, reorganizedFloor } from "~/floor/layout"
 import type { Motions } from "~/floor/motion"
 import type { Layout } from "~/floor/types"
@@ -24,6 +26,8 @@ export interface FactoryProps {
   pipeline: Pipeline
   /** Separated expandable rooms using the existing pipeline order. */
   roomLayout?: boolean
+  /** Used by RoomFactory to render the configured graph. */
+  roomState?: RoomFactoryState
   agents: Agent[]
   tasks: Task[]
   /** Scales every belt and walk. 1 is about two tiles a second. */
@@ -46,6 +50,8 @@ export interface FactoryProps {
   onLayout?: (layout: Layout, motions: Motions) => void
   /** Called once with the handle when the first snapshot is drawn and the factory is ready. */
   onReady?: (handle: FactoryHandle) => void
+  /** A task finished riding its conveyor path. */
+  onTaskLanded?: (taskId: string) => void
 }
 
 /** What the host asks of the factory once it is ready, beyond what the props say. */
@@ -64,12 +70,12 @@ export interface FactoryHandle {
   reorganize(): void
 }
 
-export function Factory({ pipeline, agents, tasks, roomLayout = false, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout, onReady }: FactoryProps) {
+export function Factory({ pipeline, agents, tasks, roomLayout = false, roomState, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
   /** The props as last rendered, for the handle, which is called between renders. */
-  const latest = useRef({ pipeline, agents, tasks, staging, roomLayout, statusStyles, wardrobes, onLayout, onReady })
+  const latest = useRef({ pipeline, agents, tasks, staging, roomLayout, roomState, statusStyles, wardrobes, onLayout, onReady, onTaskLanded })
   /** How many drawings have been asked of the view; only the latest counts once drawn. */
   const asked = useRef(0)
   /** How many snapshots the view has drawn; the first makes the factory ready. */
@@ -79,11 +85,12 @@ export function Factory({ pipeline, agents, tasks, roomLayout = false, speed = 1
   /** Where every task has been this session, for the cards. */
   const [trails, setTrails] = useState<Trails>({})
   /** The tasks whose boxes are riding to where the snapshot puts them, until each lands. */
+  const activeRides = useRef(new Set<string>())
   const [riding, setRiding] = useState<ReadonlySet<string>>(() => new Set())
   const styles = useMemo(() => resolveStatusStyles(statusStyles), [statusStyles])
 
   useEffect(() => {
-    latest.current = { pipeline, agents, tasks, staging, roomLayout, statusStyles, wardrobes, onLayout, onReady }
+    latest.current = { pipeline, agents, tasks, staging, roomLayout, roomState, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }
   })
 
   useEffect(() => {
@@ -97,13 +104,16 @@ export function Factory({ pipeline, agents, tasks, roomLayout = false, speed = 1
     const created = createFactoryView(mount.current, {
       assetBase: import.meta.env.BASE_URL,
       onClick: setPicked,
-      onLanded: (taskId) =>
+      onLanded: (taskId) => {
+        activeRides.current.delete(taskId)
+        latest.current.onTaskLanded?.(taskId)
         setRiding((before) => {
           if (!before.has(taskId)) return before
           const after = new Set(before)
           after.delete(taskId)
           return after
-        }),
+        })
+      },
     })
     view.current = created
     return () => {
@@ -120,7 +130,8 @@ export function Factory({ pipeline, agents, tasks, roomLayout = false, speed = 1
       .then((motions) => {
         if (call !== asked.current) return
         latest.current.onLayout?.(layout, motions)
-        setRiding(new Set(motions.toPlay.map((motion) => motion.taskId)))
+        activeRides.current = new Set(motions.toPlay.map((motion) => motion.taskId))
+        setRiding(new Set(activeRides.current))
         setDrawn((n) => n + 1)
       })
       .catch((error: unknown) => console.error(failure, error))
@@ -132,11 +143,13 @@ export function Factory({ pipeline, agents, tasks, roomLayout = false, speed = 1
 
   useEffect(() => {
     if (!view.current) return
-    const layout = layoutFloor(pipeline, { agents, tasks }, previous.current, { staging, width, lanes, roomLayout })
+    const layout = roomState
+      ? layoutConfiguredRooms(roomState, previous.current, width, activeRides.current)
+      : layoutFloor(pipeline, { agents, tasks }, previous.current, { staging, width, lanes, roomLayout })
     const traffic = comingsAndGoings(previous.current, layout)
     previous.current = layout
     drawnBy(view.current.show(layout, { agents, tasks }, styling(statusStyles, wardrobes), traffic), layout, "The factory could not be drawn")
-  }, [pipeline, agents, tasks, staging, width, lanes, roomLayout, statusStyles, wardrobes])
+  }, [pipeline, agents, tasks, staging, width, lanes, roomLayout, roomState, statusStyles, wardrobes])
 
   const handle = useRef<FactoryHandle>({
     focus(subject) {
@@ -147,9 +160,11 @@ export function Factory({ pipeline, agents, tasks, roomLayout = false, speed = 1
       view.current?.fitAll()
     },
     reorganize() {
-      const { pipeline, agents, tasks, staging, statusStyles, wardrobes } = latest.current
+      const { pipeline, agents, tasks, staging, roomState, statusStyles, wardrobes } = latest.current
       if (!view.current || !previous.current) return
-      const layout = reorganizedFloor(pipeline, { agents, tasks }, previous.current, { staging })
+      const layout = roomState
+        ? layoutConfiguredRooms(roomState, previous.current, previous.current.bounds.w, activeRides.current, true)
+        : reorganizedFloor(pipeline, { agents, tasks }, previous.current, { staging })
       previous.current = layout
       drawnBy(view.current.reorganize(layout, { agents, tasks }, styling(statusStyles, wardrobes)), layout, "The factory could not be reorganized")
     },
@@ -164,6 +179,7 @@ export function Factory({ pipeline, agents, tasks, roomLayout = false, speed = 1
       <div ref={mount} className="factory-canvas" role="img" aria-label="Factory floor" data-drawn={drawn} data-rooms={previous.current?.rooms?.length ?? 0} />
       <Hud
         snapshot={{ agents, tasks }}
+        roomState={roomState}
         trails={trails}
         riding={riding}
         styles={styles}

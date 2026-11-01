@@ -20,7 +20,7 @@ export function drawRooms(layout: Layout, floorTexture: THREE.Texture, add: (nam
     }
     // Stable wall indices make growth a slide/fade of the actual enclosure.
     for (let i = 0; i < w; i++) {
-      if (x + i !== room.door.x) wall(`back:${i}`, x + i + 0.5, y + 0.12, 1, 0.24, 1.1)
+      if (x + i !== room.door.x && !occupied.has(`${x + i},${y}`)) wall(`back:${i}`, x + i + 0.5, y + 0.12, 1, 0.24, 1.1)
       wall(`front:${i}`, x + i + 0.5, y + h - 0.12, 1, 0.24, 0.18)
     }
     for (let i = 1; i < h - 1; i++) {

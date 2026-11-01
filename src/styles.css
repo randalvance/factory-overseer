@@ -199,3 +199,17 @@ body,
   right: 0.3rem;
   padding: 0 0.4rem;
 }
+
+.room-error {
+  position: absolute;
+  z-index: 3;
+  bottom: 0;
+  left: 1rem;
+  right: 1rem;
+  padding: 0.7rem;
+  background: #442528;
+  color: #ffdcda;
+  font-size: 0.8rem;
+}
+
+.route-status { margin: 0; font-size: 0.8rem; color: #b8d7c8; }

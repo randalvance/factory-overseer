@@ -5,12 +5,27 @@ validateRoomState in src/model/roomValidation.ts checks a complete
 RoomFactoryState without mutating it. It validates semantic references in
 typed data; decode untrusted JSON before calling it.
 
-This is the contract delivered by #19. The existing Factory React component
-still accepts the legacy Pipeline and Snapshot API. The #20
-roomLayout flag renders the legacy pipeline as separated, expandable rooms.
-Passing the new RoomFactoryState directly to the component is not supported
-yet; configurable connections are integrated in #21 and onHumanNeeded
-delivery in #22.
+The configured renderer is `RoomFactory` in src/factory/RoomFactory.tsx:
+
+```tsx
+<RoomFactory
+  state={{ configuration: exampleRooms, snapshot: planningFirst }}
+  width={24}
+  speed={2}
+  onReady={(handle) => handle.fitAll()}
+  onTaskLanded={(taskId) => console.log("Visual ride finished", taskId)}
+/>
+```
+
+The example values are exported from src/model/roomExamples.ts. Pass new
+immutable state values when configuration or snapshots change. Optional
+onLayout reports the physical layout, planned motions and unrouted task IDs.
+onTaskLanded is a view notification; it does not mean work is complete.
+RoomFactory retains its last accepted state and displays an alert when an
+update fails validation. The legacy Factory API remains available.
+
+onHumanNeeded delivery arrives in #22; requests are represented in state
+but the current view does not yet invoke that hook.
 
 ## Configuration
 
@@ -90,12 +105,19 @@ in the same update. A transition may be removed while animation is in flight:
 the renderer must retain the old motion until it can safely reconcile to the
 new layout. This is a routing implementation obligation, not a field validator.
 
-validateRoomState checks one candidate; it does not keep session history or
-enforce never-reused IDs, terminal task history or request delivery. Those
-are host/lifecycle obligations. Skipped snapshots are allowed under ADR 0001,
-so it also does not reject two observed locations merely because they are
-not joined by a direct edge. The routing layer must use declared paths and
-surface unreachable handoffs without inventing a connection.
+validateRoomState checks one candidate without session history.
+validateRoomUpdate additionally checks the last accepted snapshot: shipped
+tasks cannot reopen, and room-to-room changes need a declared directed path.
+Skipped observations can span several edges. When a source room is removed
+atomically with a departing task, its previous declared path can establish
+the final handoff. Never-reused IDs and request delivery remain host/lifecycle
+obligations.
+
+Selected connection paths constrain the physical route. Unstaffed rooms
+hold tasks at their feeder queue. If configuration changes during a ride,
+the old connections/endpoints remain available until boxes land; the next
+snapshot removes unused retained geometry. Failed physical routes report
+through onLayout and leave existing boxes in place. See ADR 0011.
 
 ## Migration and examples
 
@@ -148,6 +170,7 @@ boxes together; snapshots arriving during that pass are coalesced to the
 newest state and drawn once the pass settles. This preserves active task
 identity, camera follow and cards.
 
-The preview intentionally retains the old runtime and sequential/return
-belts. It does not yet interpret RoomConfiguration.transitions or present
-human questions. Those behaviors remain scoped to their subsequent tickets.
+This older preview remains available at ?layout=rooms and retains the old
+runtime and sequential/return belts. The default demo and RoomFactory now
+use the configured graph described in ADR 0011. Both preserve the original
+camera and agent/box interaction layer.
