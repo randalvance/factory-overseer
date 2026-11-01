@@ -7,8 +7,10 @@ export type RoomTheme = "research-lab" | "foundry" | "factory" | "fabrication-pl
 export interface RoomBillboard {
   /** Host-served image URL. Missing/failed images use the room's default graphic. */
   image?: string
-  /** Defaults to the room label. */
+  /** Describes the graphic; defaults to the room label. */
   alt?: string
+  /** Smooth illustrated paper by default; nearest keeps pixel-art edges crisp. */
+  filter?: "linear" | "nearest"
 }
 
 export interface Room {

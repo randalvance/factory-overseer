@@ -9,6 +9,7 @@ import * as THREE from "three"
 import type { ResolvedRoomTheme, RoomThemeRegistry } from "~/model/roomThemes"
 import { themesForLayout } from "./themesForLayout"
 import { createRoomThemeAssets } from "./roomThemeAssets"
+import { createRoomBillboardAssets } from "./roomBillboardAssets"
 import { PAPER_GRASS_COLOR } from "./paperGround"
 import { createPaperSurfaces } from "./paperMaterial"
 import { roomGeometryChanged, stationed } from "~/floor/layout"
@@ -101,8 +102,9 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   const assetBase = options.assetBase ?? "/"
   const petTextures = createPetTextures(assetBase)
   const paperSurfaces = createPaperSurfaces()
-  let themePaintPending = false
-  const themeAssets = createRoomThemeAssets(() => { themePaintPending = true })
+  let sceneryPaintPending = false
+  const themeAssets = createRoomThemeAssets(() => { sceneryPaintPending = true })
+  const billboardAssets = createRoomBillboardAssets(() => { sceneryPaintPending = true }, assetBase)
   let shownThemes: ReadonlyMap<string, ResolvedRoomTheme> | undefined
   let shownPieces: Pieces | undefined
   const canvas = document.createElement("canvas")
@@ -285,14 +287,14 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
         aimCamera()
       }
     }
-    if (themePaintPending && !slide && shown && shownPieces?.paper) {
+    if (sceneryPaintPending && !slide && shown && shownPieces) {
       // Asset completion repaints only scenery: never replay a ride, a walk, or a human hook.
-      themePaintPending = false
+      sceneryPaintPending = false
       unbatchPaperDrawing(drawing)
       scene.remove(drawing)
       disposeMeshes(drawing)
-      drawing = drawFactory(shown, shownPieces, shownThemes, themeAssets)
-      paperSurfaces.apply(drawing)
+      drawing = drawFactory(shown, shownPieces, shownThemes, themeAssets, billboardAssets)
+      if (shownPieces.paper) paperSurfaces.apply(drawing)
       batchPaperDrawing(drawing)
       scene.add(drawing)
       renderer.shadowMap.needsUpdate = true
@@ -408,8 +410,9 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     belts = ready.pieces.belts
     shownPieces = ready.pieces
     shownThemes = ready.themes
-    drawing = drawFactory(layout, ready.pieces, ready.themes, themeAssets)
-    themePaintPending = false
+    billboardAssets.update(layout.routing?.configuration.rooms.map((room) => room.billboard) ?? [])
+    drawing = drawFactory(layout, ready.pieces, ready.themes, themeAssets, billboardAssets)
+    sceneryPaintPending = false
     if (ready.pieces.paper) paperSurfaces.apply(drawing)
     scene.add(drawing)
     if (settling === "glide") {
@@ -450,6 +453,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     paperSurfaces.dispose()
     boxes.dispose()
     themeAssets.dispose()
+    billboardAssets.dispose()
     paper?.dispose?.()
     renderer.dispose()
     canvas.remove()

@@ -2,11 +2,11 @@ import type { RoomConfiguration, RoomSnapshot } from "./rooms"
 
 export const exampleRooms: RoomConfiguration = {
   rooms: [
-    { id: "intake", label: "Task intake", role: "router", kind: "intake", theme: "factory" },
-    { id: "planning", label: "Planning", role: "planner", kind: "work", theme: "research-lab", billboard: { image: "/assets/rooms/planning.png" } },
-    { id: "implementation", label: "Implementation", role: "implementer", kind: "work", theme: "foundry" },
-    { id: "review", label: "Code review", role: "reviewer", kind: "work", theme: "factory" },
-    { id: "deployment", label: "Deployment", role: "deployer", kind: "deployment", theme: "fabrication-plant" },
+    { id: "intake", label: "Task intake", role: "router", kind: "intake", theme: "factory", billboard: { image: "assets/billboards/intake.svg" } },
+    { id: "planning", label: "Planning", role: "planner", kind: "work", theme: "research-lab", billboard: { image: "assets/billboards/planning.svg" } },
+    { id: "implementation", label: "Implementation", role: "implementer", kind: "work", theme: "foundry", billboard: { image: "assets/billboards/implementation.svg" } },
+    { id: "review", label: "Code review", role: "reviewer", kind: "work", theme: "factory", billboard: { image: "assets/billboards/review.svg" } },
+    { id: "deployment", label: "Deployment", role: "deployer", kind: "deployment", theme: "fabrication-plant", billboard: { image: "assets/billboards/deployment.svg" } },
   ],
   transitions: [
     { id: "plan", from: "intake", to: "planning", outcome: "needs-planning" },

@@ -39,10 +39,8 @@ optional parameters, independent of the role.
 
 Preset theme keys are research-lab, foundry, factory and fabrication-plant.
 Hosts may use other registry keys through `roomThemes`; see Room themes below.
-Billboard.image is a host-served image
-URL; its optional alt defaults to the room label. Missing or failed assets
-must use a functional default. The example image path is illustrative;
-the billboard assets arrive in #24.
+Billboard graphics are host-served image URLs, independent of room themes.
+See Room billboards below for filtering, sizing and fallback behavior.
 
 A transition has an id, from/to room IDs and an outcome name. A source room
 can have several outcomes; each selects one destination. Multiple distinct
@@ -50,6 +48,53 @@ outcomes may reach the same room. Cycles, self-loops and disconnected rooms
 are permitted. Configuration does not automatically advance work. The host
 evaluates its own conditions and reports the resulting state. Arbitrary
 intermediate rooms need no renderer-specific stage enum.
+
+## Room billboards
+
+Each paper room has a folded cardstock sign attached directly to the top
+of its back wall, without posts. Outdoor intake has a smaller sign attached
+to the hopper's rear rim. A graphic occupies the left panel; the room label
+always remains beside it. Changing a graphic does not change routing,
+station positions or task state.
+
+```ts
+const room = {
+  id: "implementation", label: "Implementation", role: "implementer",
+  kind: "work" as const,
+  billboard: {
+    image: "/assets/billboards/custom-rocket.svg",
+    alt: "Folded paper rocket",
+    filter: "linear" as const,
+  },
+}
+```
+
+`image` accepts a browser-decodable image URL, including a host's imported
+asset URL. Root-relative and absolute URLs are used directly; relative URLs
+resolve under the factory's asset base. Cross-origin hosts must allow image
+access with CORS. `alt` describes the graphic and defaults to the room label.
+The label itself always comes from `Room.label`.
+
+Use square **256 × 256** art, with key details inside the image edges.
+Non-square art is contained in the square graphic panel without cropping or
+stretching. PNG, WebP and self-contained SVG work; SVGs should declare their
+intrinsic width and height. Images larger than **1024 pixels on either axis**
+fall back to the room's default icon. `filter` is `"linear"` by default for
+smooth illustrations; use `"nearest"` for pixel art. This controls only the
+graphic; labels remain smooth and readable.
+
+Omitting the image, loading it, or failing to load it all show the built-in
+room icon and label. An image change immediately falls back while its new
+image loads. Late results for removed/replaced images never overwrite the
+current graphic. The view shares active source images, releases unused
+sources, and disposes each drawing's textures and meshes when replaced or
+unmounted. Failed URLs are retried only after removal and reintroduction or
+remount; use a new URL to publish a new image at an existing path.
+
+The bundled examples are `assets/billboards/{intake,planning,implementation,
+review,deployment}.svg`, plus `custom-rocket.svg` and `pixel-crate.svg`.
+The demo's **Room graphic** control switches between the example, custom
+rocket, pixel crate, built-in default and unavailable-image fallback.
 
 ## Snapshots and ownership
 

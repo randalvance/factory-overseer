@@ -107,7 +107,12 @@ validation, checked examples and migration, and
 [ADR 0011](docs/adr/0011-configured-room-conveyors.md) for physical routing.
 
 The earlier room-growth demo remains at `?layout=rooms`, and the original
-bay demo at `?layout=legacy`. Host image billboards follow in #24.
+bay demo at `?layout=legacy`.
+
+Use **Room graphic** to try the bundled example, a custom rocket, pixel art,
+the built-in default or an unavailable-image fallback on the selected room.
+Hosts configure `room.billboard.image`, optional `alt`, and `filter`
+(`linear` or `nearest`); see [the billboard contract](docs/room-contract.md#room-billboards).
 
 
 Select a room and use **Theme** to switch between Research lab, Foundry,

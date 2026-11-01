@@ -52,6 +52,17 @@ describe("configuration validation", () => {
   })
 })
 
+it("rejects unknown billboard filters and accepts smooth or pixel artwork without changing room identity", () => {
+  const value = state()
+  const room = value.configuration.rooms[1]!
+  room.billboard = { image: "/graphics/plan.svg", filter: "blur" } as unknown as NonNullable<typeof room.billboard>
+  expect(validateRoomState(value)).toContainEqual({ path: "configuration.rooms[1].billboard.filter", message: "Expected linear or nearest" })
+  for (const filter of ["linear", "nearest"] as const) {
+    room.billboard = { image: "/graphics/plan.svg", alt: "Planning notes", filter }
+    expect(validateRoomState(value)).toEqual([])
+  }
+})
+
 describe("snapshot validation", () => {
   it("rejects mismatched roles and cross-room task assignments", () => {
     const value = state()

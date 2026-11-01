@@ -9,6 +9,7 @@ import * as THREE from "three"
 import type { ResolvedRoomTheme } from "~/model/roomThemes"
 import type { ThemeAssets } from "./roomThemeAssets"
 import { drawRooms } from "./rooms"
+import type { BillboardAssets } from "./roomBillboardAssets"
 import { drawPaperGround } from "./paperGround"
 import { drawPaperTrees } from "./paperTrees"
 import { paperRoad, paperRoadFootprint } from "./paperRoad"
@@ -27,7 +28,7 @@ import { beltTile, bench, containerWalls, door, floorSlab, hopper, pallet, patch
  * how far along it is; a bench for its station; a patch for its bay; and so
  * on. The same name in the next drawing is the same piece, slid there.
  */
-export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets): THREE.Group {
+export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets, billboards?: BillboardAssets): THREE.Group {
   const group = new THREE.Group()
   group.userData.paper = !!pieces.paper
   const add = (name: string, piece: THREE.Object3D) => {
@@ -47,7 +48,7 @@ export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap
     if (layout.rooms) (floor.material as THREE.MeshLambertMaterial).color.setHex(0x303941)
     add("floor", floor)
   }
-  drawRooms(layout, pieces.floor, add, pieces.paper, themes, assets)
+  drawRooms(layout, pieces.floor, add, pieces.paper, themes, assets, billboards)
   if (!pieces.paper) add("patch:intake", patch(layout.intake.rect, "intake"))
   if (!pieces.paper) for (const bay of layout.bays) add(`patch:${bay.id}`, patch(bay.rect, "bay"))
   if (layout.staging && !pieces.paper) add("patch:staging", patch(layout.staging.rect, "staging"))

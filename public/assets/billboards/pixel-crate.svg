@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges" role="img" aria-labelledby="title">
+  <title id="title">Pixel crate billboard graphic</title>
+  <path d="M3 1h26v1h1v1h1v26h-1v1h-1v1H3v-1H2v-1H1V3h1V2h1z" fill="#5c718c"/>
+  <path d="M4 2h24v1H4zM2 4h1v23H2z" fill="#8394a6"/>
+  <path d="M7 8h18v2h2v16H5V10h2z" fill="#fff5dd"/>
+  <path d="M7 10h18v14H7z" fill="#d2a25e"/>
+  <path d="M7 10h18v3H7zM7 13h3v11H7z" fill="#e8bf81"/>
+  <path d="M14 8h4v9h-4z" fill="#fff5dd"/>
+  <path d="M19 20h4v2h-4z" fill="#7b6042"/>
+  <path d="M7 26h18v1H7z" fill="#394c65"/>
+</svg>
