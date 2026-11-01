@@ -4,8 +4,9 @@ import { DEFAULT_PET_ASSETS } from "~/factory/petAssets"
 import type { FactoryHandle } from "~/factory/Factory"
 import { HumanAttentionPanel, type HumanAnswer } from "./HumanAttentionPanel"
 import { changeParticipant, implementationReady } from "./sharedWork"
+import { destination } from "./roomDispatch"
 import { needsHuman, requestHuman, resolveHuman } from "./humanAttention"
-import type { HumanAttentionRequest, RoomFactoryState, RoomTask, RoomTaskLocation } from "~/model/types"
+import type { HumanAttentionRequest, RoomFactoryState, RoomTask } from "~/model/types"
 import { exampleRooms } from "~/model/roomExamples"
 import { ROOM_THEMES, type RoomThemeRegistry } from "~/model/roomThemes"
 
@@ -25,11 +26,6 @@ function opening(): RoomFactoryState {
       humanRequests: [],
     },
   }
-}
-
-function destination(state: RoomFactoryState, roomId: string): RoomTaskLocation {
-  const agent = state.snapshot.agents.find((agent) => agent.roomId === roomId && agent.status !== "offline")
-  return { kind: "room", roomId, ...(agent ? { assignment: { agentIds: [agent.id], completedAgentIds: [] } } : {}) }
 }
 
 /** A host example for #21: controls change snapshots; the renderer never decides work. */

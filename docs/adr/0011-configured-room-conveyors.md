@@ -68,6 +68,11 @@ validation error. If a physical path cannot be found despite a valid logical
 update, an existing box remains at its previous position and onLayout reports
 its ID in motions.unrouted.
 
+Queues occupy the incoming feeder at or downstream of the side inlet.
+Overflow stacks there instead of placing an arrival upstream and forcing it
+to tour workstations and the internal return before waiting. Queue advancement
+still follows the directed feeder toward its assigned workstation.
+
 Rooms without agents retain tasks on their feeder queue. The host may later
 assign an arriving agent or hand queued work onward. Shared assignments keep
 the contract's first-member visual anchor; richer collaboration visuals are
