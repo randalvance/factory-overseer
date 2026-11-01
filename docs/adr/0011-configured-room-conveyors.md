@@ -1,4 +1,4 @@
-# Configured conveyors use side and rear room openings
+# Configured conveyors use side-only room openings
 
 RoomConfiguration is the logical graph; the floor is a physical network.
 The host selects outcomes and reports task locations. The renderer validates
@@ -7,25 +7,28 @@ Several declared steps may connect two observations because snapshots can
 skip intermediate states (ADR 0001). The shortest declared room path wins,
 with configuration order breaking ties.
 
-Each room has one feeder and collector, shared by every station. The main
-lane runs across the first station row, joining adjacent forward rooms
-at their sides. Room rows alternate their physical direction, and partial
-rows are centered. This gives the paper floor the reference's visible
-conveyor in front of the desks while keeping logical room order independent
-of placement. Belts may enter or leave a room through its left side, right
-side, or anywhere along its rear wall. They must never cross the front edge
-facing the camera. This applies to every room and the terminal loading path;
-a conveyor running across a station row inside the room is still allowed.
+Each room has an internal feeder and collector, shared by every station.
+The main lane runs across the first station row. Room rows alternate their
+physical direction, and partial rows are centered. Logical room order stays
+independent of placement. Conveyors cross only the left and right side walls;
+the front and rear edges never admit a conveyor. This supersedes the earlier
+side-and-rear opening rule. The side openings are one tile in front of the
+first pet row, aligned with the work surfaces.
 
-Bypasses and backward connections use exterior corridors above the rows
-and along the outer floor edges; they do not pass through unrelated desks.
-The collector-to-feeder loop sits behind the back wall, where it can return
-a task to a queue or another station without crowding the agent workspace.
-The layout records these local room paths explicitly because they extend
-outside a room footprint. Routing permissions and in-flight remapping retain
-both those paths and the selected inter-room connections. Crossings merge
-into junctions instead of overlapping belt meshes. Backward connections
-keep the return-belt appearance based on logical configuration order.
+External connections use deterministic, heading-aware A* over the space
+outside every room footprint. Two-tile side gaps and three-tile row gaps
+leave corridors around rooms. The search prefers short paths with few turns
+and modestly favors existing lanes traveling in the same direction. Edge IDs
+choose construction order so reserializing transitions does not change the
+geometry. Source and destination footprints receive no exemption: only their
+side-port tiles connect to the exterior. Crossings merge into junctions.
+
+The collector-to-feeder return runs entirely inside the room, in a service
+strip between rear furnishings and pets. Internal junctions distribute work
+to each station row and return it for another station or queue. The layout
+records these room paths alongside the selected inter-room connections for
+routing permissions and in-flight remapping. Backward connections keep their
+logical return-belt identity even though all paper decks share one color.
 
 Configured work rooms fill three stations left-to-right before adding a row
 toward the camera. Full-size desks have a four-tile column pitch and a
@@ -33,11 +36,21 @@ five-tile row pitch: rooms widen from seven to eleven to fifteen tiles as
 the first three stations arrive, then grow only in depth. Station order stays
 left-to-right even when the room row carries its conveyor west. Each station
 row shares a directed conveyor between the room feeder and collector; the
-rear loop reaches upstream columns and later rows. The row spacing also clears the taller human-attention badge and bubble.
+internal return reaches upstream columns and later rows. The first bench row is five
+tiles from the rear edge, leaving space for furnishings, return belts and
+back-tilted pets. An empty tile between the return and pet rows prevents the
+raised belt from crossing the standee faces. The row spacing also clears the
+taller human-attention badge and bubble.
 Vacancies keep their station identities and are reused before growing. Reorganize compacts them
-in row-major order. Deployment uses its physical left-side conveyor outlet,
-including when its room row carries the main line eastward. The existing
-rear loop supplies that outlet without reversing travel across occupied desks.
+in row-major order. Deployment always runs from its right inlet across its
+workstations to its left truck outlet. It is packed after every work room,
+including retained rooms, independently of the host's logical ordering.
+External room traffic stays at or above the deployment outlet row and cannot
+use the tile immediately outside its left outlet. The loading route therefore
+cannot merge with incoming work before a deployment workstation. Cutting all
+deployment workstations out of the physical network disconnects its inlet
+from the truck; regression tests enforce that invariant across room growth,
+extra rooms and reordered configurations.
 
 The unstaffed outdoor intake occupies four tiles in width. The minimum floor
 width remains 24 tiles.
@@ -81,8 +94,10 @@ then follows an exterior path into the truck. The former front dispatch spur
 and arch are removed. Paper splitters
 and mergers use four-port housings around the junction decks. Connected ports
 clear passing boxes, while fitted paper covers close unused ports. Ports do
-not create undeclared logical connections. Every rear-wall belt passage uses
-the same shadowed housing, even on a straight or corner route; this rendering
-choice preserves the original incoming and outgoing directions.
+not create undeclared logical connections. Every side-wall belt passage uses
+the same shadowed housing and a cream cardstock frame, even on a straight or
+corner route; this rendering choice preserves the original incoming and
+outgoing directions. Rear walls remain solid. Belts parallel to a side wall
+do not open a hole unless they actually cross it.
 Paper return paths use the same deck color while logical routing retains the
 distinction.

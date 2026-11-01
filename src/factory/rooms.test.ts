@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { layoutConfiguredRooms } from "~/floor/configuredRooms"
 import { exampleRooms } from "~/model/roomExamples"
 import type { Layout } from "~/floor/types"
+import { paperWallPortSide } from "./paperWallPorts"
 import { drawRooms } from "./rooms"
 import { ROOM_THEMES, type ResolvedRoomTheme } from "~/model/roomThemes"
 import { wayIn } from "~/floor/walk"
@@ -47,7 +48,7 @@ it.each([1, 3, 7])("keeps paper wall notes out of conveyor openings with %s impl
   expect(notesSeen).toBeGreaterThan(0)
 })
 
-it("closes the unused rear doorway cutout while preserving conveyor passages", () => {
+it("keeps every rear wall solid with no doorway or conveyor cutouts", () => {
   const { layout, scene } = fixture()
   for (const room of layout.rooms!.filter((room) => room.kind !== "intake")) {
     for (let i = 0; i < room.rect.w; i++) {
@@ -55,7 +56,8 @@ it("closes the unused rear doorway cutout while preserving conveyor passages", (
       const wall = scene.getObjectByName(`room:${room.id}:back:${i}`)!
       const ray = new THREE.Raycaster(new THREE.Vector3(x + .5, 1, y + 1), new THREE.Vector3(0, 0, -1))
       const hit = ray.intersectObject(wall, true).length > 0
-      expect(hit, `${room.id}: back wall at ${x}`).toBe(!hasBelt(layout, x, y))
+      expect(hit, `${room.id}: back wall at ${x}`).toBe(true)
+      expect(scene.getObjectByName(`room:${room.id}:back-frame:${i}`)).toBeUndefined()
     }
   }
 })
@@ -108,4 +110,37 @@ it("places host decoration at the checked rear slot and owns only its floor text
   expect(prop).toBeDefined()
   expect(prop.position.toArray()).toEqual([room.rect.x + 2.75, .02, room.rect.y + .77])
   expect(assets.model).toHaveBeenCalledWith(asset, "decoration")
+})
+
+it.each([1, 3, 7])("frames only actual left/right conveyor crossings with %s implementation pets", (count) => {
+  const { layout, scene } = fixture(count)
+  let crossings = 0
+  for (const room of layout.rooms!.filter((room) => room.kind !== "intake")) {
+    for (const side of ["left", "right"] as const) for (let index = 0; index < room.rect.h; index++) {
+      const tileX = side === "left" ? room.rect.x : room.rect.x + room.rect.w - 1
+      const tileY = room.rect.y + index
+      const crosses = layout.belts.some((belt) => belt.tiles.some((tile) => tile.x === tileX && tile.y === tileY && paperWallPortSide(tile, room) === side))
+      const frame = scene.getObjectByName(`room:${room.id}:${side}-frame:${index}`)
+      expect(Boolean(frame), `${room.id} ${side} row ${index}`).toBe(crosses)
+      if (!frame) continue
+      crossings++
+      expect(new THREE.Box3().setFromObject(frame).max.y).toBeCloseTo(1.63)
+      const ray = new THREE.Raycaster(new THREE.Vector3(tileX + (side === "left" ? -1 : 2), 1.15, tileY + .5), new THREE.Vector3(side === "left" ? 1 : -1, 0, 0))
+      expect(ray.intersectObject(frame, true)).toHaveLength(0)
+    }
+  }
+  expect(crossings).toBeGreaterThan(0)
+})
+
+it.each([1, 3, 7])("retains themed furnishings behind the internal return with %s implementation pets", (count) => {
+  for (const theme of Object.values(ROOM_THEMES)) {
+    const { layout, scene } = fixture(count, theme)
+    for (const room of layout.rooms!.filter((room) => room.kind !== "intake")) {
+      const furnishing = scene.getObjectByName(`room:${room.id}:side-furnishing`)
+      expect(furnishing, `${theme.id}:${room.id} furnishing disappeared`).toBeDefined()
+      const bounds = new THREE.Box3().setFromObject(furnishing!)
+      expect(bounds.max.z, `${theme.id}:${room.id} reaches the return lane`).toBeLessThan(room.rect.y + 1.9)
+      expect(bounds.min.z).toBeGreaterThan(room.rect.y)
+    }
+  }
 })

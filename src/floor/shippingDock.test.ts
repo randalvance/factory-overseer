@@ -6,8 +6,8 @@ const deployment = { x: 6, y: 11, w: 7, h: 6 }
 describe("terminal shipping dock", () => {
   it("connects the left station-row outlet to two cargo tiles through a clear exterior route", () => {
     const dock = shippingDock(deployment)
-    expect(dock.connectorPath[0]).toEqual({ x: 6, y: 14 })
-    expect(dock.connectorPath[1]).toEqual({ x: 5, y: 14 })
+    expect(dock.connectorPath[0]).toEqual({ x: 6, y: 16 })
+    expect(dock.connectorPath[1]).toEqual({ x: 5, y: 16 })
     expect(dock.connectorPath.slice(-2)).toEqual(dock.cargoTiles)
     expect(dock.cargoTiles).toEqual([{ x: 5, y: 19 }, { x: 4, y: 19 }])
     for (let i = 1; i < dock.connectorPath.length; i++) {

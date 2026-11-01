@@ -180,7 +180,7 @@ it("fits five compact rooms into three columns at the paper demo width", () => {
   const floor = layoutConfiguredRooms(value, undefined, 28)
   const rooms = floor.rooms!
   expect(rooms.map((room) => room.rect.w)).toEqual([7, 7, 7, 7, 7])
-  expect(rooms.map((room) => room.rect.h)).toEqual([5, 5, 5, 5, 6])
+  expect(rooms.map((room) => room.rect.h)).toEqual([7, 7, 7, 7, 8])
   expect(new Set(rooms.slice(0, 3).map((room) => room.rect.y)).size).toBe(1)
   expect(rooms[3]!.rect.y - (rooms[0]!.rect.y + rooms[0]!.rect.h)).toBe(3)
   expect(rooms[3]!.rect.y).toBe(rooms[4]!.rect.y)
@@ -192,7 +192,7 @@ it("fits five compact rooms into three columns at the paper demo width", () => {
   for (const room of rooms) {
     const station = floor.bays.find((bay) => bay.id === room.id)!.stations[0]!
     expect(station.bench.x).toBe(room.rect.x + 3)
-    expect(station.bench.y).toBe(room.rect.y + 3)
+    expect(station.bench.y).toBe(room.rect.y + 5)
   }
 })
 
@@ -278,20 +278,18 @@ it("keeps every in-flight position routable when a centered row fills", () => {
 })
 
 
-it("runs the adjacent workflow across front desks and puts local returns behind walls", () => {
+it("connects neighboring side ports directly and keeps returns inside the rear service strip", () => {
   const floor = layoutConfiguredRooms(state(), undefined, 28)
   for (const id of ["plan", "implement", "deploy"]) {
     const connection = floor.routing!.connections.find((edge) => edge.transition.id === id)!
     const source = floor.rooms!.find((room) => room.id === `room:${connection.transition.from}`)!
-    expect(new Set(connection.path.map((tile) => tile.y))).toEqual(new Set([source.rect.y + 3]))
+    expect(new Set(connection.path.map((tile) => tile.y))).toEqual(new Set([source.rect.y + 5]))
   }
-  const turn = floor.routing!.connections.find((edge) => edge.transition.id === "review")!
-  expect(turn.path.some((tile) => tile.x === floor.bounds.w - 1)).toBe(true)
   for (const room of floor.rooms!) {
     const loop = floor.belts.find((belt) => belt.id === `${room.id}:loop`)!
     expect(loop.tiles.length).toBeGreaterThan(0)
-    expect(loop.tiles.every((tile) => tile.y < room.rect.y)).toBe(true)
-    const interior = floor.belts.flatMap((belt) => belt.tiles).filter((tile) => tile.x > room.rect.x + 1 && tile.x < room.rect.x + room.rect.w - 2 && tile.y > room.rect.y && tile.y < room.rect.y + 3)
+    expect(loop.tiles.every((tile) => tile.y === room.rect.y + 2)).toBe(true)
+    const interior = floor.belts.flatMap((belt) => belt.tiles).filter((tile) => tile.x > room.rect.x + 1 && tile.x < room.rect.x + room.rect.w - 2 && tile.y === room.rect.y + 4)
     expect(interior).toEqual([])
   }
 })
@@ -312,12 +310,13 @@ it.each(["implementation", "review"])("returns shared %s work to another member 
   const motion = motionsFor(waiting, restingTiles(after), after)
   expect(motion.unrouted).toEqual([])
   const room = waiting.rooms!.find((room) => room.id === `room:${roomId}`)!
-  expect(motion.toPlay[0]!.path.some((tile) => tile.y < room.rect.y)).toBe(true)
+  expect(motion.toPlay[0]!.path.some((tile) => tile.y === room.rect.y + 2)).toBe(true)
+  expect(motion.toPlay[0]!.path.every((tile) => tile.y >= room.rect.y && tile.y < room.rect.y + room.rect.h)).toBe(true)
   const assignedAgain = layoutConfiguredRooms(value, waiting)
   expect(motionsFor(assignedAgain, restingTiles(waiting), waiting).unrouted).toEqual([])
 })
 
-it("keeps an in-flight same-room return on its hidden loop during growth", () => {
+it("keeps an in-flight same-room return on its internal return during growth", () => {
   const value = state("review")
   value.snapshot.agents.push({ id: "second", name: "Second", roomId: "review", role: "reviewer", status: "working" })
   const before = layoutConfiguredRooms(value, undefined, 28)
@@ -335,16 +334,16 @@ it("keeps an in-flight same-room return on its hidden loop during growth", () =>
 })
 
 
-it("keeps internal conveyors and rear route stems off the side walls", () => {
+it("keeps internal conveyors off the walls except the two side ports", () => {
   const floor = layoutConfiguredRooms(state(), undefined, 28)
   const tiles = floor.belts.flatMap((belt) => belt.tiles)
   for (const room of floor.rooms!) {
     for (const x of [room.rect.x, room.rect.x + room.rect.w - 1]) {
       const occupiedWall = tiles.filter((tile) => tile.x === x && tile.y >= room.rect.y && tile.y < room.rect.y + room.rect.h)
-      expect(occupiedWall.map((tile) => tile.y)).toEqual([room.rect.y + 3])
+      expect(occupiedWall.map((tile) => tile.y)).toEqual([room.rect.y + 5])
     }
     const flow = Math.sign(room.ports[1]!.x - room.ports[0]!.x)
-    for (let y = room.rect.y - 1; y <= room.rect.y + 3; y++) {
+    for (let y = room.rect.y + 2; y <= room.rect.y + 5; y++) {
       expect(tiles.some((tile) => tile.x === room.ports[0]!.x + flow && tile.y === y)).toBe(true)
     }
   }
@@ -358,7 +357,7 @@ it("packs an outdoor intake beside the work rooms without reserving a full room"
   const floor = layoutConfiguredRooms(value, undefined, 28)
   const intake = floor.rooms!.find((room) => room.kind === "intake")!
   expect(intake.rect.w).toBe(4)
-  expect(intake.rect.h).toBe(4)
+  expect(intake.rect.h).toBe(6)
   expect(floor.bays.find((bay) => bay.id === intake.id)!.stations).toEqual([])
   expect(floor.boxes[0]!.tile).toEqual(floor.intake.pile[0])
   expect(floor.rooms!.filter((room) => room.rect.y === intake.rect.y).map((room) => room.id)).toEqual([
@@ -401,7 +400,11 @@ it("starts the outdoor intake with one outward conveyor and branches downstream"
   expect(at(source.x, source.y - 1)).toBeUndefined()
   expect(at(source.x, source.y + 1)).toBeUndefined()
   expect(at(source.x, source.y)).toMatchObject({ kind: "straight", dir: "e" })
-  expect(at(source.x + 1, source.y)).toMatchObject({ kind: "junction", entries: ["e"] })
+  const outgoing = floor.routing!.connections.filter((edge) => edge.transition.from === "intake")
+  expect(outgoing.some((edge) => edge.path.some((tile) => {
+    const branch = at(tile.x, tile.y)
+    return tile.x > source.x && branch?.kind === "junction" && branch.entries.includes("e") && branch.exits.length > 1
+  }))).toBe(true)
   expect(floor.belts.filter((belt) => belt.id.startsWith("room:intake:")).map((belt) => belt.id)).toEqual(["room:intake:source"])
   for (const destination of ["planning", "implementation"]) {
     const next = layoutConfiguredRooms(move(value, destination), floor)

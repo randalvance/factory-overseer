@@ -21,7 +21,7 @@ describe("paper deployment truck", () => {
     const layout = layoutConfiguredRooms(state(), undefined, 28)
     const truck = paperTruckPlacement(layout)!
     const deployment = layout.rooms!.find((room) => room.kind === "deployment")!
-    expect(truck.outlet).toEqual({ x: deployment.rect.x, y: deployment.rect.y + 3 })
+    expect(truck.outlet).toEqual({ x: deployment.rect.x, y: deployment.rect.y + 5 })
     expect(truck.bodyFootprint.y).toBeGreaterThan(deployment.rect.y + deployment.rect.h)
     expect(truck.cargoTiles).toHaveLength(2)
     for (const belt of layout.belts.filter((belt) => !belt.id.includes("truck"))) for (const tile of belt.tiles) {

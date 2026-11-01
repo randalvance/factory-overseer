@@ -312,8 +312,16 @@ supply intake agents or incoming transitions when their workflow requires it.
 Deployment keeps its logical ID when a task becomes `shipped`. The visual
 ride continues from the deployment room’s left-side conveyor into the parked
 truck, using a real conveyor path. Room conveyors may enter or exit through
-the left, right or rear wall, never through the front edge facing the camera.
-The truck stays parked; shipping remains a host decision.
+the left or right wall only. Rear and front boundaries stay closed to belts.
+Inside each building, feeder and collector junctions distribute parcels to
+three workstations per row; an internal return lane serves additional rows
+and reassignments. Exterior routes avoid all room footprints.
+
+Deployment is physically packed last and always receives parcels on its
+right, carrying them across a workstation before the left loading exit.
+Incoming routes cannot share its loading belt. Logical room IDs and host
+transition order are unchanged. The truck stays parked; shipping remains a
+host decision.
 
 
 ## Room themes

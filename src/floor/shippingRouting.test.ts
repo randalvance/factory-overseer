@@ -106,7 +106,7 @@ it("exits the left side of the first station row and keeps the old front-center 
   const layout = layoutConfiguredRooms(state(), undefined, 28)
   const dock = layout.shippingDock!
   const deployment = layout.rooms!.find((room) => room.kind === "deployment")!
-  expect(dock.outlet).toEqual({ x: deployment.rect.x, y: deployment.rect.y + 3 })
+  expect(dock.outlet).toEqual({ x: deployment.rect.x, y: deployment.rect.y + 5 })
   expect(dock.connectorPath[1]).toEqual({ x: dock.outlet.x - 1, y: dock.outlet.y })
   expect(layout.belts.some((belt) => belt.id === "room:deployment:ship")).toBe(false)
   const formerSpur = { x: deployment.rect.x + Math.floor(deployment.rect.w / 2), y: deployment.rect.y + deployment.rect.h - 2 }
@@ -140,7 +140,7 @@ it("keeps terminal rides from every grid row on real belts when deployment compa
 })
 
 
-it.each([24, 28])("keeps nonshipping tasks on their selected route at loading crossings at width %s", (width) => {
+it.each([24, 28])("separates nonshipping routes from truck loading through growth at width %s", (width) => {
   for (const growingRoom of ["deployment", "qa-1"]) {
     const original = state(2)
     original.snapshot.tasks = [{ id: "qa-task", label: "Review then QA", at: { kind: "room", roomId: "review",
@@ -151,11 +151,11 @@ it.each([24, 28])("keeps nonshipping tasks on their selected route at loading cr
     const riding = layoutConfiguredRooms(next, before)
     const path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
     const shared = path.filter((tile) => riding.shippingDock!.connectorPath.some((point) => point.x === tile.x && point.y === tile.y))
-    expect(shared.length).toBeGreaterThan(0)
+    expect(shared).toEqual([])
     next.snapshot.agents.push(...Array.from({ length: 6 }, (_, i) => ({ id: `new-${i}`, name: "New", roomId: growingRoom,
       role: growingRoom === "deployment" ? "deployer" : "qa", status: "idle" as const })))
     const grown = layoutConfiguredRooms(next, riding, width, new Set(["qa-task"]))
-    for (const tile of shared) {
+    for (const tile of path) {
       const mapped = tileAfterSlide(riding, grown, tile, "qa-task")!
       expect(mapped).toBeDefined()
       const resumed = motionsFor(grown, { "qa-task": mapped }, riding)

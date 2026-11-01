@@ -153,7 +153,7 @@ test("mixed themes preserve an expanded seven-agent room through all preset chan
   await expect.poll(() => page.evaluate(() => window.themes.layout?.bays.find((bay) => bay.id === "room:implementation")?.stations.length)).toBe(7)
   const original = await geometry(page)
   expect(original.stations.filter(({ id }) => id.startsWith("room:implementation:"))).toHaveLength(7)
-  expect(original.rooms.find(({ id }) => id === "room:implementation")?.rect).toMatchObject({ w: 15, h: 15 })
+  expect(original.rooms.find(({ id }) => id === "room:implementation")?.rect).toMatchObject({ w: 15, h: 17 })
   await page.evaluate(() => window.themes.handle!.inspect({ agent: "implementation-7" }))
   for (const preset of ["research-lab", "factory", "fabrication-plant", "foundry"]) {
     const draws = await page.evaluate(() => window.themes.draws)

@@ -28,10 +28,10 @@ it.each([1, 2, 3, 4, 6, 7])("fills %s agents left-to-right in three-column rows 
     const layout = layoutConfiguredRooms(state(count), undefined, width)
     const footprint = room(layout).rect
     expect(footprint.w).toBe(7 + (Math.min(count, 3) - 1) * 4)
-    expect(footprint.h).toBe(5 + (Math.ceil(count / 3) - 1) * 5)
+    expect(footprint.h).toBe(7 + (Math.ceil(count / 3) - 1) * 5)
     expect(layout.bounds.w).toBe(width)
     stations(layout).forEach((station, index) => {
-      expect(station.bench).toEqual({ x: footprint.x + 3 + index % 3 * 4, y: footprint.y + 3 + Math.floor(index / 3) * 5 })
+      expect(station.bench).toEqual({ x: footprint.x + 3 + index % 3 * 4, y: footprint.y + 5 + Math.floor(index / 3) * 5 })
       expect(station.agentTile).toEqual({ x: station.bench.x, y: station.bench.y - 1 })
       expect(layout.belts.flatMap((belt) => belt.tiles).some((tile) => tile.x === station.agentTile.x && tile.y === station.agentTile.y)).toBe(false)
     })
@@ -58,7 +58,7 @@ it("preserves station order and identities, reuses vacancies, and compacts only 
   const compacted = layoutConfiguredRooms(value, joined, 28, new Set(), true)
   expect(stations(compacted).map((station) => station.agentId)).toEqual(["implementation-0", "new", "implementation-2", "implementation-3", "implementation-5", "implementation-6"])
   expect(stations(compacted).map((station) => station.id)).toEqual(first.filter((_, index) => index !== 4).map((station) => station.id))
-  expect(room(compacted).rect.h).toBe(10)
+  expect(room(compacted).rect.h).toBe(12)
 })
 
 it.each(["implementation", "review", "deployment"])("routes shared %s work between every column and row with one box", (roomId) => {
