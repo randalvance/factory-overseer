@@ -108,7 +108,7 @@ export function layoutConfiguredRooms(state: RoomFactoryState, previous?: Layout
       station.agentTile = { x: station.bench.x, y: station.bench.y - 1 }
     })
     bays.push({ id, role: definition.role, annex: 0, band: 0, rect: { x: x + 1, y: rect.y + ROOM_STATION_ROW - 1, w: rect.w - 2, h: 2 + (stationRows - 1) * ROOM_ROW_PITCH }, stations })
-    queues[definition.id] = { x: x + 1, y: rect.y + ROOM_STATION_ROW - 1 }
+    queues[definition.id] = { x: x + 1, y: rect.y + ROOM_STATION_ROW }
     rowOf.set(definition.id, row)
     rowBottom = Math.max(rowBottom, rect.y + rect.h)
     x += rect.w + 2
@@ -149,13 +149,12 @@ export function layoutConfiguredRooms(state: RoomFactoryState, previous?: Layout
       const collectorX = room.rect.x + (flow === 1 ? room.rect.w - 1 : 0)
       room.ports = [{ x: feederX, y: room.rect.y + ROOM_STATION_ROW }, { x: collectorX, y: room.rect.y + ROOM_STATION_ROW }]
       room.door = { x: feederX, y: room.rect.y }
-      queues[roomId] = room.kind === "intake"
-        ? { x: feederX + flow, y: room.rect.y + ROOM_STATION_ROW }
-        : { x: feederX + flow, y: room.rect.y + ROOM_STATION_ROW - 1 }
+      // Incoming work stops on the feeder at its entry row. A queue behind
+      // that entry would need a full lap across the work surfaces to reach it.
+      queues[roomId] = { x: feederX + flow, y: room.ports[0]!.y }
     })
   })
   const byId = new Map(rooms.map((room) => [room.id.slice(5), room]))
-  const inlet = (id: string): Tile => byId.get(id)!.ports[0]!
   const definitionIndex = new Map(definitions.map((room, index) => [room.id, index]))
   // Keep public room/bay iteration in logical order after physical packing.
   rooms.sort((a, b) => definitionIndex.get(a.id.slice(5))! - definitionIndex.get(b.id.slice(5))!)
@@ -256,7 +255,8 @@ export function layoutConfiguredRooms(state: RoomFactoryState, previous?: Layout
     const station = holder && bays.flatMap((bay) => bay.stations).find((station) => station.agentId === holder)
     if (station) {
       const index = next(station.id)
-      return { taskId: task.id, tile: index ? { x: inlet(task.at.roomId).x + flowOf.get(task.at.roomId)!, y: Math.max(byId.get(task.at.roomId)!.rect.y + ROOM_STATION_ROW - 1, station.bench.y - index + 1) } : station.bench,
+      const queue = queues[task.at.roomId]!
+      return { taskId: task.id, tile: index ? { x: queue.x, y: Math.max(queue.y, station.bench.y - index + 1) } : station.bench,
         spot: index ? { kind: "queue", stationId: station.id, index } : { kind: "bench", stationId: station.id } }
     }
     const index = next(`queue:${task.at.roomId}`)

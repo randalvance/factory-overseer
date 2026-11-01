@@ -94,6 +94,12 @@ then explicitly send the task onward. **Ask for help** and **Request approval**
 work in other rooms too. **Return to planning** demonstrates rework.
 **Include QA room** adds an intermediate step through configuration, and
 **Unstaff planning** demonstrates a queue waiting for agents.
+New demo handoffs choose the available agent with the smallest assigned task
+queue, preferring idle or finished agents when loads tie, then using room
+membership order. Six implementers receive one direct task each before
+overflow queues. Offline, waiting and errored agents receive no new
+assignments. This is demo host policy; RoomFactory still follows the
+assignments supplied by its host.
 
 The embeddable `RoomFactory` accepts a `RoomFactoryState` as its `state`
 prop. See [the room contract](docs/room-contract.md) for the public types,
