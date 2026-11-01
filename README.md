@@ -88,7 +88,10 @@ MIT for the code. The art has its own terms: see [ASSETS.md](ASSETS.md).
 The demo at localhost:3000 now shows the configured intake, planning,
 implementation, code review and deployment rooms. Select a task and use
 **Send to …** to watch a handoff. One opening task needs planning; the other
-goes directly to implementation. **Return to planning** demonstrates rework.
+goes directly to implementation. Planning asks two questions through the
+optional `onHumanNeeded` hook; answer them in the host's attention panel,
+then explicitly send the task onward. **Ask for help** and **Request approval**
+work in other rooms too. **Return to planning** demonstrates rework.
 **Include QA room** adds an intermediate step through configuration, and
 **Unstaff planning** demonstrates a queue waiting for agents.
 
@@ -98,5 +101,5 @@ validation, checked examples and migration, and
 [ADR 0011](docs/adr/0011-configured-room-conveyors.md) for physical routing.
 
 The earlier room-growth demo remains at `?layout=rooms`, and the original
-bay demo at `?layout=legacy`. Physical image billboards, themes and human
-question handling follow in their separate tickets.
+bay demo at `?layout=legacy`. Physical image billboards and themes follow
+in their separate tickets.

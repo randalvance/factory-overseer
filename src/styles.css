@@ -213,3 +213,29 @@ body,
 }
 
 .route-status { margin: 0; font-size: 0.8rem; color: #b8d7c8; }
+
+.human-attention {
+  position: absolute;
+  z-index: 4;
+  bottom: 1rem;
+  right: 1rem;
+  box-sizing: border-box;
+  width: min(24rem, calc(100% - 2rem));
+  max-height: 55vh;
+  overflow: auto;
+  padding: 1rem;
+  background: #15232b;
+  border: 1px solid #658b81;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px #0008;
+}
+.human-attention h2 { margin: 0 0 0.8rem; font-size: 1rem; color: #e6cf94; }
+.human-attention form + form { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #405550; }
+.human-attention label { display: grid; gap: 0.5rem; font-size: 0.85rem; line-height: 1.5; }
+.human-attention textarea { resize: vertical; font: inherit; color: #eef4ef; background: #0d171d; border: 1px solid #5a716c; padding: 0.5rem; }
+.human-attention button { margin-top: 0.5rem; padding: 0.5rem 0.8rem; background: #395e53; color: #fff; border: 1px solid #658b81; border-radius: 4px; cursor: pointer; }
+.human-attention button:disabled { opacity: 0.5; cursor: default; }
+.attention-context, .attention-note { color: #a6bdb5; font-size: 0.75rem; }
+.human-attention details { font-size: 0.8rem; line-height: 1.5; }
+.human-attention summary { cursor: pointer; }
+.human-attention ul { padding-left: 1.2rem; }
