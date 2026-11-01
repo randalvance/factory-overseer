@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type Page } from "@playwright/test"
 
 test("planning, direct implementation, rework and deployment follow configured conveyors", async ({ page }) => {
   test.setTimeout(120000)
@@ -15,6 +15,7 @@ test("planning, direct implementation, rework and deployment follow configured c
     await expect(status).toContainText("riding to " + room, { timeout: 10000 })
     await expect(status).toContainText("in " + room, { timeout: 30000 })
     await expect(page.getByRole("alert")).toHaveCount(0)
+    if (room === "Planning") await answerPlanning(page)
   }
   await send("Send to Planning", "Planning")
   await send("Send to Implementation", "Implementation")
@@ -44,6 +45,7 @@ test("unstaffed queues, an added QA room and live connection removal remain rout
   await expect(page.getByRole("status")).toContainText("in Planning · waiting for assignment", { timeout: 30000 })
   await page.getByRole("button", { name: "Staff planning", exact: true }).click()
   await expect(page.getByRole("status")).not.toContainText("waiting for assignment")
+  await answerPlanning(page)
   await expect(page.getByRole("button", { name: "Send to Implementation", exact: true })).toBeEnabled({ timeout: 30000 })
   await page.getByRole("combobox", { name: "Task", exact: true }).selectOption("task-2")
   await page.getByRole("slider", { name: "Speed" }).fill("2")
@@ -62,3 +64,12 @@ test("unstaffed queues, an added QA room and live connection removal remain rout
   await expect(page.getByRole("alert")).toHaveCount(0)
   expect(errors).toEqual([])
 })
+
+async function answerPlanning(page: Page) {
+  for (const question of ["Who is this feature for, and what should it do?", "What should count as success, and which constraints matter?"]) {
+    const form = page.getByRole("form", { name: question })
+    await expect(form).toBeVisible({ timeout: 15000 })
+    await form.getByRole("textbox", { name: "Your response" }).fill("Use the agreed factory requirements.")
+    await form.getByRole("button", { name: "Submit response", exact: true }).click()
+  }
+}

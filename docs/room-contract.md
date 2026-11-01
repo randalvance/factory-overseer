@@ -14,6 +14,7 @@ The configured renderer is `RoomFactory` in src/factory/RoomFactory.tsx:
   speed={2}
   onReady={(handle) => handle.fitAll()}
   onTaskLanded={(taskId) => console.log("Visual ride finished", taskId)}
+  onHumanNeeded={(request) => openHostQuestionUI(request)}
 />
 ```
 
@@ -24,8 +25,8 @@ onTaskLanded is a view notification; it does not mean work is complete.
 RoomFactory retains its last accepted state and displays an alert when an
 update fails validation. The legacy Factory API remains available.
 
-onHumanNeeded delivery arrives in #22; requests are represented in state
-but the current view does not yet invoke that hook.
+onHumanNeeded is optional. It reports accepted active requests to your host;
+the factory never supplies an answer or decides when to resume work.
 
 ## Configuration
 
@@ -81,14 +82,40 @@ held in that room. Associated agents normally report Waiting, but requests
 can also describe Error/help or room-level approvals; validation does not
 force a status.
 
-OnHumanNeeded is the future callback signature. Its request ID is the
+OnHumanNeeded is the callback signature exposed by RoomFactory. Its request ID is the
 deduplication key: first observation invokes it, including on initial mount;
 repeated snapshots and callback replacement do not. A new question has a
 new ID even when an agent stays Waiting. A remount may notify again. Hosts
 needing cross-mount deduplication store handled IDs themselves. The host
 owns the UI and answers. It removes resolved/cancelled requests and explicitly
 resumes tasks through snapshots. A callback return has no routing meaning.
-Concurrent requests remain separate. Omitting a handler must remain valid.
+Concurrent requests remain separate. Omitting a handler is valid: active
+requests stay undelivered and are reported if a handler is later attached.
+Disabling and re-enabling a handler does not re-notify IDs already delivered
+during that mount. A request that disappeared before a handler was attached
+is no longer active and is not reported.
+
+Dispatch uses an effect after an accepted snapshot is committed; invalid
+candidate snapshots never notify. React StrictMode's development effect
+replay also does not duplicate notifications. IDs are recorded immediately
+before calling host code, so synchronous rerenders cannot re-enter delivery.
+The callback receives a copy of the request and agent ID list. Callback
+returns, including promises, do not resolve a request. Host callbacks should
+handle their own failures; a thrown callback is not automatically retried.
+
+The host owns the question/answer experience and keeps answer data in its
+own model. A response typically removes the resolved request, optionally
+adds a follow-up under a fresh ID, and updates the agents' statuses.
+Only a later host snapshot changes the task's assignment or destination.
+Keep an agent Waiting if another active request still needs it.
+
+The default demo is a complete host example in src/demo/RoutingDemo.tsx,
+src/demo/HumanAttentionPanel.tsx and src/demo/humanAttention.ts. Its callback
+adds notifications to the host's inbox. On arrival in staffed planning,
+the host asks two questions in turn. Submitting answers keeps the task in
+planning; Send to Implementation is enabled only after both requests are
+resolved. Ask for help and Request approval exercise the same hook in any
+room. Multiple tasks can have pending requests at once.
 
 ## Updates and errors
 

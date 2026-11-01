@@ -63,3 +63,11 @@ It does not advertise room support on the current Factory component.
 Subsequent tickets integrate layout, belts, callbacks and rendering. The
 legacy adapter explicitly maps old snapshots into this contract; it does not
 silently alter existing callers. See ../room-contract.md for details.
+
+The onHumanNeeded implementation retains delivered IDs for the lifetime of
+a mounted RoomFactory, including effect replay in React StrictMode.
+No handler means no delivery; attaching one later reports still-active,
+undelivered requests. Invalid candidate state does not trigger callbacks.
+The callback receives a copied payload, and its return value has no effect
+on requests or task state. The host demo owns its attention panel, answers,
+follow-up IDs, waiting statuses and explicit handoff controls.
