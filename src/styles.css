@@ -20,8 +20,9 @@ body,
 
 .demo-header {
   display: flex;
-  align-items: baseline;
-  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
   padding: 0.6rem 1rem;
   border-bottom: 1px solid #1f2531;
 }
@@ -31,15 +32,37 @@ body,
   margin: 0;
 }
 
-.demo-actions {
+.demo-controls {
   margin-left: auto;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
 }
 
-.demo-actions select,
-.demo-actions button,
+.demo-cluster {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.demo-cluster label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: #9aa3b2;
+}
+
+.demo-cluster input[type="range"] {
+  width: 6rem;
+  margin: 0;
+  accent-color: #7aa2f7;
+}
+
+.demo-cluster select,
+.demo-cluster button,
 .factory-hud button {
   font: inherit;
   font-size: 0.8rem;
@@ -51,12 +74,12 @@ body,
   cursor: pointer;
 }
 
-.demo-actions button:hover,
+.demo-cluster button:hover,
 .factory-hud button:hover {
   background: #2c3442;
 }
 
-.demo-actions button:disabled {
+.demo-cluster button:disabled {
   color: #6b7280;
   cursor: default;
 }

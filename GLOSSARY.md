@@ -347,3 +347,30 @@ _Avoid_: Failed, crashed, broken
 **Offline**:
 Not present. Its station stays.
 _Avoid_: Disconnected, gone, dead
+
+## The demo
+
+**Runtime**:
+The demo's stand-in for a host: it moves tasks through the pipeline by
+itself, with occasional rework, waiting and errors, and reports snapshots
+the way a host would. It knows nothing of the floor.
+_Avoid_: Simulator, mock host, backend, engine
+
+**Beat**:
+One step of the runtime's clock: every agent's work goes a step, finished
+work is handed on, the inspector decides, the intake gives out. The speed
+sets how often they come.
+_Avoid_: Tick, frame, round, cycle
+
+**Control Panel**:
+The demo's own controls beside the factory, apart from its HUD: the clock
+and its speed, and hands on the floor to add an agent by role, take one off,
+force it into trouble, add a task, send one back as rework, and have the
+camera focus on an agent or follow a task.
+_Avoid_: Toolbar, demo header, dev panel, debug panel
+
+**Trouble**:
+A spell that keeps an agent from its work: waiting, or in error. It strikes
+an agent at work by chance, or by the control panel's hand, and passes by
+itself after a few beats.
+_Avoid_: Fault, incident, blocker, outage

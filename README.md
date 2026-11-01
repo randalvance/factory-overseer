@@ -29,6 +29,14 @@ and the camera follows the box until you pan or fit all. The header over the
 floor counts the agents, the tasks in flight, the tasks awaiting review and
 the tasks shipped.
 
+The demo runs by itself on a runtime of its own, a stand-in for a host that
+moves tasks through the pipeline beat by beat, with occasional rework,
+waiting and errors, and reports snapshots the way a host would. Its control
+panel pushes the floor around by hand: pause the clock or beat it once, set
+the speed, add an agent of any role, or of a role the pipeline has not got,
+take one off the floor, force it to wait or into error, add a task, send one
+back as rework, and have the camera focus on an agent or follow a task.
+
 Early days: the floor is being laid. The vocabulary is in [GLOSSARY.md](GLOSSARY.md)
 and the decisions so far are in [docs/adr](docs/adr).
 
