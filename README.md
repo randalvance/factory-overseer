@@ -87,5 +87,11 @@ MIT for the code. The art has its own terms: see [ASSETS.md](ASSETS.md).
 
 The next host contract models configurable agent rooms and directed belt
 transitions. See [the room contract](docs/room-contract.md) for types, checked
-examples, validation and migration. The current Factory component still uses
-the legacy pipeline; room rendering is being implemented separately.
+examples, validation and migration. The demo now opens with separated, expandable rooms. Add agents of a role to
+grow its room, then pan toward the front to see the additional stations.
+Use `?layout=legacy` to compare with the original bay layout.
+
+The current Factory component accepts `roomLayout` alongside the legacy
+pipeline/snapshot props. This #20 bridge retains the existing task flow;
+the new room-configuration API and configurable transitions are integrated
+in #21. Physical image billboards and themes follow in #24–26.

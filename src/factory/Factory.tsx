@@ -22,6 +22,8 @@ import { type FactoryView, type Styling, createFactoryView } from "./view"
 
 export interface FactoryProps {
   pipeline: Pipeline
+  /** Separated expandable rooms using the existing pipeline order. */
+  roomLayout?: boolean
   agents: Agent[]
   tasks: Task[]
   /** Scales every belt and walk. 1 is about two tiles a second. */
@@ -62,12 +64,12 @@ export interface FactoryHandle {
   reorganize(): void
 }
 
-export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout, onReady }: FactoryProps) {
+export function Factory({ pipeline, agents, tasks, roomLayout = false, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout, onReady }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
   /** The props as last rendered, for the handle, which is called between renders. */
-  const latest = useRef({ pipeline, agents, tasks, staging, statusStyles, wardrobes, onLayout, onReady })
+  const latest = useRef({ pipeline, agents, tasks, staging, roomLayout, statusStyles, wardrobes, onLayout, onReady })
   /** How many drawings have been asked of the view; only the latest counts once drawn. */
   const asked = useRef(0)
   /** How many snapshots the view has drawn; the first makes the factory ready. */
@@ -81,7 +83,7 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, wi
   const styles = useMemo(() => resolveStatusStyles(statusStyles), [statusStyles])
 
   useEffect(() => {
-    latest.current = { pipeline, agents, tasks, staging, statusStyles, wardrobes, onLayout, onReady }
+    latest.current = { pipeline, agents, tasks, staging, roomLayout, statusStyles, wardrobes, onLayout, onReady }
   })
 
   useEffect(() => {
@@ -130,11 +132,11 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, wi
 
   useEffect(() => {
     if (!view.current) return
-    const layout = layoutFloor(pipeline, { agents, tasks }, previous.current, { staging, width, lanes })
+    const layout = layoutFloor(pipeline, { agents, tasks }, previous.current, { staging, width, lanes, roomLayout })
     const traffic = comingsAndGoings(previous.current, layout)
     previous.current = layout
     drawnBy(view.current.show(layout, { agents, tasks }, styling(statusStyles, wardrobes), traffic), layout, "The factory could not be drawn")
-  }, [pipeline, agents, tasks, staging, width, lanes, statusStyles, wardrobes])
+  }, [pipeline, agents, tasks, staging, width, lanes, roomLayout, statusStyles, wardrobes])
 
   const handle = useRef<FactoryHandle>({
     focus(subject) {
@@ -159,7 +161,7 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, wi
 
   return (
     <div className="factory">
-      <div ref={mount} className="factory-canvas" role="img" aria-label="Factory floor" data-drawn={drawn} />
+      <div ref={mount} className="factory-canvas" role="img" aria-label="Factory floor" data-drawn={drawn} data-rooms={previous.current?.rooms?.length ?? 0} />
       <Hud
         snapshot={{ agents, tasks }}
         trails={trails}

@@ -131,7 +131,21 @@ export interface BoxPlacement {
   spot: BoxSpot
 }
 
+export interface RoomFootprint {
+  id: string
+  label: string
+  kind: "intake" | "work" | "staging" | "deployment"
+  rect: Rect
+  /** Open rear-wall tile used by arriving agents. */
+  door: Tile
+  /** Side-wall tiles crossed by the shared belts. */
+  ports: Tile[]
+}
+
 export interface Layout {
+  /** Present in room mode; bay records then hold one room's stations each. */
+  rooms?: RoomFootprint[]
+
   /** The whole floor: as wide as the host fixed it when the first layout was laid, and as tall as its bands need. */
   bounds: Rect
   /** From the back wall toward the camera; the line runs along them in turn. */

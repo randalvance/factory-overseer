@@ -6,11 +6,11 @@
 // and the boxes are built elsewhere.
 
 import * as THREE from "three"
-import { stationed } from "~/floor/layout"
+import { roomGeometryChanged, stationed } from "~/floor/layout"
 import { type Motions, motionsFor } from "~/floor/motion"
 import type { Layout, Rect } from "~/floor/types"
 import { type AgentStatus, STATUS_ICONS, type StatusStyle } from "~/model/status"
-import type { ComingsAndGoings } from "~/floor/walk"
+import { comingsAndGoings, type ComingsAndGoings } from "~/floor/walk"
 import type { Agent, Snapshot, Subject } from "~/model/types"
 import { INSPECTOR, type Dressed, type Icons, type Settling, createAgents } from "./agents"
 import { BELT_SPEED, createBoxes } from "./boxes"
@@ -107,6 +107,9 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   scene.add(drawing)
   /** The pass from the drawing before to this one, while the floor slides. */
   let slide: Slide | undefined
+  let disposed = false
+  const waitingForSlide: (() => void)[] = []
+  const finishSlideWaits = () => waitingForSlide.splice(0).forEach((done) => done())
   const agents = createAgents(scene)
   const boxes = createBoxes(scene)
   let speed = 1
@@ -223,6 +226,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     lastFrame = time
     if (slide?.tick(dt, speed)) {
       slide = undefined
+      finishSlideWaits()
       // The floor has settled; the camera keeps its pose, within the floor as it now is.
       if (pose && floor) {
         pose = clampToFloor(pose, floor)
@@ -266,14 +270,23 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     const ready = await dressed(layout, snapshot, styling)
     // A newer snapshot arrived while the sheets loaded; it will be drawn instead.
     if (!ready) return NONE
-    return draw(layout, snapshot, ready, traffic, laidAfresh ? "glide" : "stand")
+    const call = generation
+    // Finish one coherent room resize before accepting another snapshot.
+    // Newer snapshots supersede older waiters instead of snapping midway.
+    if (layout.rooms && slide) await new Promise<void>((resolve) => waitingForSlide.push(resolve))
+    if (disposed || call !== generation) return NONE
+    const glide = laidAfresh || roomGeometryChanged(shown, layout)
+    return draw(layout, snapshot, ready, layout.rooms ? comingsAndGoings(shown, layout) : traffic, glide ? "glide" : "stand")
   }
 
   async function reorganize(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Motions> {
     laidAfresh = true
     const ready = await dressed(layout, snapshot, styling)
     if (!ready) return NONE
-    return draw(layout, snapshot, ready, { arrivals: [], departures: [] }, "glide")
+    const call = generation
+    if (layout.rooms && slide) await new Promise<void>((resolve) => waitingForSlide.push(resolve))
+    if (disposed || call !== generation) return NONE
+    return draw(layout, snapshot, ready, layout.rooms ? comingsAndGoings(shown, layout) : { arrivals: [], departures: [] }, "glide")
   }
 
   /** Draw the layout in place of the one shown, everything standing where it now is at once, or gliding there as the drawing slides. */
@@ -304,7 +317,9 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   }
 
   function dispose() {
+    disposed = true
     generation++
+    finishSlideWaits()
     renderer.setAnimationLoop(null)
     observer.disconnect()
     detachControls()

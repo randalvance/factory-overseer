@@ -6,9 +6,11 @@ RoomFactoryState without mutating it. It validates semantic references in
 typed data; decode untrusted JSON before calling it.
 
 This is the contract delivered by #19. The existing Factory React component
-still accepts the legacy Pipeline and Snapshot API. Room rendering and
-onHumanNeeded delivery are implemented in subsequent tickets; passing these
-new types to the old component is not supported yet.
+still accepts the legacy Pipeline and Snapshot API. The #20
+roomLayout flag renders the legacy pipeline as separated, expandable rooms.
+Passing the new RoomFactoryState directly to the component is not supported
+yet; configurable connections are integrated in #21 and onHumanNeeded
+delivery in #22.
 
 ## Configuration
 
@@ -128,3 +130,24 @@ src/model/roomExamples.ts provides checked TypeScript examples:
 
 Room contract tests validate those examples as well as malformed references,
 shared assignments, terminal behavior and legacy migration.
+
+## Room layout preview (#20)
+
+Factory's roomLayout flag keeps one room per role, plus intake, optional
+human review and deployment. Rooms pack into fixed-width rows (minimum 18
+tiles); each room grows in depth with its stations. Existing stations retain
+their identities, and vacant benches remain until Reorganize. A growing
+room increases only its row's height and displaces later rows as needed.
+A newly introduced role is appended so existing rooms keep their order.
+Reorganize compacts vacancies and restores pipeline order.
+
+Cutaway walls leave agents and tablets visible, and openings match belt
+crossings. Arrivals start at their own room's rear door and walk down its
+aisle. Automatic geometry changes glide the room, connections, agents and
+boxes together; snapshots arriving during that pass are coalesced to the
+newest state and drawn once the pass settles. This preserves active task
+identity, camera follow and cards.
+
+The preview intentionally retains the old runtime and sequential/return
+belts. It does not yet interpret RoomConfiguration.transitions or present
+human questions. Those behaviors remain scoped to their subsequent tickets.

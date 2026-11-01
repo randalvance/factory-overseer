@@ -48,6 +48,11 @@ function seated(layout: Layout): Station[] {
 export function wayIn(layout: Layout, station: Station): Tile[] {
   const bay = layout.bays.find((b) => b.id === station.bay)
   if (!bay) return []
+  const room = layout.rooms?.find((room) => room.id === bay.id)
+  if (room) {
+    const corner = { x: room.door.x, y: station.agentTile.y }
+    return [room.door, ...between(room.door, corner), ...between(corner, station.agentTile)]
+  }
   const band = layout.bands[bay.band]!
   const aisle = aisleColumn(bay, band)
   const back = band.returnRow - 1

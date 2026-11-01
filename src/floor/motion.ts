@@ -167,3 +167,18 @@ function junctionsAlong(path: Tile[], junctions: Map<string, BeltTile>): Junctio
   }
   return settings
 }
+
+/** Keep a resting box at its old holder through a resize, even if the same
+ * snapshot also hands it onward. The subsequent motion follows the belts. */
+export function restingTileAfterSlide(previous: Layout, next: Layout, taskId: string): Tile | undefined {
+  const box = previous.boxes.find((box) => box.taskId === taskId)
+  if (!box) return undefined
+  const spot = box.spot
+  if (spot.kind === "bench") {
+    return next.bays.flatMap((bay) => bay.stations).find((station) => station.id === spot.stationId)?.bench
+  }
+  if (spot.kind === "queue") return tileAfterSlide(previous, next, box.tile)
+  if (spot.kind === "intake") return next.intake.pile[Math.min(spot.index, next.intake.pile.length - 1)]
+  if (spot.kind === "staging") return next.staging?.pile[Math.min(spot.index, next.staging.pile.length - 1)]
+  return next.container.stacks[spot.index % next.container.stacks.length]
+}
