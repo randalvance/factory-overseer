@@ -418,8 +418,9 @@ A room's choice of flooring, furniture and decoration, independent of its
 Role. Presets include research lab, foundry, factory and fabrication plant.
 
 **Billboard**:
-A physical sign identifying a room, with a configurable pixel-art image
-and the room's label. Separate from an agent's sprite or Bubble.
+A physical paper sign identifying a room, with a configurable illustration
+or pixel-art image and the room's label. It sits atop the back wall, or on
+the outdoor Hopper's rear rim. Separate from an agent's sprite or Bubble.
 
 In room mode, Intake is the initial routing destination, represented by an
 outdoor Hopper rather than an enclosed Room.

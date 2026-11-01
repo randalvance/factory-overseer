@@ -119,13 +119,16 @@ test("late floor assets cannot replace a newer host theme registry", async ({ pa
     await expect.poll(() => oldRequested).toBe(true)
     await page.evaluate(() => window.themes.setRegistry({ custom: { extends: "factory", wall: "#b3b3b3", accent: "#b3b3b3", assets: { floor: "/theme-current.svg" } } }))
     await expect.poll(async () => (await colors(page)).blue).toBeGreaterThan(1000)
+    // The hopper and other paper art may already be red. Only newly painted
+    // red pixels would indicate that the obsolete floor replaced this one.
+    const current = await colors(page)
     const oldResponse = page.waitForResponse("**/theme-old.svg")
     releaseOld()
     await oldResponse
     await page.waitForTimeout(600)
     const painted = await colors(page)
     expect(painted.blue).toBeGreaterThan(1000)
-    expect(painted.red).toBeLessThan(300)
+    expect(painted.red).toBeLessThan(current.red + 100)
     await page.evaluate(() => window.themes.setTheme("implementation", "custom", { wall: "#ed243b" }))
     await expect.poll(async () => (await colors(page)).red).toBeGreaterThan(2000)
     expect(await geometry(page)).toEqual(original)

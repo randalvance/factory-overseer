@@ -41,6 +41,7 @@ export function validateRoomState({ configuration, snapshot }: RoomFactoryState)
     nonempty(room.role, `${path}.role`)
     if (room.theme !== undefined) nonempty(room.theme, `${path}.theme`)
     if (room.billboard?.image !== undefined) nonempty(room.billboard.image, `${path}.billboard.image`)
+    if (room.billboard?.filter !== undefined && !["linear", "nearest"].includes(room.billboard.filter)) error(`${path}.billboard.filter`, "Expected linear or nearest")
   })
   const outcomes = new Set<string>()
   configuration.transitions.forEach((transition, i) => {

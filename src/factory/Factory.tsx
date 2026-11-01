@@ -195,7 +195,7 @@ export function Factory({ roomThemes, petAssets, onRenderMetrics, appearance = "
 
   return (
     <div className="factory">
-      <div ref={mount} className="factory-canvas" role="img" aria-label="Factory floor" data-drawn={drawn} data-rooms={previous.current?.rooms?.length ?? 0} />
+      <div ref={mount} className="factory-canvas" role="img" aria-label="Factory floor" aria-description={roomState?.configuration.rooms.map((room) => room.billboard?.alt ? `${room.label}: ${room.billboard.alt}` : room.label).join("; ")} data-drawn={drawn} data-rooms={previous.current?.rooms?.length ?? 0} />
       <Hud
         snapshot={roomState ? roomSnapshotForView(roomState) : { agents, tasks }}
         roomState={roomState}

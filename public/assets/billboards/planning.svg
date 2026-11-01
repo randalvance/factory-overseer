@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">Planning paper billboard graphic</title>
+  <rect x="8" y="8" width="240" height="240" rx="28" fill="#618fae"/>
+  <path d="M36 17h181M17 38v174" fill="none" stroke="#fff5dd" stroke-opacity=".16" stroke-width="2" stroke-linecap="round"/>
+  <g fill="none" stroke="#fff5dd" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M103 159c0-19-22-25-22-57a47 47 0 0 1 94 0c0 32-22 38-22 57z"/>
+    <path d="M113 182h30M119 200h18M128 57v-9M77 64l-7-7M179 64l7-7"/>
+  </g>
+</svg>

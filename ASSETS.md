@@ -7,6 +7,7 @@ has its own terms, listed here so you know what you are redistributing.
 | --- | --- | --- |
 | `public/assets/characters/` | The 132 pixel-art character sheets the agents and the inspector are drawn with | MIT, from the pixel-agents project by Pablo De Lucca. The notice in `public/assets/characters/ATTRIBUTION.md` must travel with the files. |
 | `public/assets/models/pieces.glb` | The pieces the floor is drawn with, listed below, with their textures painted in | Built for this project by `tools/blender/build_pieces.py`. MIT with the code. |
+| `public/assets/billboards/` | Five paper room graphics, a custom paper rocket and a 32 px pixel crate example | Original SVG artwork authored for this project. MIT with the code. |
 | `public/assets/pets/` | Transparent paper-cut animal illustrations (corgi, rabbit, cat, owl, fox) | Authored SVG artwork for this project. MIT with the code. |
 | `public/assets/icons/` | The status icons shown over agents' heads and on their tablets | Drawn for this project by `tools/icons/draw_status_icons.py`. MIT with the code. |
 
@@ -73,3 +74,28 @@ procedural floor patterns. These working placeholders are MIT with the code.
 No paid generation was used for #25. Custom theme textures and GLBs retain
 their host's licensing. Placement contracts and generation budgets for #26
 are documented in [the room contract](docs/room-contract.md#room-themes).
+
+
+## Room billboard graphics
+
+The SVGs under `public/assets/billboards/` are original, code-authored artwork
+for #24, covered by the project's MIT license. They contain only local vector
+shapes, with no third-party images, fonts, external references or paid
+generation. The five room examples share the printed cream icons and muted
+paper palette of the room signs; `custom-rocket.svg` demonstrates a host
+image override.
+
+| File | Intrinsic dimensions | Graphic |
+| --- | --- | --- |
+| `intake.svg` | 256 × 256 | Task intake card |
+| `planning.svg` | 256 × 256 | Planning bulb |
+| `implementation.svg` | 256 × 256 | Implementation hammer |
+| `review.svg` | 256 × 256 | Code review brackets |
+| `deployment.svg` | 256 × 256 | Deployment truck |
+| `custom-rocket.svg` | 256 × 256 | Folded paper rocket |
+| `pixel-crate.svg` | 32 × 32 | Pixel-art task crate, for nearest filtering |
+
+Each file is self-contained and served from `/assets/billboards/<filename>`.
+The 256 px graphics use smooth edges; the pixel example has a fixed 32 px
+intrinsic size and uses integer-aligned shapes. Host-provided billboard
+images retain their own license terms.

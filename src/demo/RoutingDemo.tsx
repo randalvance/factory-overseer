@@ -107,6 +107,24 @@ export function RoutingDemo() {
       rooms: before.configuration.rooms.map((room) => room.id === roomChoice ? { ...room, theme } : room),
     } }))
   }
+  function setRoomGraphic(graphic: string) {
+    setState((before) => ({ ...before, configuration: { ...before.configuration,
+      rooms: before.configuration.rooms.map((room) => {
+        if (room.id !== roomChoice) return room
+        const name = graphic === "custom" ? "custom-rocket" : graphic === "pixel" ? "pixel-crate" :
+          graphic === "unavailable" ? "unavailable" : room.id === "qa" ? "review" : room.id
+        return { ...room, billboard: graphic === "default" ? undefined : {
+          image: `assets/billboards/${name}.svg`,
+          alt: graphic === "custom" ? "Folded paper rocket" : graphic === "pixel" ? "Pixel crate" : room.label,
+          filter: graphic === "pixel" ? "nearest" as const : "linear" as const,
+        } }
+      }),
+    } }))
+  }
+  const graphicImage = state.configuration.rooms.find((room) => room.id === roomChoice)?.billboard?.image
+  const graphicChoice = !graphicImage ? "default" : graphicImage.includes("custom-rocket") ? "custom" :
+    graphicImage.includes("pixel-crate") ? "pixel" : graphicImage.includes("unavailable") ? "unavailable" : "example"
+
   function addAgent() {
     setState((before) => {
       const room = before.configuration.rooms.find((room) => room.id === roomChoice)!
@@ -192,6 +210,13 @@ export function RoutingDemo() {
           <label>Theme <select aria-label="Room theme" value={state.configuration.rooms.find((room) => room.id === roomChoice)?.theme ?? "factory"} onChange={(event) => setRoomTheme(event.target.value)}>
             {Object.entries(ROOM_THEMES).map(([id, theme]) => <option key={id} value={id}>{theme.label}</option>)}
             {Object.entries(DEMO_ROOM_THEMES).map(([id, theme]) => <option key={id} value={id}>{theme.label} (custom)</option>)}
+          </select></label>
+          <label>Graphic <select aria-label="Room graphic" value={graphicChoice} onChange={(event) => setRoomGraphic(event.target.value)}>
+            <option value="example">Example graphic</option>
+            <option value="custom">Custom rocket</option>
+            <option value="pixel">Pixel crate</option>
+            <option value="default">Built-in default</option>
+            <option value="unavailable">Unavailable image</option>
           </select></label>
           <button onClick={addAgent}>Add agent</button>
           <button onClick={togglePlanner} disabled={state.snapshot.humanRequests.some((request) => request.roomId === "planning")}>{plannerPresent ? "Unstaff planning" : "Staff planning"}</button>

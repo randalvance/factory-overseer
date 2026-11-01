@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">Folded paper rocket custom billboard graphic</title>
+  <rect x="8" y="8" width="240" height="240" rx="28" fill="#467f82"/>
+  <path d="M36 17h181M17 38v174" fill="none" stroke="#fff5dd" stroke-opacity=".16" stroke-width="2" stroke-linecap="round"/>
+  <g transform="rotate(35 128 128)">
+    <path d="M95 133l-24 52 35-13M161 133l24 52-35-13" fill="#d6b776"/>
+    <path d="M128 44l33 49v69l-33 19-33-19V93z" fill="#fff5dd"/>
+    <path d="M128 44l33 49v69l-33 19z" fill="#e7d5b5"/>
+    <path d="M128 44v137M95 93h66" fill="none" stroke="#cfbd9c" stroke-width="3"/>
+    <circle cx="128" cy="117" r="17" fill="#467f82" stroke="#fff5dd" stroke-width="5"/>
+    <path d="M114 182l14 29 14-29" fill="#dfae67"/>
+    <path d="M128 182v29" stroke="#f5dba6" stroke-width="3"/>
+  </g>
+  <path d="M58 65v17M50 73h17M193 178v13M187 184h13" stroke="#fff5dd" stroke-width="4" stroke-linecap="round"/>
+</svg>

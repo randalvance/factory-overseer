@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">Implementation paper billboard graphic</title>
+  <rect x="8" y="8" width="240" height="240" rx="28" fill="#d5a145"/>
+  <path d="M36 17h181M17 38v174" fill="none" stroke="#fff5dd" stroke-opacity=".16" stroke-width="2" stroke-linecap="round"/>
+  <g fill="none" stroke="#fff5dd" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="rotate(38 128 128)" fill="#fff5dd" stroke="none">
+      <path d="M115 96h26v104h-26zM77 57h102v44H77z"/>
+      <path d="M158 57h30v15h-30z"/>
+    </g>
+  </g>
+</svg>

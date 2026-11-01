@@ -4,6 +4,7 @@
 
 import type { Layout, Rect } from "~/floor/types"
 import { paperTruckPlacement } from "./paperTruck"
+import { roomBillboardPlacement } from "./billboardGeometry"
 
 export interface Viewport {
   width: number
@@ -133,16 +134,17 @@ export function panDiorama(pose: CameraPose, viewport: Viewport, dx: number, dy:
 export function dioramaModelPoints(layout: Layout): PaperPoint[] {
   const points: PaperPoint[] = []
   for (const room of layout.rooms ?? []) {
+    const sign = roomBillboardPlacement(room, layout.intake.rect)
+    for (const x of [sign.x - sign.width / 2, sign.x + sign.width / 2]) {
+      points.push({ x, y: sign.y + sign.height / 2, z: sign.z })
+    }
     if (room.kind === "intake") continue // The outdoor hopper is framed separately below.
     const { x, y, w, h } = room.rect
     for (const px of [x - .1, x + w + .1]) {
       for (const z of [y - .1, y + h + .1]) points.push({ x: px, y: -.22, z })
       points.push({ x: px, y: 2.35, z: y + .1 }, { x: px, y: .8, z: y + h })
     }
-    const signHalfWidth = Math.min(w, 7) * .79 / 2
-    for (const px of [x + w / 2 - signHalfWidth, x + w / 2 + signHalfWidth]) {
-      points.push({ x: px, y: 3.48, z: y + .09 })
-    }
+
   }
   const visited = new Set<string>()
   for (const belt of layout.belts) for (const tile of belt.tiles) {

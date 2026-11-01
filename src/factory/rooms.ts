@@ -7,15 +7,19 @@ import { isShared } from "./models"
 import { paperWallPortSide } from "./paperWallPorts"
 import { floorSlab } from "./pieces"
 import { paperFloorProfile, paperFloorTexture } from "./paperFlooring"
-import { canvasTexture, pixelated } from "./textures"
+import { roomBillboardPlacement } from "./billboardGeometry"
+import { roomBillboard, roomIdentity } from "./roomBillboards"
+import type { BillboardAssets } from "./roomBillboardAssets"
 
 type Add = (name: string, piece: THREE.Object3D) => void
 
 /** The paper room is an authored piece of scenery; routing owns all openings. */
-export function drawRooms(layout: Layout, floorTexture: THREE.Texture, add: Add, paper = false, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets) {
+export function drawRooms(layout: Layout, floorTexture: THREE.Texture, add: Add, paper = false, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets, billboards?: BillboardAssets) {
   const occupied = new Set(layout.belts.flatMap((belt) => belt.tiles.map((tile) => `${tile.x},${tile.y}`)))
   for (const room of layout.rooms ?? []) {
-    // Intake remains a logical routing endpoint, with its hopper on grass.
+    const definition = layout.routing?.configuration.rooms.find((definition) => `room:${definition.id}` === room.id)
+    add(`room:${room.id}:sign`, roomBillboard(room, roomBillboardPlacement(room, layout.intake.rect, paper), definition?.billboard, billboards))
+    // Intake's sign sits on its outdoor hopper; it has no room enclosure.
     if (paper && room.kind === "intake") continue
     if (paper) { drawPaperRoom(room, occupied, add, layout, themes?.get(room.id), assets); continue }
     const { x, y, w, h } = room.rect
@@ -36,31 +40,12 @@ export function drawRooms(layout: Layout, floorTexture: THREE.Texture, add: Add,
     for (let i = 1; i < h - 1; i++) for (const [side, xx] of [["left", x], ["right", x + w - 1]] as const) {
       if (!occupied.has(`${xx},${y + i}`)) wall(`${side}:${i}`, xx + (side === "left" ? .12 : .88), y + i + .5, .24, 1, .45)
     }
-    const texture = pixelated(canvasTexture(256, 40, (ctx, width, height) => {
-      ctx.fillStyle = "#17252d"; ctx.fillRect(0, 0, width, height)
-      ctx.fillStyle = "#d8e5dd"; ctx.font = "bold 22px monospace"
-      ctx.textAlign = "center"; ctx.textBaseline = "middle"
-      ctx.fillText(room.label, width / 2, height / 2, width - 16)
-    }))
-    const label = new THREE.Mesh(new THREE.PlaneGeometry(w - 2.3, .65), new THREE.MeshBasicMaterial({ map: texture }))
-    label.position.set(x + w / 2 + .3, 1.25, y + .26)
-    label.userData.disposeTexture = true
-    add(`room:${room.id}:label`, label)
   }
-}
-
-function identity(room: RoomFootprint) {
-  const name = room.id.toLowerCase()
-  if (room.kind === "deployment") return { color: 0xc98366, ink: "#b97055", icon: "truck" }
-  if (name.includes("plan") || name.includes("research")) return { color: 0x82a8bd, ink: "#618fae", icon: "bulb" }
-  if (name.includes("implement") || name.includes("foundry")) return { color: 0xe2b45d, ink: "#d5a145", icon: "hammer" }
-  if (name.includes("review") || name.includes("qa")) return { color: 0x9db79b, ink: "#719881", icon: "code" }
-  return { color: 0xa6b88d, ink: "#71967b", icon: "parcel" }
 }
 
 function drawPaperRoom(room: RoomFootprint, occupied: Set<string>, add: Add, layout: Layout, theme?: ResolvedRoomTheme, assets?: ThemeAssets) {
   const { x, y, w, h } = room.rect
-  const palette = identity(room)
+  const palette = roomIdentity(room)
   const cream = new THREE.MeshLambertMaterial({ color: 0xfff1d5 })
   const edge = new THREE.MeshLambertMaterial({ color: 0xd5bf96 })
   const white = new THREE.MeshLambertMaterial({ color: 0xfff9e9 })
@@ -132,27 +117,6 @@ function drawPaperRoom(room: RoomFootprint, occupied: Set<string>, add: Add, lay
     brace.castShadow = true; brace.receiveShadow = true
     put(`${side}:folded-foot`, brace)
   }
-  // The vertical card sits directly on the back wall cap, without support posts.
-  const sign = new THREE.Group()
-  // A wider station grid adds floor space without stretching the sign artwork.
-  const boardW = Math.min(w, 7) * .79, boardH = 1.12
-  const board = box(boardW, boardH, .12, 0, 0, 0)
-  sign.add(board)
-  const map = canvasTexture(768, 160, (ctx, width, height) => {
-    ctx.fillStyle = "#fff0d5"; ctx.fillRect(0, 0, width, height)
-    ctx.strokeStyle = "#eedabc"; ctx.lineWidth = 3; ctx.strokeRect(2, 2, width - 4, height - 4)
-    ctx.fillStyle = palette.ink; ctx.beginPath(); ctx.roundRect(20, 18, 124, 124, 17); ctx.fill()
-    drawIcon(ctx, palette.icon)
-    ctx.fillStyle = "#283a45"; ctx.font = "bold 46px Arial, sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle"
-    ctx.fillText(room.label.toUpperCase(), 172, height / 2 + 1, width - 195)
-  })
-  const face = new THREE.Mesh(new THREE.PlaneGeometry(boardW - .035, boardH - .035), new THREE.MeshBasicMaterial({ map }))
-  face.position.set(0, 0, .065)
-  face.userData.disposeTexture = true; sign.add(face)
-  const wallTop = 2.32 + .065 / 2
-  sign.position.set(x + w / 2, wallTop + boardH / 2, y + .09)
-  put("sign", sign)
-
   // Test complete world footprints, not just their center tile: tall folded
   // props cannot intrude into conveyors, station surfaces or arriving pets.
   const obstacles = layout.belts.flatMap((belt) => belt.tiles.map((tile) => ({ x: tile.x, y: tile.y, w: 1, h: 1 })))
@@ -261,24 +225,4 @@ function drawPaperRoom(room: RoomFootprint, occupied: Set<string>, add: Add, lay
     }
     notes.position.set(x + noteColumn + .26, 0, y + .08); put("notes", notes)
   }
-}
-
-function drawIcon(ctx: CanvasRenderingContext2D, icon: string) {
-  ctx.save(); ctx.translate(82, 80); ctx.strokeStyle = "#fff5dd"; ctx.fillStyle = "#fff5dd"; ctx.lineWidth = 9; ctx.lineCap = "round"; ctx.lineJoin = "round"
-  if (icon === "bulb") {
-    ctx.beginPath(); ctx.arc(0, -13, 25, 0, Math.PI * 2); ctx.stroke()
-    ctx.beginPath(); ctx.moveTo(-13, 10); ctx.lineTo(-9, 27); ctx.lineTo(9, 27); ctx.lineTo(13, 10); ctx.stroke()
-    ctx.beginPath(); ctx.moveTo(-8, 39); ctx.lineTo(8, 39); ctx.stroke()
-  } else if (icon === "hammer") {
-    ctx.rotate(-.65); ctx.fillRect(-6, -10, 12, 55); ctx.fillRect(-29, -31, 58, 23)
-  } else if (icon === "code") {
-    ctx.beginPath(); ctx.moveTo(-19, -24); ctx.lineTo(-40, 0); ctx.lineTo(-19, 24)
-    ctx.moveTo(19, -24); ctx.lineTo(40, 0); ctx.lineTo(19, 24); ctx.moveTo(8, -30); ctx.lineTo(-8, 30); ctx.stroke()
-  } else if (icon === "truck") {
-    ctx.strokeRect(-38, -24, 47, 40); ctx.beginPath(); ctx.moveTo(9, -9); ctx.lineTo(29, -9); ctx.lineTo(38, 5); ctx.lineTo(38, 16); ctx.lineTo(9, 16); ctx.stroke()
-    for (const x of [-23, 24]) { ctx.beginPath(); ctx.arc(x, 23, 8, 0, Math.PI * 2); ctx.fill() }
-  } else {
-    ctx.strokeRect(-27, -30, 54, 60); ctx.beginPath(); ctx.moveTo(-11, -8); ctx.lineTo(13, -8); ctx.moveTo(-11, 11); ctx.lineTo(13, 11); ctx.stroke()
-  }
-  ctx.restore()
 }
