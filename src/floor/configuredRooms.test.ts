@@ -174,3 +174,239 @@ it.each([["intake", "planning"], ["intake", "implementation"], ["implementation"
     expect(motionsFor(grown, { task: mapped }, riding).unrouted, JSON.stringify({ tile, mapped })).toEqual([])
   }
 })
+
+it("fits five compact rooms into three columns at the paper demo width", () => {
+  const value = state()
+  const floor = layoutConfiguredRooms(value, undefined, 28)
+  const rooms = floor.rooms!
+  expect(rooms.map((room) => room.rect.w)).toEqual([7, 7, 7, 7, 7])
+  expect(rooms.map((room) => room.rect.h)).toEqual([5, 5, 5, 5, 6])
+  expect(new Set(rooms.slice(0, 3).map((room) => room.rect.y)).size).toBe(1)
+  expect(rooms[3]!.rect.y - (rooms[0]!.rect.y + rooms[0]!.rect.h)).toBe(3)
+  expect(rooms[3]!.rect.y).toBe(rooms[4]!.rect.y)
+  expect(rooms.map((room) => room.id)).toEqual(exampleRooms.rooms.map((room) => `room:${room.id}`))
+  expect(rooms.find((room) => room.id === "room:deployment")!.rect.x).toBe(6)
+  expect(rooms.find((room) => room.id === "room:review")!.rect.x).toBe(15)
+  expect(floor.belts.find((belt) => belt.id === "edge:deploy")!.kind).toBe("feeder")
+  expect(floor.belts.find((belt) => belt.id === "edge:replan")!.kind).toBe("return")
+  for (const room of rooms) {
+    const station = floor.bays.find((bay) => bay.id === room.id)!.stations[0]!
+    expect(station.bench.x).toBe(room.rect.x + 3)
+    expect(station.bench.y).toBe(room.rect.y + 3)
+  }
+})
+
+it("keeps every configured handoff and shipping continuous with three columns", () => {
+  for (const transition of exampleRooms.transitions) {
+    const value = state(transition.from)
+    const before = layoutConfiguredRooms(value, undefined, 28)
+    const after = layoutConfiguredRooms(move(value, transition.to), before)
+    const motions = motionsFor(after, restingTiles(before), before)
+    expect(motions.unrouted, transition.id).toEqual([])
+    expect(motions.toPlay, transition.id).toHaveLength(1)
+    const path = motions.toPlay[0]!.path
+    path.forEach((tile, i) => {
+      if (i) expect(Math.abs(tile.x - path[i - 1]!.x) + Math.abs(tile.y - path[i - 1]!.y), transition.id).toBe(1)
+    })
+  }
+  const value = state("deployment")
+  const before = layoutConfiguredRooms(value, undefined, 28)
+  value.snapshot.tasks[0]!.at = { kind: "shipped", roomId: "deployment" }
+  const after = layoutConfiguredRooms(value, before)
+  expect(motionsFor(after, restingTiles(before), before).unrouted).toEqual([])
+  expect(after.boxes[0]!.tile).toEqual(after.container.stacks[0])
+})
+
+it("keeps room side belts clear of agents and reaches desks over a horizontal front bridge", () => {
+  const value = state()
+  const floor = layoutConfiguredRooms(value, undefined, 28)
+  const tiles = floor.belts.flatMap((belt) => belt.tiles)
+  for (const room of floor.rooms!) {
+    const station = floor.bays.find((bay) => bay.id === room.id)!.stations[0]!
+    expect(room.ports.map((port) => port.x).sort((a, b) => a - b)).toEqual([room.rect.x, room.rect.x + room.rect.w - 1])
+    expect(tiles.some((tile) => tile.x === station.agentTile.x && tile.y === station.agentTile.y)).toBe(false)
+    for (const dx of [-1, 1]) expect(tiles.some((tile) => tile.x === station.bench.x + dx && tile.y === station.bench.y)).toBe(true)
+    expect(floor.routing!.queues[room.id.slice(5)]!.x).toBe(room.ports[0]!.x + Math.sign(room.ports[1]!.x - room.ports[0]!.x))
+  }
+  const intake = floor.rooms![0]!
+  expect(floor.intake.rect.x + floor.intake.rect.w / 2).toBe(intake.rect.x + 1.5)
+  expect(floor.intake.pile[0]!.x).toBe(intake.rect.x + 1)
+})
+
+
+it.each([24, 28, 37])("keeps mirrored and centered rooms, stations and routes inside width %s", (width) => {
+  const floor = layoutConfiguredRooms(state(), undefined, width)
+  const rooms = floor.rooms!
+  for (const room of rooms) {
+    expect(room.rect.x).toBeGreaterThanOrEqual(1)
+    expect(room.rect.x + room.rect.w).toBeLessThanOrEqual(width - 2)
+    const bay = floor.bays.find((bay) => bay.id === room.id)!
+    expect(bay.rect.x).toBe(room.rect.x + 1)
+    expect(room.door.x).toBe(room.ports[0]!.x)
+    expect(room.ports.map((port) => port.x).sort((a, b) => a - b)).toEqual([room.rect.x, room.rect.x + room.rect.w - 1])
+    expect(floor.routing!.queues[room.id.slice(5)]!.x).toBe(room.ports[0]!.x + Math.sign(room.ports[1]!.x - room.ports[0]!.x))
+    for (const station of bay.stations) {
+      expect(station.bench.x).toBe(room.rect.x + 3)
+      expect(station.agentTile.x).toBe(station.bench.x)
+    }
+  }
+  for (const belt of floor.belts) for (const tile of belt.tiles) {
+    expect(tile.x).toBeGreaterThanOrEqual(0)
+    expect(tile.x).toBeLessThan(width)
+  }
+  for (const transition of exampleRooms.transitions) {
+    const before = layoutConfiguredRooms(state(transition.from), undefined, width)
+    const after = layoutConfiguredRooms(state(transition.to), before)
+    expect(motionsFor(after, restingTiles(before), before).unrouted, transition.id).toEqual([])
+  }
+})
+
+it("keeps every in-flight position routable when a centered row fills", () => {
+  const value = state("review")
+  const before = layoutConfiguredRooms(value, undefined, 28)
+  const next = move(value, "deployment")
+  const riding = layoutConfiguredRooms(next, before)
+  const path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
+  next.configuration.rooms.push({ id: "qa", label: "QA", role: "qa", kind: "work" })
+  next.configuration.transitions.push({ id: "review-qa", from: "review", to: "qa", outcome: "needs-qa" })
+  const grown = layoutConfiguredRooms(next, riding, 28, new Set(["task"]))
+  for (const tile of path) {
+    const mapped = tileAfterSlide(riding, grown, tile, "task")!
+    expect(mapped, JSON.stringify(tile)).toBeDefined()
+    expect(motionsFor(grown, { task: mapped }, riding).unrouted, JSON.stringify({ tile, mapped })).toEqual([])
+  }
+})
+
+
+it("runs the adjacent workflow across front desks and puts local returns behind walls", () => {
+  const floor = layoutConfiguredRooms(state(), undefined, 28)
+  for (const id of ["plan", "implement", "deploy"]) {
+    const connection = floor.routing!.connections.find((edge) => edge.transition.id === id)!
+    const source = floor.rooms!.find((room) => room.id === `room:${connection.transition.from}`)!
+    expect(new Set(connection.path.map((tile) => tile.y))).toEqual(new Set([source.rect.y + 3]))
+  }
+  const turn = floor.routing!.connections.find((edge) => edge.transition.id === "review")!
+  expect(turn.path.some((tile) => tile.x === floor.bounds.w - 1)).toBe(true)
+  for (const room of floor.rooms!) {
+    const loop = floor.belts.find((belt) => belt.id === `${room.id}:loop`)!
+    expect(loop.tiles.length).toBeGreaterThan(0)
+    expect(loop.tiles.every((tile) => tile.y < room.rect.y)).toBe(true)
+    const interior = floor.belts.flatMap((belt) => belt.tiles).filter((tile) => tile.x > room.rect.x + 1 && tile.x < room.rect.x + room.rect.w - 2 && tile.y > room.rect.y && tile.y < room.rect.y + 3)
+    expect(interior).toEqual([])
+  }
+})
+
+it.each(["implementation", "review"])("returns shared %s work to another member and to its room queue", (roomId) => {
+  const value = state(roomId)
+  const role = value.snapshot.agents.find((agent) => agent.roomId === roomId)!.role
+  value.snapshot.agents.push({ id: "second", name: "Second", roomId, role, status: "working" })
+  value.snapshot.tasks[0]!.at = { kind: "room", roomId, assignment: { agentIds: [roomId + "-agent", "second"], completedAgentIds: [] } }
+  const before = layoutConfiguredRooms(value, undefined, 28)
+  const reassigned = structuredClone(value)
+  reassigned.snapshot.tasks[0]!.at = { kind: "room", roomId, assignment: { agentIds: ["second"], completedAgentIds: [] } }
+  const after = layoutConfiguredRooms(reassigned, before)
+  expect(motionsFor(after, restingTiles(before), before).unrouted).toEqual([])
+  const queued = structuredClone(value)
+  queued.snapshot.tasks[0]!.at = { kind: "room", roomId }
+  const waiting = layoutConfiguredRooms(queued, after)
+  const motion = motionsFor(waiting, restingTiles(after), after)
+  expect(motion.unrouted).toEqual([])
+  const room = waiting.rooms!.find((room) => room.id === `room:${roomId}`)!
+  expect(motion.toPlay[0]!.path.some((tile) => tile.y < room.rect.y)).toBe(true)
+  const assignedAgain = layoutConfiguredRooms(value, waiting)
+  expect(motionsFor(assignedAgain, restingTiles(waiting), waiting).unrouted).toEqual([])
+})
+
+it("keeps an in-flight same-room return on its hidden loop during growth", () => {
+  const value = state("review")
+  value.snapshot.agents.push({ id: "second", name: "Second", roomId: "review", role: "reviewer", status: "working" })
+  const before = layoutConfiguredRooms(value, undefined, 28)
+  const queued = structuredClone(value)
+  queued.snapshot.tasks[0]!.at = { kind: "room", roomId: "review" }
+  const riding = layoutConfiguredRooms(queued, before)
+  const path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
+  queued.snapshot.agents.push(...Array.from({ length: 4 }, (_, i) => ({ id: `new-${i}`, name: "New", roomId: "planning", role: "planner", status: "idle" as const })))
+  const grown = layoutConfiguredRooms(queued, riding, 28, new Set(["task"]))
+  for (const tile of path) {
+    const mapped = tileAfterSlide(riding, grown, tile, "task")!
+    expect(mapped, JSON.stringify(tile)).toBeDefined()
+    expect(motionsFor(grown, { task: mapped }, riding).unrouted, JSON.stringify({ tile, mapped })).toEqual([])
+  }
+})
+
+
+it("keeps internal conveyors and rear route stems off the side walls", () => {
+  const floor = layoutConfiguredRooms(state(), undefined, 28)
+  const tiles = floor.belts.flatMap((belt) => belt.tiles)
+  for (const room of floor.rooms!) {
+    for (const x of [room.rect.x, room.rect.x + room.rect.w - 1]) {
+      const occupiedWall = tiles.filter((tile) => tile.x === x && tile.y >= room.rect.y && tile.y < room.rect.y + room.rect.h)
+      expect(occupiedWall.map((tile) => tile.y)).toEqual([room.rect.y + 3])
+    }
+    const flow = Math.sign(room.ports[1]!.x - room.ports[0]!.x)
+    for (let y = room.rect.y - 1; y <= room.rect.y + 3; y++) {
+      expect(tiles.some((tile) => tile.x === room.ports[0]!.x + flow && tile.y === y)).toBe(true)
+    }
+  }
+})
+
+
+it("packs an outdoor intake beside the work rooms without reserving a full room", () => {
+  const value = state()
+  value.snapshot.agents = value.snapshot.agents.filter((agent) => agent.roomId !== "intake")
+  value.snapshot.tasks[0]!.at = { kind: "room", roomId: "intake" }
+  const floor = layoutConfiguredRooms(value, undefined, 28)
+  const intake = floor.rooms!.find((room) => room.kind === "intake")!
+  expect(intake.rect.w).toBe(4)
+  expect(intake.rect.h).toBe(4)
+  expect(floor.bays.find((bay) => bay.id === intake.id)!.stations).toEqual([])
+  expect(floor.boxes[0]!.tile).toEqual(floor.intake.pile[0])
+  expect(floor.rooms!.filter((room) => room.rect.y === intake.rect.y).map((room) => room.id)).toEqual([
+    "room:intake", "room:planning", "room:implementation",
+  ])
+  for (const destination of ["planning", "implementation"]) {
+    const after = layoutConfiguredRooms(move(value, destination), floor)
+    expect(motionsFor(after, restingTiles(floor), floor).unrouted, destination).toEqual([])
+  }
+})
+
+it("keeps outdoor intake rides on belts when an explicit intake worker arrives", () => {
+  const value = state()
+  value.snapshot.agents = value.snapshot.agents.filter((agent) => agent.roomId !== "intake")
+  value.snapshot.tasks[0]!.at = { kind: "room", roomId: "intake" }
+  const before = layoutConfiguredRooms(value, undefined, 28)
+  const next = move(value, "implementation")
+  const riding = layoutConfiguredRooms(next, before)
+  const path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
+  next.snapshot.agents.push({ id: "router", name: "Router", role: "router", roomId: "intake", status: "idle" })
+  const staffed = layoutConfiguredRooms(next, riding, 28, new Set(["task"]))
+  expect(staffed.rooms!.find((room) => room.kind === "intake")!.rect.w).toBe(7)
+  for (const tile of path) {
+    const mapped = tileAfterSlide(riding, staffed, tile, "task")!
+    expect(mapped, JSON.stringify(tile)).toBeDefined()
+    expect(motionsFor(staffed, { task: mapped }, riding).unrouted, JSON.stringify({ tile, mapped })).toEqual([])
+  }
+})
+
+
+it("starts the outdoor intake with one outward conveyor and branches downstream", () => {
+  const value = state()
+  value.snapshot.agents = value.snapshot.agents.filter((agent) => agent.roomId !== "intake")
+  value.snapshot.tasks[0]!.at = { kind: "room", roomId: "intake" }
+  const floor = layoutConfiguredRooms(value, undefined, 28)
+  const source = floor.intake.pile[0]!
+  const tiles = floor.belts.flatMap((belt) => belt.tiles)
+  const at = (x: number, y: number) => tiles.find((tile) => tile.x === x && tile.y === y)
+  expect(at(source.x - 1, source.y)).toBeUndefined()
+  expect(at(source.x, source.y - 1)).toBeUndefined()
+  expect(at(source.x, source.y + 1)).toBeUndefined()
+  expect(at(source.x, source.y)).toMatchObject({ kind: "straight", dir: "e" })
+  expect(at(source.x + 1, source.y)).toMatchObject({ kind: "junction", entries: ["e"] })
+  expect(floor.belts.filter((belt) => belt.id.startsWith("room:intake:")).map((belt) => belt.id)).toEqual(["room:intake:source"])
+  for (const destination of ["planning", "implementation"]) {
+    const next = layoutConfiguredRooms(move(value, destination), floor)
+    const motion = motionsFor(next, restingTiles(floor), floor)
+    expect(motion.unrouted, destination).toEqual([])
+    expect(motion.toPlay[0]!.path.slice(0, 2)).toEqual([source, { x: source.x + 1, y: source.y }])
+  }
+})

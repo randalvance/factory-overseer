@@ -50,9 +50,42 @@ export interface Motions {
  */
 export function tileAfterSlide(previous: Layout, next: Layout, tile: Tile, taskId?: string): Tile | undefined {
   if (previous.routing && next.routing) {
-    const room = previous.rooms?.find((room) => inside(room.rect, tile))
+    // A terminal ride follows its loading conveyor through growth. It can
+    // be outside every room and must not clamp back into deployment.
+    const terminal = !taskId || previous.boxes.some((box) => box.taskId === taskId && box.spot.kind === "container") ||
+      next.boxes.some((box) => box.taskId === taskId && box.spot.kind === "container")
+    const loadingIndex = previous.shippingDock?.connectorPath.findIndex((point) => sameTile(point, tile)) ?? -1
+    if (terminal && loadingIndex >= 0 && next.shippingDock) {
+      const cargoIndex = previous.shippingDock!.cargoTiles.findIndex((point) => sameTile(point, tile))
+      // A shortened approach must not glide an unarrived box past its cargo
+      // destination: the two cargo tiles only travel west, never back out.
+      return cargoIndex >= 0 ? next.shippingDock.cargoTiles[cargoIndex] :
+        next.shippingDock.connectorPath[Math.min(loadingIndex,
+          next.shippingDock.connectorPath.length - next.shippingDock.cargoTiles.length - 1)]
+    }
+    const room = previous.rooms?.find((room) => inside(room.rect, tile)) ??
+      previous.rooms?.find((room) =>
+        // A shared exterior crossing still belongs to a nonterminal task's
+        // selected room connection, not to deployment's loading conveyor.
+        (terminal || loadingIndex < 0 || room.kind !== "deployment") &&
+        previous.routing!.roomPaths[room.id.slice(5)]?.some((point) => sameTile(point, tile)))
     const afterRoom = room && next.rooms?.find((next) => next.id === room.id)
-    if (room && afterRoom) return { x: afterRoom.rect.x + tile.x - room.rect.x, y: afterRoom.rect.y + Math.min(tile.y - room.rect.y, afterRoom.rect.h - 2) }
+    if (room && afterRoom) {
+      const forward = room.ports[1]!.x > room.ports[0]!.x
+      const nextForward = afterRoom.ports[1]!.x > afterRoom.ports[0]!.x
+      const localX = tile.x - room.rect.x
+      const along = forward ? localX : room.rect.w - 1 - localX
+      // Outdoor intake can widen when explicitly staffed. Keep its feeder
+      // and collector one tile from the same side as the footprint changes.
+      const mapped = along <= 1 ? along : along >= room.rect.w - 2
+        ? afterRoom.rect.w - 1 - (room.rect.w - 1 - along)
+        : 1 + Math.round((along - 1) * (afterRoom.rect.w - 3) / (room.rect.w - 3))
+      return {
+        x: afterRoom.rect.x + (nextForward ? mapped : afterRoom.rect.w - 1 - mapped),
+        y: Math.min(afterRoom.rect.y + tile.y - room.rect.y,
+          next.bays.find((bay) => bay.id === afterRoom.id)?.stations.at(-1)?.bench.y ?? afterRoom.rect.y + 3),
+      }
+    }
     const selected = new Set(taskId ? previous.routing.taskEdges[taskId] ?? [] : [])
     const connections = previous.routing.connections.filter((connection) => selected.size === 0 || selected.has(connection.transition.id))
     for (const connection of connections) {
@@ -89,7 +122,7 @@ export function motionsFor(layout: Layout, from: BoxTiles, previous?: Layout): M
     const start = from[box.taskId]
     if (!start || sameTile(start, box.tile)) continue
     const settled = restedInContainer.get(box.taskId)
-    if (settled && !sameTile(settled, box.tile)) continue
+    if (settled && sameTile(start, settled) && !sameTile(settled, box.tile)) continue
     const permitted = permittedRouteTiles(layout, box.taskId)
     const path = shortestPath(reach, { x: start.x, y: start.y }, box.tile, permitted)
     if (!path) {
@@ -214,6 +247,7 @@ function permittedRouteTiles(layout: Layout, taskId: string): Set<string> | unde
   }
   for (const room of layout.rooms ?? []) if (roomIds.has(room.id.slice(5))) {
     for (const tile of tilesOf(room.rect)) tiles.add(tileKey(tile))
+    for (const tile of routing.roomPaths[room.id.slice(5)] ?? []) tiles.add(tileKey(tile))
   }
   return tiles
 }

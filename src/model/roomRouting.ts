@@ -38,10 +38,21 @@ export function validateRoomUpdate(previous: RoomFactoryState | undefined, candi
   return errors
 }
 
-/** The existing sprite/tablet layer consumes the first assignment member. Shared-work visuals follow in #23. */
+/** One physical box at the first member; association metadata reaches every participant. */
 export function roomSnapshotForView(state: RoomFactoryState): Snapshot {
+  const humanNeededAgentIds = new Set<string>()
+  for (const request of state.snapshot.humanRequests) {
+    const task = state.snapshot.tasks.find((task) => task.id === request.taskId)
+    const assigned = task?.at.kind === "room" ? task.at.assignment?.agentIds : undefined
+    const targets = request.agentIds.length ? request.agentIds : assigned?.length ? assigned :
+      state.snapshot.agents.filter((agent) => agent.roomId === request.roomId).map((agent) => agent.id)
+    for (const id of targets) humanNeededAgentIds.add(id)
+  }
   return {
+    humanNeededAgentIds: [...humanNeededAgentIds],
     agents: state.snapshot.agents,
+    assignments: Object.fromEntries(state.snapshot.tasks.flatMap((task) =>
+      task.at.kind === "room" && task.at.assignment ? [[task.id, task.at.assignment]] : [])),
     tasks: state.snapshot.tasks.map((task) => ({
       ...task,
       at: task.at.kind === "shipped" ? "shipped" :

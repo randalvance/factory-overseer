@@ -11,7 +11,7 @@ export interface Point {
 
 export interface ViewControls {
   /** The floor was dragged, or a pan key held, for this many screen pixels. */
-  pan(dx: number, dy: number): void
+  pan(dx: number, dy: number, at?: Point): void
   /** The wheel turned by this many pixels; positive is away from the overseer, zooming out. */
   zoom(deltaY: number): void
   /** The fingers of a pinch went from one distance apart to another, in pixels. */
@@ -103,7 +103,7 @@ export function attachControls(canvas: HTMLCanvasElement, controls: ViewControls
         controls.hover(undefined)
         canvas.style.cursor = "grabbing"
       }
-      if (press.dragging) controls.pan(at.x - press.last.x, at.y - press.last.y)
+      if (press.dragging) controls.pan(at.x - press.last.x, at.y - press.last.y, canvasPoint(event))
       press.last = at
     }
   }

@@ -143,6 +143,8 @@ export interface RoomFootprint {
 }
 
 export interface Layout {
+  /** Configured terminal: an outdoor truck reached by a real conveyor. */
+  shippingDock?: import("./shippingDock").ShippingDock
   routing?: import("./configuredRooms").RoomRouting
   /** Present in room mode; bay records then hold one room's stations each. */
   rooms?: RoomFootprint[]

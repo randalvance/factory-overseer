@@ -36,13 +36,16 @@ function pixelTexture(size: number, draw: (ctx: CanvasRenderingContext2D, size: 
 }
 
 const labels = new Map<string, THREE.CanvasTexture>()
+const cardboardIds = new WeakMap<object, number>()
+let nextCardboardId = 0
 
 /** The font stack of every label, count and bubble. */
 const MONO = "ui-monospace, Menlo, Consolas, monospace"
 
 /** A box's face: its label on a plate in a colour, stuck on the cardboard. Cached per label and colour; the cardboard is the same for every box. */
 export function labelTexture(label: string, color: string, cardboard: CanvasImageSource): THREE.CanvasTexture {
-  const key = `${color}\n${label}`
+  if (!cardboardIds.has(cardboard)) cardboardIds.set(cardboard, ++nextCardboardId)
+  const key = `${cardboardIds.get(cardboard)}\n${color}\n${label}`
   let texture = labels.get(key)
   if (!texture) {
     texture = pixelTexture(64, (ctx, s) => {

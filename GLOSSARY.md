@@ -288,6 +288,12 @@ the destination before a box crosses it. A bay's split junction forks the
 trunk into its lanes; its merge junction joins them back.
 _Avoid_: Switch, diverter, splitter, merger
 
+**Splitter**:
+A Junction where one incoming Belt divides into several outgoing Belts.
+
+**Merger**:
+A Junction where several incoming Belts join one outgoing Belt.
+
 **Handoff**:
 A task leaving one station for the next place on its route.
 _Avoid_: Transfer, pass, move
@@ -415,7 +421,8 @@ Role. Presets include research lab, foundry, factory and fabrication plant.
 A physical sign identifying a room, with a configurable pixel-art image
 and the room's label. Separate from an agent's sprite or Bubble.
 
-In room mode, Intake is the initial room rather than only the source tile.
+In room mode, Intake is the initial routing destination, represented by an
+outdoor Hopper rather than an enclosed Room.
 Reorganize still means explicit whole-floor compaction; automatic room growth
 may move stations and affected connections without that request. Line and
 Pipeline describe the legacy sequential layout; Room Transitions describe

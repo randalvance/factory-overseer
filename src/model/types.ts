@@ -35,6 +35,10 @@ export interface Task {
 }
 
 export interface Snapshot {
+  /** View-only attention targets; active room requests take precedence over work animation. */
+  humanNeededAgentIds?: readonly string[]
+  /** Room projection: one logical task, associated with every participant. */
+  assignments?: Record<string, import("./rooms").TaskAssignment>
   agents: Agent[]
   /** Among tasks at one agent, array order is queue order. */
   tasks: Task[]

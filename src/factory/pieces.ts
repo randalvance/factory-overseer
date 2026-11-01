@@ -10,11 +10,12 @@ import type { BeltTile, Container, Intake, Layout, Rect, Tile } from "~/floor/ty
 import { type BeltSurface, beltPieces } from "./beltPieces"
 import { type Pieces, TABLET_FACE, replaceMaterials } from "./models"
 import { SHEET, sheetFrame } from "./sprites"
-import { TEXT_PX_PER_TILE, bubbleTexture, countTexture, labelTexture } from "./textures"
+import { LEGACY_BELT_H, PAPER_BELT_H } from "./paperConveyors"
+import { paperJunctionFor } from "./paperJunctions"
+import { TEXT_PX_PER_TILE, canvasTexture, bubbleTexture, countTexture, labelTexture } from "./textures"
 
 /** Heights in tiles. The belt's and the bench's are the pieces' own, built to these numbers in tools/blender. */
 export const BENCH_H = 0.5
-const BELT_H = 0.12
 const PALLET_H = 0.1
 const CONTAINER_FLOOR_H = 0.1
 const WALL_H = 1.4
@@ -70,13 +71,26 @@ export function patch(rect: Rect, area: "intake" | "bay" | "staging"): THREE.Mes
 }
 
 /** A belt tile: its pieces, a straight or a corner and a junction's arms, each turned its way, with the surface the belt wears. */
-export function beltTile(tile: BeltTile, surface: BeltSurface, pieces: Pieces): THREE.Group {
+export function beltTile(tile: BeltTile, surface: BeltSurface, pieces: Pieces, floorY = 0): THREE.Group {
   const group = new THREE.Group()
-  for (const { piece, yaw } of beltPieces(tile, surface)) {
+  if (pieces.paper && tile.kind === "junction") {
+    const junction = paperJunctionFor(pieces, tile, floorY)
+    if (junction) {
+      group.add(junction)
+      const { x, z } = tileCenter(tile)
+      group.position.set(x, 0, z)
+      return group
+    }
+  }
+  const placements = beltPieces(tile, surface)
+  for (const { piece, yaw } of placements) {
     const laid = pieces.clone(piece)
     laid.rotation.y = yaw
     group.add(laid)
   }
+  const primary = placements[0]!
+  const support = pieces.beltSupport?.(primary.piece, floorY)
+  if (support) { support.rotation.y = primary.yaw; group.add(support) }
   const { x, z } = tileCenter(tile)
   group.position.set(x, 0, z)
   return group
@@ -87,8 +101,9 @@ export function beltTile(tile: BeltTile, surface: BeltSurface, pieces: Pieces): 
  * The box sits on it; the tablet is a piece of its own, since its face
  * changes with the agent's status.
  */
-export function bench(tile: Tile, vacant: boolean, pieces: Pieces): THREE.Object3D {
-  const piece = pieces.clone("bench")
+export function bench(tile: Tile, vacant: boolean, pieces: Pieces, role?: string): THREE.Object3D {
+  const colors: Record<string, number> = { planner: 0x7798bb, implementer: 0xd9a556, reviewer: 0x8fa993, deployer: 0xc58d76, router: 0x90a986 }
+  const piece = pieces.clone("bench", role ? colors[role] : undefined)
   if (vacant) dim(piece, VACANT_DIM)
   const { x, z } = tileCenter(tile)
   piece.position.set(x, 0, z)
@@ -116,8 +131,13 @@ export function tablet(pieces: Pieces): TabletPiece {
   const face = new THREE.MeshBasicMaterial()
   replaceMaterials(piece, (material) => (material.name === TABLET_FACE ? face : material))
   // The box on the bench is BOX_SIZE wide about the centre, so the tablet starts just past its edge.
-  piece.position.set(BOX_SIZE / 2 + 0.13, BENCH_H + 0.1, -0.15)
-  piece.rotation.x = -0.5
+  if (pieces.paper) {
+    // Keep the center strip clear for parcels travelling across the desk.
+    piece.position.set(.85, PAPER_BELT_H + .04, -.59)
+  } else {
+    piece.position.set(BOX_SIZE / 2 + .13, BENCH_H + .1, -.15)
+    piece.rotation.x = -.5
+  }
   const group = new THREE.Group()
   group.add(piece)
   return { group, face }
@@ -131,23 +151,45 @@ export function door(tile: Tile, pieces: Pieces): THREE.Object3D {
 }
 
 /** The hopper over the intake: a funnel on four legs, its mouth over the middle of the intake, that new boxes drop out of. */
-export function hopper(intake: Intake): THREE.Group {
+export function hopper(intake: Intake, paper = false, floorY = 0): THREE.Group {
   const group = new THREE.Group()
   const mouth = hopperMouth(intake)
   // Four segments make a square funnel; turned so its sides run with the grid. The radius is to a corner.
   const funnel = new THREE.Mesh(
     new THREE.CylinderGeometry(0.8 * Math.SQRT2, 0.3 * Math.SQRT2, HOPPER_H, 4, 1, true),
-    new THREE.MeshLambertMaterial({ color: COLOR.hopper, side: THREE.DoubleSide }),
+    new THREE.MeshLambertMaterial({ color: paper ? 0xf1e3c6 : COLOR.hopper, side: paper ? THREE.FrontSide : THREE.DoubleSide }),
   )
   funnel.rotation.y = Math.PI / 4
   funnel.position.set(mouth.x, HOPPER_MOUTH_H + HOPPER_H / 2, mouth.z)
+  funnel.castShadow = paper
+  funnel.receiveShadow = paper
   group.add(funnel)
-  const legMaterial = new THREE.MeshLambertMaterial({ color: COLOR.darkSteel })
-  const legH = HOPPER_MOUTH_H + HOPPER_H
-  for (const dx of [-0.95, 0.95]) {
-    for (const dz of [-0.95, 0.95]) {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, legH, 0.08), legMaterial)
-      leg.position.set(mouth.x + dx, legH / 2, mouth.z + dz)
+  if (paper) {
+    // The green liner and cream folded rim make the open funnel readable at
+    // the shallow camera angle; the mouth remains the actual parcel source.
+    const liner = new THREE.Mesh(
+      new THREE.CylinderGeometry(.77 * Math.SQRT2, .285 * Math.SQRT2, HOPPER_H, 4, 1, true),
+      new THREE.MeshLambertMaterial({ color: 0x8eaa83, side: THREE.BackSide }),
+    )
+    liner.rotation.y = Math.PI / 4; liner.position.copy(funnel.position)
+    liner.receiveShadow = true; group.add(liner)
+    const rimMaterial = new THREE.MeshLambertMaterial({ color: 0xfff5de })
+    for (const side of [-1, 1]) {
+      const front = new THREE.Mesh(new THREE.BoxGeometry(1.7, .075, .08), rimMaterial)
+      front.position.set(mouth.x, HOPPER_MOUTH_H + HOPPER_H, mouth.z + side * .8)
+      const edge = new THREE.Mesh(new THREE.BoxGeometry(.08, .075, 1.7), rimMaterial)
+      edge.position.set(mouth.x + side * .8, HOPPER_MOUTH_H + HOPPER_H, mouth.z)
+      front.castShadow = edge.castShadow = true
+      group.add(front, edge)
+    }
+  }
+  const legMaterial = new THREE.MeshLambertMaterial({ color: paper ? 0xd9c6a4 : COLOR.darkSteel })
+  const legH = HOPPER_MOUTH_H + (paper ? 0 : HOPPER_H) - floorY
+  for (const dx of paper ? [-.5, .5] : [-.95, .95]) {
+    for (const dz of paper ? [-.5, .5] : [-.95, .95]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, legH, paper ? 0.3 : 0.08), legMaterial)
+      leg.position.set(mouth.x + dx, floorY + legH / 2, mouth.z + dz)
+      leg.castShadow = paper
       group.add(leg)
     }
   }
@@ -161,9 +203,15 @@ export function hopperMouth(intake: Intake): THREE.Vector3 {
 }
 
 /** The count of boxes resting in the container, on a plate above its back wall over the mouth, where no stack rises in front of it. */
-export function containerCount(container: Container, count: number): THREE.Mesh {
+export function containerCount(container: Container, count: number, paper = false): THREE.Mesh {
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.6), new THREE.MeshBasicMaterial({ map: countTexture(count) }))
   mesh.position.set(container.mouth.x + 0.5, WALL_H + 0.45, container.rect.y + WALL_T)
+  mesh.userData.paper = paper
+  if (paper) {
+    mesh.scale.setScalar(.65)
+    mesh.position.set(container.rect.x + container.rect.w / 2, PAPER_BELT_H + .35, container.rect.y + container.rect.h + .08)
+    mesh.visible = count > 0
+  }
   return mesh
 }
 
@@ -172,6 +220,7 @@ export function recount(plate: THREE.Mesh, count: number) {
   const material = plate.material as THREE.MeshBasicMaterial
   material.map = countTexture(count)
   material.needsUpdate = true
+  if (plate.userData.paper) plate.visible = count > 0
 }
 
 /** A low wooden pallet where boxes wait with nothing carrying them. */
@@ -183,14 +232,58 @@ export function pallet(tile: Tile): THREE.Mesh {
 }
 
 /** The container: a floor, walls on three sides, a low wall in front so the stack shows, and a gap where the belt comes in. */
-export function containerWalls(container: Container): THREE.Group {
+export function containerWalls(container: Container, paper = false): THREE.Group {
   const group = new THREE.Group()
-  const material = new THREE.MeshLambertMaterial({ color: COLOR.container })
+  const material = new THREE.MeshLambertMaterial({ color: paper ? 0xc8947e : COLOR.container })
   const { x, y, w, h } = container.rect
   const slab = (sx: number, sy: number, sz: number, px: number, pz: number) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), material)
     mesh.position.set(px, sy / 2, pz)
+    mesh.castShadow = paper
+    mesh.receiveShadow = paper
     return mesh
+  }
+  if (paper) {
+    // A low dispatch tray and folded portal at its far end, leaving the worker
+    // and moving packages visible through the cutaway front.
+    const raised = (sx: number, sy: number, sz: number, px: number, pz: number) => {
+      const mesh = slab(sx, sy, sz, px, pz)
+      mesh.position.y += PAPER_BELT_H - CONTAINER_FLOOR_H
+      return mesh
+    }
+    group.add(raised(w, .1, h, x + w / 2, y + h / 2))
+    group.add(raised(w, .16, .07, x + w / 2, y + h - .04))
+    group.add(raised(w, .16, .07, x + w / 2, y + .04))
+    for (const px of [x + .25, x + w - .25]) {
+      for (const pz of [y + .16, y + h - .16]) group.add(slab(.14, PAPER_BELT_H - CONTAINER_FLOOR_H, .14, px, pz))
+    }
+    // A front-facing folded dispatch arch frames the parcels, like the
+    // reference's little loading house. Its opening clears the raised deck.
+    const card = new THREE.MeshLambertMaterial({ color: 0xf6e7cd })
+    const center = x + w / 2, front = y + h - .05
+    const opening = PAPER_BELT_H + 1.10
+    for (const side of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(.18, opening, .18), card)
+      post.position.set(center + side * (w / 2 - .12), opening / 2, front)
+      post.castShadow = true; post.receiveShadow = true; group.add(post)
+    }
+    const roof = new THREE.Shape()
+    roof.moveTo(-w / 2, opening); roof.lineTo(-w / 2, opening + .38)
+    roof.lineTo(0, opening + .66); roof.lineTo(w / 2, opening + .38)
+    roof.lineTo(w / 2, opening); roof.closePath()
+    const header = new THREE.Mesh(new THREE.ExtrudeGeometry(roof, { depth: .14, bevelEnabled: false }), card)
+    header.position.set(center, 0, front - .07); header.castShadow = true; header.receiveShadow = true
+    group.add(header)
+    const mark = canvasTexture(160, 80, (ctx) => {
+      ctx.strokeStyle = "#bd7f62"; ctx.fillStyle = "#bd7f62"; ctx.lineWidth = 6; ctx.lineJoin = "round"
+      ctx.strokeRect(40, 17, 48, 40)
+      ctx.beginPath(); ctx.moveTo(88, 32); ctx.lineTo(109, 32); ctx.lineTo(122, 47); ctx.lineTo(122, 57); ctx.lineTo(88, 57); ctx.stroke()
+      for (const px of [55, 108]) { ctx.beginPath(); ctx.arc(px, 62, 8, 0, Math.PI * 2); ctx.fill() }
+    })
+    const plaque = new THREE.Mesh(new THREE.PlaneGeometry(1.1, .55), new THREE.MeshBasicMaterial({ map: mark, transparent: true }))
+    plaque.position.set(center, opening + .27, front + .08)
+    plaque.userData.disposeTexture = true; group.add(plaque)
+    return group
   }
   // The side the trunk reaches is open at the mouth; the far side is a wall.
   const [mouthSide, farSide] = container.mouth.x === x ? [x + WALL_T / 2, x + w - WALL_T / 2] : [x + w - WALL_T / 2, x + WALL_T / 2]
@@ -209,27 +302,47 @@ export function containerWalls(container: Container): THREE.Group {
  * rest: on the belt, on a bench, on a pallet, on the container's floor, else
  * on the ground.
  */
-export function heightsOver(layout: Layout): (tile: Tile) => number {
+export function heightsOver(layout: Layout, paper = false): (tile: Tile) => number {
   const heights = new Map<string, number>()
   const set = (tile: Tile, height: number) => heights.set(tileKey(tile), height)
   for (let y = layout.container.rect.y; y < layout.container.rect.y + layout.container.rect.h; y++) {
     for (let x = layout.container.rect.x; x < layout.container.rect.x + layout.container.rect.w; x++) {
-      set({ x, y }, CONTAINER_FLOOR_H)
+      set({ x, y }, paper ? PAPER_BELT_H : CONTAINER_FLOOR_H)
     }
   }
+  for (const tile of layout.shippingDock?.cargoTiles ?? []) set(tile, paper ? PAPER_BELT_H : CONTAINER_FLOOR_H)
   for (const tile of layout.intake.pile) set(tile, PALLET_H)
-  for (const belt of layout.belts) for (const tile of belt.tiles) set(tile, BELT_H)
-  for (const bay of layout.bays) for (const station of bay.stations) set(station.bench, BENCH_H)
+  for (const belt of layout.belts) for (const tile of belt.tiles) set(tile, paper ? PAPER_BELT_H : LEGACY_BELT_H)
+  for (const bay of layout.bays) for (const station of bay.stations) set(station.bench, paper ? PAPER_BELT_H : BENCH_H)
   if (layout.staging) {
     for (const tile of layout.staging.pile.slice(1)) set(tile, PALLET_H)
-    set(layout.staging.bench, BENCH_H)
+    set(layout.staging.bench, paper ? PAPER_BELT_H : BENCH_H)
   }
   return (tile) => heights.get(tileKey(tile)) ?? 0
 }
 
+const paperLabels = new Map<string, THREE.Texture>()
+
 /** The face of a box: its task's label on a plate in the task's colour, or in cardboard's, stuck on the box piece's cardboard. */
 export function boxFace(label: string, color: string | undefined, cardboard: THREE.Texture): THREE.Texture {
-  return labelTexture(label, color ?? COLOR.box, cardboard.image as CanvasImageSource)
+  if (!cardboard.userData.paper) return labelTexture(label, color ?? COLOR.box, cardboard.image as CanvasImageSource)
+  const key = (color ?? "") + ":" + label
+  let map = paperLabels.get(key)
+  if (!map) {
+    map = canvasTexture(128, 128, (ctx, w, h) => {
+      ctx.scale(.5, .5); w *= 2; h *= 2
+      ctx.fillStyle = color ?? "#d6b88b"; ctx.fillRect(0, 0, w, h)
+      ctx.fillStyle = "#eed9ad"; ctx.fillRect(112, 0, 32, h)
+      ctx.strokeStyle = "#ad9064"; ctx.lineWidth = 2; ctx.strokeRect(2, 2, w-4, h-4)
+      ctx.fillStyle = "#fff6e1"; ctx.fillRect(22, 75, 212, 108)
+      ctx.fillStyle = "#47514a"; ctx.textAlign = "center"
+      ctx.font = "bold 20px sans-serif"; ctx.fillText("TASK", 128, 105)
+      ctx.font = "22px sans-serif"; ctx.fillText(label, 128, 147, 194)
+    })
+    map.flipY = false
+    paperLabels.set(key, map)
+  }
+  return map
 }
 
 /** A box with its task's label on every face over the piece's cardboard, its underside at the given height. The material is the box's own. */
@@ -237,6 +350,8 @@ export function box(tile: Tile, underside: number, label: string, color: string 
   const mesh = pieces.clone("box")
   if (!(mesh instanceof THREE.Mesh)) throw new Error("The box piece is not one mesh")
   mesh.material = new THREE.MeshLambertMaterial({ map: boxFace(label, color, pieces.cardboard) })
+  // Moving parcels stay out of the cached architectural shadow map.
+  if (pieces.paper) mesh.castShadow = false
   const { x, z } = tileCenter(tile)
   mesh.position.set(x, underside + BOX_SIZE / 2, z)
   return mesh

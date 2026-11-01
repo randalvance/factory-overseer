@@ -35,7 +35,11 @@ import {
   tileCenter,
 } from "./pieces"
 import { type Facing, INSPECTOR_SHEET, sheetFrame } from "./sprites"
+import { PAPER_PITCH, PITCH } from "./camera"
+import { createPaperCharacters, PAPER_AGENT_H, paperFeet } from "./paperCharacters"
 import { type TabletLook, tabletTexture } from "./tablets"
+import type { PetAnimations } from "./petAssets"
+import { petBodyPose, petFrame, petMotionState } from "./petMotion"
 
 export type StatusStyles = Readonly<Record<AgentStatus, StatusStyle>>
 /** How the figures and tablets already on the floor get to their stations: standing there at once, or gliding there while the floor slides. */
@@ -51,6 +55,8 @@ export interface StatusLooks {
 
 /** What a snapshot's figures wear and how they look, and the pieces their tablets are, all loaded. */
 export interface Dressed {
+  petIds?: ReadonlySet<string>
+  customWardrobes?: ReadonlySet<string>
   sheets: ReadonlyMap<string, THREE.Texture>
   looks: StatusLooks
   pieces: Pieces
@@ -134,6 +140,13 @@ interface Figure {
   /** At the agent's tile; holds the body, the icon and the bubble. */
   group: THREE.Group
   body: THREE.Sprite
+  height: number
+  feet?: THREE.Group
+  artKey?: string
+  staticImage: boolean
+  pet: boolean
+  baseScale: THREE.Vector3
+  needsHuman: boolean
   /** The body's own copy of its sheet, offset to the cell of its pose. */
   frame: THREE.Texture
   icon: THREE.Sprite
@@ -166,6 +179,8 @@ interface Figure {
 interface Posting {
   station: Pick<Station, "agentTile" | "bench">
   sheet: THREE.Texture
+  pitch?: number
+  needsHuman?: boolean
   style: StatusStyle
   /** What its bubble says, or null for none. */
   bubble: string | null
@@ -179,13 +194,16 @@ interface Posting {
 
 export function createAgents(parent: THREE.Object3D): Agents {
   const figures = new Map<string, Figure>()
+  const paperCast = createPaperCharacters()
   const tablets = new Map<string, { piece: TabletPiece; glide?: Glide }>()
   const layer = new THREE.Group()
   parent.add(layer)
   /** Tablet faces the lines have scrolled by. */
   let scrolled = 0
 
-  function update(layout: Layout, snapshot: Snapshot, { sheets, looks, pieces }: Dressed, traffic: ComingsAndGoings, settling: Settling = "stand") {
+  function update(layout: Layout, snapshot: Snapshot, { sheets, looks: hostLooks, pieces, petIds }: Dressed, traffic: ComingsAndGoings, settling: Settling = "stand") {
+    const looks = pieces.paper ? { ...hostLooks, icons: paperCast.icons() } : hostLooks
+    const humanNeeded = new Set(snapshot.humanNeededAgentIds ?? [])
     const wayInOf = new Map(traffic.arrivals.map((arrival) => [arrival.agentId, arrival.wayIn]))
     const taskById = new Map(snapshot.tasks.map((task) => [task.id, task]))
     const onBench = new Map<string, Task>()
@@ -193,23 +211,43 @@ export function createAgents(parent: THREE.Object3D): Agents {
       const task = taskById.get(taskId)
       if (spot.kind === "bench" && task) onBench.set(spot.stationId, task)
     }
+    // All participants share the same task; first task in snapshot order owns
+    // each tablet. No extra boxes or task counts are created.
+    if (snapshot.assignments) onBench.clear()
+    for (const task of snapshot.tasks) {
+      const assignment = snapshot.assignments?.[task.id]
+      if (!assignment) continue
+      for (const id of assignment.agentIds) {
+        const station = layout.bays.flatMap((bay) => bay.stations).find((station) => station.agentId === id)
+        if (station && !onBench.has(station.id)) onBench.set(station.id, task)
+      }
+    }
     const standing = new Set<string>()
     const benches = new Set<string>()
 
     for (const { station, agent } of stationed(layout, snapshot.agents)) {
-      const sheet = agent && sheets.get(agent.id)
+      const sheet = agent && (sheets.get(agent.id) ?? (petIds?.has(agent.id) ? paperCast.sheet(agent) : undefined))
       // A status outside the table is shown as idle rather than not at all.
-      const style = agent && (looks.styles[agent.status] ?? looks.styles.idle)
+      const needsHuman = !!agent && (humanNeeded.has(agent.id) || agent.status === "waiting")
+      const baseStyle = agent && (looks.styles[agent.status] ?? looks.styles.idle)
+      const style = baseStyle && needsHuman ? { ...baseStyle, icon: "hand" as const } : baseStyle
       if (agent && sheet && style) {
-        const bubble = bubbleText(agent.status, agent.activity, looks.styles)
-        const posting = { station, sheet, style, bubble, hasBox: onBench.has(station.id), wayIn: wayInOf.get(agent.id), settling }
+        const task = onBench.get(station.id)
+        const assignment = task && snapshot.assignments?.[task.id]
+        const shared = assignment && assignment.agentIds.length > 1
+        const completed = assignment?.completedAgentIds.includes(agent.id)
+        const activity = needsHuman ? looks.styles.waiting.bubble : bubbleText(agent.status, agent.activity, looks.styles)
+        const bubble = shared ? `${task!.id} · ${completed ? "Complete" : activity ?? "Assigned"}` : activity
+        const posting = { station, sheet, pitch: pieces.paper ? PAPER_PITCH : PITCH, needsHuman, style, bubble, hasBox: onBench.has(station.id) && !completed, wayIn: wayInOf.get(agent.id), settling }
         stand(agent, posting, looks)
         standing.add(agent.id)
       }
-      showTablet(station.id, station.bench, tabletLook(style, onBench.get(station.id), looks.icons), settling, pieces)
+      const task = onBench.get(station.id)
+      const complete = agent && task && snapshot.assignments?.[task.id]?.completedAgentIds.includes(agent.id)
+      showTablet(station.id, station.bench, complete ? { kind: "bar", progress: 1 } : tabletLook(style, task, looks.icons), settling, pieces)
       benches.add(station.id)
     }
-    const inspectorSheet = sheets.get(INSPECTOR_ID)
+    const inspectorSheet = pieces.paper ? paperCast.sheet(INSPECTOR) : sheets.get(INSPECTOR_ID)
     if (layout.staging && inspectorSheet) {
       const bench = layout.staging.bench
       const station = { agentTile: layout.staging.inspectorTile, bench }
@@ -233,20 +271,37 @@ export function createAgents(parent: THREE.Object3D): Agents {
    * glides to its station, a walk under way given up.
    */
   function stand(agent: Agent, posting: Posting, looks: StatusLooks) {
-    const { station, sheet, style, bubble: text, hasBox = false, wayIn, settling = "stand" } = posting
+    const { station, sheet, pitch = PAPER_PITCH, needsHuman = false, style, bubble: text, hasBox = false, wayIn, settling = "stand" } = posting
     let figure = figures.get(agent.id)
-    // A new sheet means a new body, but not a new arrival.
-    const redressed = figure !== undefined && figure.frame.source !== sheet.source
+    const artKey = sheet.userData.petKey as string | undefined
+    const redressed = figure !== undefined && (figure.frame.source !== sheet.source || figure.artKey !== artKey)
     if (figure && redressed) {
-      removeFigure(agent.id)
-      figure = undefined
+      // Change the image in place, keeping an arrival walk or room glide alive.
+      figure.group.remove(figure.body)
+      figure.frame.dispose(); figure.body.material.dispose()
+      figure.body = petBody(sheet)
+      figure.frame = figure.body.material.map!
+      figure.artKey = artKey
+      figure.staticImage = sheet.userData.petLayout === "image"
+      figure.pet = !!sheet.userData.pet
+      figure.baseScale = figure.body.scale.clone()
+      figure.height = displayHeight(sheet, pitch)
+      figure.group.add(figure.body)
+      if (!!figure.feet !== !!sheet.userData.paper) {
+        if (figure.feet) { figure.group.remove(figure.feet); disposeMeshes(figure.feet) }
+        figure.feet = sheet.userData.paper ? paperFeet() : undefined
+        if (figure.feet) figure.group.add(figure.feet)
+      }
     }
     const fresh = figure === undefined
     if (!figure) {
-      const body = agentSprite(sheet)
+      const body = petBody(sheet)
+      const height = displayHeight(sheet, pitch)
       const icon = statusIcon(looks.icons.hand)
       const group = new THREE.Group()
       group.add(body, icon)
+      const feet = sheet.userData.paper ? paperFeet() : undefined
+      if (feet) group.add(feet)
       layer.add(group)
       const sparks = Array.from({ length: SPARKS_PER_AGENT }, (): Spark => {
         const sprite = spark()
@@ -258,6 +313,13 @@ export function createAgents(parent: THREE.Object3D): Agents {
         agent,
         group,
         body,
+        height,
+        feet,
+        artKey,
+        staticImage: sheet.userData.petLayout === "image",
+        pet: !!sheet.userData.pet,
+        baseScale: body.scale.clone(),
+        needsHuman,
         frame: body.material.map!,
         icon,
         sparks,
@@ -290,7 +352,8 @@ export function createAgents(parent: THREE.Object3D): Agents {
     figure.agent = agent
     figure.bench = station.bench
     figure.style = style
-    figure.sparking = style.motion === "work" && hasBox
+    figure.needsHuman = needsHuman
+    figure.sparking = style.motion === "work" && hasBox && !needsHuman
     dim(figure, 1)
     if (style.icon !== "none" && figure.icon.material.map !== looks.icons[style.icon]) {
       figure.icon.material.map = looks.icons[style.icon]
@@ -344,14 +407,29 @@ export function createAgents(parent: THREE.Object3D): Agents {
       lift = JUMP_H * Math.abs(Math.sin((Math.PI * clock) / JUMP_PERIOD))
       if (style.pose !== "hurt") column = lift > JUMP_H / 2 ? COLUMN.step : COLUMN.stand
     }
-    const frame = sheetFrame(column, figure.facing)
-    figure.frame.offset.set(frame.offset.x, frame.offset.y)
+    const movement = petMotionState(!!figure.walk, figure.needsHuman, style.motion === "work")
+    if (figure.pet) {
+      column = petFrame(movement, clock, figure.frame.userData.petAnimations as PetAnimations | undefined) ?? column
+      const motion = petBodyPose(movement, clock, figure.staticImage)
+      // Attention replaces the generic waiting jump; the paw frames and sway
+      // are its own loop rather than a badge over an unchanged animal.
+      lift = movement === "attention" ? motion.lift : lift + motion.lift
+      figure.body.position.x = motion.offsetX
+      figure.body.material.rotation = motion.roll
+      figure.body.scale.set(figure.baseScale.x * motion.scaleX, figure.baseScale.y * motion.scaleY, figure.baseScale.z)
+    } else if (figure.needsHuman && !figure.walk) {
+      column = Math.floor(clock * 3.2) % 2 ? COLUMN.stand : COLUMN.raisedArm
+    }
+    if (!figure.staticImage) {
+      const frame = sheetFrame(column, figure.facing)
+      figure.frame.offset.set(frame.offset.x, frame.offset.y)
+    }
     figure.body.position.y = 0.01 + lift
 
     const iconShown = style.icon !== "none" && !(style.icon === "check" && inStatus > CHECK_FOR)
     figure.icon.visible = iconShown
-    figure.icon.position.y = AGENT_H + ICON_SIZE / 2 + 0.08 + lift + 0.04 * Math.sin(clock * 4)
-    if (figure.bubble) figure.bubble.sprite.position.y = AGENT_H + (iconShown ? ICON_SIZE + 0.2 : 0.12)
+    figure.icon.position.y = figure.height + ICON_SIZE / 2 + 0.08 + lift + 0.04 * Math.sin(clock * 4)
+    if (figure.bubble) figure.bubble.sprite.position.y = figure.height + (iconShown ? ICON_SIZE + 0.2 : 0.12)
   }
 
   /** Put the tablet at its bench, or glide it there from where it is while the floor slides. */
@@ -383,6 +461,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
     layer.remove(figure.group)
     figure.frame.dispose()
     figure.body.material.dispose()
+    if (figure.feet) disposeMeshes(figure.feet)
     figure.icon.material.dispose()
     figure.bubble?.sprite.material.dispose()
     for (const { sprite } of figure.sparks) {
@@ -469,6 +548,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
   function dispose() {
     for (const id of [...figures.keys()]) removeFigure(id)
     for (const id of [...tablets.keys()]) removeTablet(id)
+    paperCast.dispose()
     parent.remove(layer)
   }
 
@@ -495,4 +575,23 @@ function tabletLook(style: StatusStyle | undefined, task: Task | undefined, icon
   if (style.motion === "work") return task?.progress === undefined ? { kind: "lines" } : { kind: "bar", progress: task.progress }
   if (style.icon === "hand" || style.icon === "warning") return { kind: "icon", name: style.icon, icon: icons[style.icon] }
   return { kind: "dim" }
+}
+
+/** Static pets use the whole image; animated sheets retain existing frame timing. */
+function petBody(sheet: THREE.Texture): THREE.Sprite {
+  const body = agentSprite(sheet)
+  if (sheet.userData.petLayout === "image") {
+    body.material.map!.offset.set(0, 0)
+    body.material.map!.repeat.set(1, 1)
+  }
+  if (sheet.userData.paper) {
+    const height = (sheet.userData.height as number | undefined) ?? PAPER_AGENT_H
+    const aspect = (sheet.userData.aspectRatio as number | undefined) ?? 2 / 3
+    body.scale.set(height * aspect, height, 1)
+  }
+  return body
+}
+
+function displayHeight(sheet: THREE.Texture, pitch: number): number {
+  return sheet.userData.paper ? ((sheet.userData.height as number | undefined) ?? PAPER_AGENT_H) / Math.cos(pitch) : AGENT_H
 }

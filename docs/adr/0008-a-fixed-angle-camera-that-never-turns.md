@@ -19,3 +19,19 @@ viewport and the line wraps into bands within it (ADR 0006), and a floor
 taller than the viewport is reached by panning toward the camera. Following a
 box takes the camera with it until the overseer pans: the pan is the
 overseer's, and the follow yields to it.
+
+## Paper-diorama revision
+
+The supplied paper reference supersedes the original pitch for the paper
+appearance. Paper rooms use a fixed 38-degree perspective view, exposing
+conveyor feet, desk fronts and folded wall thickness while making nearby
+rooms larger than distant ones. The legacy appearance keeps its 50-degree
+orthographic camera. Neither appearance permits orbiting or rotation.
+
+This replaces the assumption that every appearance must use the stock
+sprites' projection. Paper standees are camera-facing illustrations, while
+explicit host sprites remain supported. Fit All accounts for the projected
+floor, raised decks and elevated signs, and keeps the HUD clear. Pointer
+panning in perspective anchors the ground under the drag so depth does not
+make the floor slip relative to the pointer. Zoom, focus, task following and
+keyboard navigation keep their existing contracts.
