@@ -14,6 +14,7 @@
 // the overseer's Reorganize has it, is derived here too: the belt laid afresh
 // that stands for the one it was riding.
 
+import { ROOM_STATION_ROW } from "./roomGeometry"
 import { beltName, entries, exits, travelDirection } from "./belts"
 import { inContainer } from "./layout"
 import { DIRECTIONS, directionBetween, opposite, sameTile, step, tileKey } from "./tiles"
@@ -83,7 +84,7 @@ export function tileAfterSlide(previous: Layout, next: Layout, tile: Tile, taskI
       return {
         x: afterRoom.rect.x + (nextForward ? mapped : afterRoom.rect.w - 1 - mapped),
         y: Math.min(afterRoom.rect.y + tile.y - room.rect.y,
-          next.bays.find((bay) => bay.id === afterRoom.id)?.stations.at(-1)?.bench.y ?? afterRoom.rect.y + 3),
+          next.bays.find((bay) => bay.id === afterRoom.id)?.stations.at(-1)?.bench.y ?? afterRoom.rect.y + ROOM_STATION_ROW),
       }
     }
     const selected = new Set(taskId ? previous.routing.taskEdges[taskId] ?? [] : [])

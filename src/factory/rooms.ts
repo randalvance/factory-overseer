@@ -4,6 +4,7 @@ import { ROOM_THEME_SLOTS, type ResolvedRoomTheme } from "~/model/roomThemes"
 import { wayIn } from "~/floor/walk"
 import type { ThemeAssets } from "./roomThemeAssets"
 import { isShared } from "./models"
+import { paperWallPortSide } from "./paperWallPorts"
 import { floorSlab } from "./pieces"
 import { paperFloorProfile, paperFloorTexture } from "./paperFlooring"
 import { canvasTexture, pixelated } from "./textures"
@@ -82,33 +83,40 @@ function drawPaperRoom(room: RoomFootprint, occupied: Set<string>, add: Add, lay
   put("floor", floor)
   put("cut-edge", box(w + .14, .035, .035, x + w / 2, -.04, y + h + .06, cream))
 
+  // The rear sheet stays continuous. All configured conveyor connections
+  // pass through a left/right wall, never the back or open front edge.
   for (let i = 0; i < w; i++) {
-    // Paper rooms have no separate rear door model; only a real conveyor
-    // crossing cuts through the wall. The logical arrival tile stays unchanged.
-    const opening = occupied.has(`${x + i},${y}`)
     const group = new THREE.Group()
-    // A card lintel bridges conveyor openings; the wall reads as one folded
-    // sheet while leaving the raised deck and its parcels clear underneath.
-    const bottom = opening ? 1.55 : 0
-    group.add(box(1, 2.3 - bottom, .12, 0, (2.3 + bottom) / 2, 0, color), box(1.02, .065, .18, 0, 2.32, 0, cream))
+    group.add(box(1, 2.3, .12, 0, 1.15, 0, color), box(1.02, .065, .18, 0, 2.32, 0, cream))
     group.position.set(x + i + .5, 0, y + .09)
     put(`back:${i}`, group)
-    if (opening) {
-      // Raised cardstock trim surrounds the cutout. Jambs sit outside the
-      // belt tile, the header stays above parcels, and the sill hugs the floor.
-      const frame = new THREE.Group()
-      for (const dx of [-.54, .54]) frame.add(box(.08, 1.63, .20, dx, .815, .035))
-      frame.add(box(1.16, .08, .20, 0, 1.59, .035))
-      frame.add(box(1.16, .04, .20, 0, .02, .035))
-      frame.position.set(x + i + .5, 0, y + .09)
-      put(`back-frame:${i}`, frame)
-    }
+  }
+  const sideOpenings = new Set<string>()
+  for (const belt of layout.belts) for (const tile of belt.tiles) {
+    const side = paperWallPortSide(tile, room)
+    if (side) sideOpenings.add(`${side}:${tile.y}`)
   }
   for (const [side, xx] of [["left", x + .08], ["right", x + w - .08]] as const) {
     for (let i = 0; i < h; i++) {
-      const tileX = side === "left" ? x : x + w - 1
-      if (occupied.has(`${tileX},${y + i}`)) continue
       const height = i < 2 ? 2.3 - i * .35 : .72
+      if (sideOpenings.has(`${side}:${y + i}`)) {
+        // The same cardstock frame surrounds each real side connection.
+        // Its opening clears the dark housing and .6-tile parcels; the
+        // logical belt remains on its original tile centre.
+        const frame = new THREE.Group()
+        for (const dz of [-.54, .54]) frame.add(box(.20, 1.63, .08, 0, .815, dz))
+        frame.add(box(.20, .08, 1.16, 0, 1.59, 0))
+        frame.add(box(.20, .04, 1.16, 0, .02, 0))
+        frame.position.set(xx, 0, y + i + .5)
+        put(`${side}-frame:${i}`, frame)
+        if (height > 1.63) {
+          const lintel = new THREE.Group()
+          lintel.add(box(.12, height - 1.63, 1, 0, (height + 1.63) / 2, 0, color))
+          lintel.add(box(.19, .06, 1.02, 0, height + .02, 0, white))
+          lintel.position.copy(frame.position); put(`${side}:${i}`, lintel)
+        }
+        continue
+      }
       const group = new THREE.Group()
       group.add(box(.12, height, 1, 0, height / 2, 0, i < 2 ? color : cream))
       group.add(box(.19, .06, 1.02, 0, height + .02, 0, white))

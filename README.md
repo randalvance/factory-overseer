@@ -135,9 +135,9 @@ compacts them. In the demo, choose Implementation and click **Add agent**
 successively to see the first, second and third rows form. **Fit all** frames
 the floor after it expands. Room growth and configured conveyor handoffs
 remain live. The main conveyor
-runs across the front desks and turns through the lower row. Bypasses, rework
-and local returns retain real exterior paths; they are more extensive than
-the concept's illustrative paths.
+runs across the front desks and turns through the lower row. Bypasses and rework
+use exterior paths around room footprints; local return lanes and row
+distribution junctions stay inside each building.
 
 Use `appearance="legacy"` on Factory/RoomFactory for the old environment and
 characters; the demo exposes this at `/?art=legacy`. Explicit agent sprite
@@ -200,10 +200,12 @@ frame the distant grass or road. Splitters and mergers mark conveyor junctions;
 all paper conveyor decks share the same sage color. Junctions are raised
 four-port paper housings, with conveyors entering connected side openings
 and fitted paper covers closing unused ports. Conveyors fade into dark
-interiors at connected openings. Conveyors enter and leave rooms only through the left, right or rear wall,
-never the front edge. Room walls open only at conveyor crossings, with raised
-cream cardstock frames around the cutouts. Every rear-wall passage contains
-a shadowed splitter/merger housing, including straight-through belts; notes
-stay on solid wall sections.
+interiors at connected openings. Conveyors enter and leave rooms only through
+the left and right walls. Rear walls stay solid. Actual side crossings have
+raised cream cardstock frames and shadowed splitter/merger housings,
+including straight-through belts. Inside, feeder and collector junctions
+serve each agent row. Deployment is physically last, with its right inlet
+upstream of its agents and its left truck exit downstream; incoming routes
+cannot join the loading belt before reaching a deployment workstation.
 Shared pulp grain, fibers and subtle surface relief give the walls, floors,
 furniture, conveyors, grass and truck a visible paper texture.

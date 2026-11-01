@@ -1,3 +1,4 @@
+import { ROOM_STATION_ROW } from "./roomGeometry"
 import type { Rect, Tile } from "./types"
 
 export interface ShippingDock {
@@ -22,7 +23,7 @@ const TRUCK_REAR_OFFSET = 1.626
  * truck's open rear on the foreground road. Blockers reserve rooms and belts.
  */
 export function shippingDock(deployment: Rect, blockers: readonly Rect[] = [], routeBlockers: readonly Rect[] = blockers): ShippingDock {
-  const outlet = { x: deployment.x, y: deployment.y + 3 }
+  const outlet = { x: deployment.x, y: deployment.y + ROOM_STATION_ROW }
   // A leftmost room still loads a truck fully inside the floor. Its exterior
   // belt turns below the house before joining this east-facing cargo opening.
   const approachX = Math.max(4, outlet.x)

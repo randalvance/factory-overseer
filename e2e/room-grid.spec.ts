@@ -35,7 +35,7 @@ test("three columns fill before depth grows; vacancies and compaction preserve s
     }))
   }
   expect(dimensions.map(({ w }) => w)).toEqual([7, 11, 15, 15, 15, 15, 15])
-  expect(dimensions.map(({ h }) => h)).toEqual([5, 5, 5, 10, 10, 10, 15])
+  expect(dimensions.map(({ h }) => h)).toEqual([7, 7, 7, 12, 12, 12, 17])
   const original = await page.evaluate(() => window.grid.layout!.bays.find((bay) => bay.id === "room:implementation")!.stations)
   expect(original.map((station) => station.bench.x - original[0]!.bench.x)).toEqual([0, 4, 8, 0, 4, 8, 0])
   expect(original.map((station) => station.bench.y - original[0]!.bench.y)).toEqual([0, 0, 0, 5, 5, 5, 10])
