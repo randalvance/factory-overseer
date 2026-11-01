@@ -169,37 +169,41 @@ export function door(tile: Tile, pieces: Pieces): THREE.Object3D {
 export function hopper(intake: Intake, paper = false, floorY = 0): THREE.Group {
   const group = new THREE.Group()
   const mouth = hopperMouth(intake)
+  const halfWidth = paper ? 1.2 : .8
+  const height = paper ? 1.25 : HOPPER_H
   // Four segments make a square funnel; turned so its sides run with the grid. The radius is to a corner.
   const funnel = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.8 * Math.SQRT2, 0.3 * Math.SQRT2, HOPPER_H, 4, 1, true),
+    new THREE.CylinderGeometry(halfWidth * Math.SQRT2, 0.3 * Math.SQRT2, height, 4, 1, true),
     new THREE.MeshLambertMaterial({ color: paper ? 0xf1e3c6 : COLOR.hopper, side: paper ? THREE.FrontSide : THREE.DoubleSide }),
   )
   funnel.rotation.y = Math.PI / 4
-  funnel.position.set(mouth.x, HOPPER_MOUTH_H + HOPPER_H / 2, mouth.z)
+  funnel.position.set(mouth.x, HOPPER_MOUTH_H + height / 2, mouth.z)
   funnel.castShadow = paper
   funnel.receiveShadow = paper
   group.add(funnel)
   if (paper) {
-    // The green liner and cream folded rim make the open funnel readable at
+    // The warm red liner and cream folded rim make the open funnel readable at
     // the shallow camera angle; the mouth remains the actual parcel source.
     const liner = new THREE.Mesh(
-      new THREE.CylinderGeometry(.77 * Math.SQRT2, .285 * Math.SQRT2, HOPPER_H, 4, 1, true),
-      new THREE.MeshLambertMaterial({ color: 0x8eaa83, side: THREE.BackSide }),
+      new THREE.CylinderGeometry((halfWidth - .03) * Math.SQRT2, .285 * Math.SQRT2, height, 4, 1, true),
+      new THREE.MeshLambertMaterial({ color: 0xc66f60, side: THREE.BackSide }),
     )
     liner.rotation.y = Math.PI / 4; liner.position.copy(funnel.position)
     liner.receiveShadow = true; group.add(liner)
     const rimMaterial = new THREE.MeshLambertMaterial({ color: 0xfff5de })
     for (const side of [-1, 1]) {
-      const front = new THREE.Mesh(new THREE.BoxGeometry(1.7, .075, .08), rimMaterial)
-      front.position.set(mouth.x, HOPPER_MOUTH_H + HOPPER_H, mouth.z + side * .8)
-      const edge = new THREE.Mesh(new THREE.BoxGeometry(.08, .075, 1.7), rimMaterial)
-      edge.position.set(mouth.x + side * .8, HOPPER_MOUTH_H + HOPPER_H, mouth.z)
+      const front = new THREE.Mesh(new THREE.BoxGeometry(halfWidth * 2 + .1, .075, .08), rimMaterial)
+      front.position.set(mouth.x, HOPPER_MOUTH_H + height, mouth.z + side * halfWidth)
+      const edge = new THREE.Mesh(new THREE.BoxGeometry(.08, .075, halfWidth * 2 + .1), rimMaterial)
+      edge.position.set(mouth.x + side * halfWidth, HOPPER_MOUTH_H + height, mouth.z)
       front.castShadow = edge.castShadow = true
       group.add(front, edge)
     }
   }
   const legMaterial = new THREE.MeshLambertMaterial({ color: paper ? 0xd9c6a4 : COLOR.darkSteel })
-  const legH = HOPPER_MOUTH_H + (paper ? 0 : HOPPER_H) - floorY
+  // Meet the sloping bowl at the support centers without raising the outlet.
+  const legTop = HOPPER_MOUTH_H + (paper ? height * (.5 - .3) / (halfWidth - .3) : height)
+  const legH = legTop - floorY
   for (const dx of paper ? [-.5, .5] : [-.95, .95]) {
     for (const dz of paper ? [-.5, .5] : [-.95, .95]) {
       const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, legH, paper ? 0.3 : 0.08), legMaterial)

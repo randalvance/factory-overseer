@@ -154,8 +154,9 @@ export function dioramaModelPoints(layout: Layout): PaperPoint[] {
     }
   }
   const intake = layout.intake.rect
-  for (const x of [intake.x + intake.w / 2 - .85, intake.x + intake.w / 2 + .85]) {
-    for (const z of [intake.y + intake.h / 2 - .85, intake.y + intake.h / 2 + .85]) points.push({ x, y: 3, z })
+  // Include the enlarged hopper bowl and its folded rim.
+  for (const x of [intake.x + intake.w / 2 - 1.25, intake.x + intake.w / 2 + 1.25]) {
+    for (const z of [intake.y + intake.h / 2 - 1.25, intake.y + intake.h / 2 + 1.25]) points.push({ x, y: 3.2, z })
   }
   const truck = paperTruckPlacement(layout)
   // The grass and exit road continue outside the view; frame the factory
