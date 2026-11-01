@@ -106,3 +106,9 @@ outgoing directions. Rear walls remain solid. Belts parallel to a side wall
 do not open a hole unless they actually cross it.
 Paper return paths use the same deck color while logical routing retains the
 distinction.
+
+A logical junction can represent opposing routes sharing the same two physical
+ports. The paper drawing shows those stretches as open straight or corner
+conveyors; a splitter/merger housing requires at least three connected sides.
+Actual side-wall crossings still use their shadowed housings. This distinction
+changes scenery only: logical entries, exits and task routing remain intact.

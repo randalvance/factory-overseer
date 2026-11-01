@@ -20,6 +20,21 @@ export function paperJunctionPorts(tile: Junction): Direction[] {
   return ORDER.filter((side) => connected.has(side))
 }
 
+/** Open scenery for shared two-port routes; routing continues to use the original tile. */
+export function openPaperBeltTile(tile: BeltTile): BeltTile {
+  if (tile.kind !== "junction" || paperJunctionPorts(tile).length !== 2) return tile
+  // Opposing routes can share two physical ports without branching. Pick a
+  // real through movement for the artwork, never an entry's immediate U-turn.
+  for (const to of [tile.dir, ...tile.exits]) {
+    if (!tile.exits.includes(to)) continue
+    const from = tile.entries.find((entry) => OPPOSITE[entry] !== to)
+    if (from) return from === to
+      ? { kind: "straight", x: tile.x, y: tile.y, dir: to }
+      : { kind: "corner", x: tile.x, y: tile.y, from, to }
+  }
+  return tile
+}
+
 export function paperJunctionKind(tile: Junction): "splitter" | "merger" | "splitter-merger" {
   const split = new Set(tile.exits).size > 1
   const merge = new Set(tile.entries).size > 1
