@@ -20,6 +20,7 @@ import { type Pieces, isShared } from "./models"
 import { tileKey } from "~/floor/tiles"
 import { trimPaperBeltAtBenches } from "./paperConveyors"
 import { paperWallPortTile } from "./paperWallPorts"
+import { openPaperBeltTile } from "./paperJunctions"
 import { beltTile, bench, containerWalls, door, floorSlab, hopper, pallet, patch } from "./pieces"
 
 /**
@@ -63,7 +64,7 @@ export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap
       if (pieces.paper && layout.shippingDock?.cargoTiles.some((cargo) => cargo.x === tile.x && cargo.y === tile.y)) return
       const onPlatform = layout.rooms?.some(({ rect, kind }) => kind !== "intake" && tile.x >= rect.x && tile.x < rect.x + rect.w && tile.y >= rect.y && tile.y < rect.y + rect.h)
       const floorY = pieces.paper && layout.rooms && !onPlatform ? -.22 : 0
-      const drawingTile = pieces.paper ? paperWallPortTile(tile, layout.rooms) : tile
+      const drawingTile = pieces.paper ? paperWallPortTile(openPaperBeltTile(tile), layout.rooms) : tile
       const piece = beltTile(drawingTile, surface, pieces, floorY)
       if (pieces.paper) trimPaperBeltAtBenches(piece, drawingTile, paperBenches)
       add(`belt:${beltName(belt)}:${i}`, piece)
