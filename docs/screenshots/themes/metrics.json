@@ -1,0 +1,22 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "opening": {
+    "frameMs": 64.44000000000003,
+    "calls": 706,
+    "triangles": 42684,
+    "geometries": 100,
+    "textures": 25,
+    "estimatedTextureBytes": 12467504
+  },
+  "expanded": {
+    "frameMs": 81.66333333333338,
+    "calls": 984,
+    "triangles": 65158,
+    "geometries": 119,
+    "textures": 27,
+    "estimatedTextureBytes": 12503088
+  }
+}

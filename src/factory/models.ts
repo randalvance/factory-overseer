@@ -6,6 +6,7 @@
 // are shaded like everything else on the floor.
 
 import * as THREE from "three"
+import type { ResolvedRoomTheme } from "~/model/roomThemes"
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js"
 import type { BeltPieceName } from "./beltPieces"
 import { pixelated } from "./textures"
@@ -27,6 +28,8 @@ export interface BeltTextures {
 
 export interface Pieces {
   paper?: boolean
+  /** Fixed functional bench with a theme-specific paper construction/accessory. */
+  themedBench?: (theme: ResolvedRoomTheme, accessory?: THREE.Object3D, accent?: THREE.MeshLambertMaterial) => THREE.Object3D
   /** One support pair under a complete paper belt tile, separate from junction arms. */
   beltSupport?: (name: BeltPieceName, floorY: number) => THREE.Object3D
   dispose?: () => void

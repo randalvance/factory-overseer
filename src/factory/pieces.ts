@@ -5,10 +5,12 @@
 // z = 0 and the camera looks in from positive z.
 
 import * as THREE from "three"
+import type { ResolvedRoomTheme } from "~/model/roomThemes"
+import type { ThemeAssets } from "./roomThemeAssets"
 import { tileKey } from "~/floor/tiles"
 import type { BeltTile, Container, Intake, Layout, Rect, Tile } from "~/floor/types"
 import { type BeltSurface, beltPieces } from "./beltPieces"
-import { type Pieces, TABLET_FACE, replaceMaterials } from "./models"
+import { type Pieces, TABLET_FACE, replaceMaterials, isShared } from "./models"
 import { SHEET, sheetFrame } from "./sprites"
 import { LEGACY_BELT_H, PAPER_BELT_H } from "./paperConveyors"
 import { paperJunctionFor } from "./paperJunctions"
@@ -101,9 +103,15 @@ export function beltTile(tile: BeltTile, surface: BeltSurface, pieces: Pieces, f
  * The box sits on it; the tablet is a piece of its own, since its face
  * changes with the agent's status.
  */
-export function bench(tile: Tile, vacant: boolean, pieces: Pieces, role?: string): THREE.Object3D {
+export function bench(tile: Tile, vacant: boolean, pieces: Pieces, role?: string, theme?: ResolvedRoomTheme, assets?: ThemeAssets, palette?: Map<number, THREE.MeshLambertMaterial>): THREE.Object3D {
   const colors: Record<string, number> = { planner: 0x7798bb, implementer: 0xd9a556, reviewer: 0x8fa993, deployer: 0xc58d76, router: 0x90a986 }
-  const piece = pieces.clone("bench", role ? colors[role] : undefined)
+  const accessory = theme?.assets.station ? assets?.model(theme.assets.station, "station") : undefined
+  let accent: THREE.MeshLambertMaterial | undefined
+  if (theme && pieces.themedBench && palette && !vacant) {
+    accent = palette.get(theme.accent)
+    if (!accent) { accent = new THREE.MeshLambertMaterial({ color: theme.accent }); palette.set(theme.accent, accent) }
+  }
+  const piece = theme && pieces.themedBench ? pieces.themedBench(theme, accessory, accent) : pieces.clone("bench", role ? colors[role] : undefined)
   if (vacant) dim(piece, VACANT_DIM)
   const { x, z } = tileCenter(tile)
   piece.position.set(x, 0, z)
@@ -112,11 +120,18 @@ export function bench(tile: Tile, vacant: boolean, pieces: Pieces, role?: string
 
 /** Put every mesh of a piece on its own darker copies of its materials, which go when the piece does. */
 function dim(piece: THREE.Object3D, keep: number) {
+  const copies = new Map<THREE.Material, THREE.Material>()
   replaceMaterials(piece, (material) => {
-    const copy = material.clone() as THREE.MeshLambertMaterial
-    copy.color.multiplyScalar(keep)
+    let copy = copies.get(material)
+    if (!copy) {
+      copy = material.clone()
+      ;(copy as THREE.MeshLambertMaterial).color.multiplyScalar(keep)
+      copies.set(material, copy)
+    }
     return copy
   })
+  // A theme's live palette is drawing-owned; replacing it must not orphan it.
+  for (const original of copies.keys()) if (!isShared(original)) original.dispose()
 }
 
 /** A tablet as the agents keep it: the group goes at its bench's tile, and the face wears the texture of its look. */

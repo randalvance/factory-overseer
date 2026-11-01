@@ -38,8 +38,8 @@ can wait there without an assignment. Themes and billboard images are
 optional parameters, independent of the role.
 
 Preset theme keys are research-lab, foundry, factory and fabrication-plant.
-Hosts may use other registry keys. The theme registry defines floors,
-furniture and asset details in #25. Billboard.image is a host-served image
+Hosts may use other registry keys through `roomThemes`; see Room themes below.
+Billboard.image is a host-served image
 URL; its optional alt defaults to the room label. Missing or failed assets
 must use a functional default. The example image path is illustrative;
 the billboard assets arrive in #24.
@@ -293,7 +293,7 @@ Pet artwork never changes the host's workflow state.
 
 Paper grass covers the outdoor ground and continues beyond the visible
 scene. Folded tufts leave belts and the loading road clear. Each room has a
-distinct paper floor pattern: intake pavers, planning graph tiles,
+paper floor pattern chosen by its theme. The demo uses planning graph tiles,
 implementation planks, review checkerboard and deployment loading panels.
 A paper delivery truck waits outside the deployment door; it is
 scenery and does not automatically ship tasks. The host still reports
@@ -314,3 +314,117 @@ ride continues from the deployment room’s left-side conveyor into the parked
 truck, using a real conveyor path. Room conveyors may enter or exit through
 the left, right or rear wall, never through the front edge facing the camera.
 The truck stays parked; shipping remains a host decision.
+
+
+## Room themes
+
+`Room.theme` selects a preset or a host registry key. `Room.themeOverrides`
+patches its visual fields for just that room. These choices are independent
+of the room's ID, kind, role, agent membership and transitions. A configured
+room with no theme, or an unknown key, uses `factory`. Themes affect the
+paper appearance; `appearance="legacy"` retains its original environment.
+
+| Preset | Floor | Station | Rear furnishing |
+| --- | --- | --- | --- |
+| `research-lab` | Cool blue graph paper | Blue lab workstation | Paper shelves |
+| `foundry` | Honey paper planks | Ochre folded machinery | Small press |
+| `factory` | Sage checkerboard | Sage assembly bench | Parts storage |
+| `fabrication-plant` | Terracotta marked bays | Precision-cut worktable | Paper cutter |
+
+Add a theme by passing an immutable `roomThemes` registry to `RoomFactory`
+(or the underlying `Factory` with `roomState`). Definitions may extend one
+built-in preset; registry inheritance does not chain. Registry entries can
+also override a built-in key. `themeOverrides.extends` is ignored: inheritance
+belongs to the registry definition, while per-room overrides patch fields.
+
+```tsx
+import type { RoomThemeRegistry } from "./src/factory/Factory"
+
+const roomThemes: RoomThemeRegistry = {
+  studio: {
+    extends: "research-lab",
+    label: "Paper studio",
+    wall: "#b2b5d7",
+    accent: "#777da9",
+    floor: "blue-grid",
+    station: "precision",
+    decoration: "shelves",
+    // Optional host-served replacements; placeholders work without these.
+    assets: {
+      floor: "/my-art/paper-grid.png",
+      station: { url: "/my-art/instrument.glb", footprint: { width: .45, depth: .24, height: .4 } },
+      decoration: { url: "/my-art/shelf.glb", footprint: { width: 1, depth: .7, height: 1.2 } },
+    },
+  },
+}
+const configuration = {
+  ...state.configuration,
+  rooms: state.configuration.rooms.map((room) => room.id === "planning"
+    ? { ...room, theme: "studio", themeOverrides: { wall: "#c5c7df" } }
+    : room),
+}
+<RoomFactory state={{ ...state, configuration }} roomThemes={roomThemes} />
+```
+
+`RoomThemeDefinition`, `RoomThemeRegistry`, `RoomModelAsset` and
+`RoomThemeAssets` are exported from `src/model/types.ts` and
+`src/factory/Factory.tsx`. `ROOM_THEMES`, `ROOM_THEME_SLOTS` and
+`resolveRoomTheme` are in `src/model/roomThemes.ts`. Colors are six-digit
+sRGB hex strings. Floor patterns are `kraft-pavers`, `blue-grid`,
+`honey-planks`, `sage-checker` and `terracotta-bays`. Station styles are
+`lab`, `foundry`, `assembly` and `precision`; decoration styles are
+`shelves`, `press`, `parts` and `cutter`. Invalid visual fields retain their
+inherited values. Invalid asset descriptors use the procedural replacement.
+
+### Asset placement and lifecycle
+
+GLBs must be static meshes. The loader uniformly scales their bounds to fit
+the declared footprint, then places their bottom center on the slot anchor.
+It preserves proportions and converts materials to the shared Lambert paper
+surface treatment. The component owns these loaded resources. Animations,
+skinned meshes, lights and cameras are unsupported. Use host-served URLs
+(or remote URLs with appropriate browser CORS); relative URLs resolve from
+the page URL. Floor images repeat once per two world tiles; expanding a room
+adds repeats instead of stretching the image.
+
+| Slot | Maximum width × depth × height | Anchor and clearance |
+| --- | --- | --- |
+| Station accessory | 0.50 × 0.26 × 0.45 tiles | Bottom center `(-0.8, 0.85, -0.48)` relative to the bench center; at least 0.04 tile from the parcel strip |
+| Rear furnishing | 1.15 × 0.82 × 1.30 tiles | Bottom center at the checked rear furnishing position; 0.10 tile clearance from belts and circulation |
+
+The station model replaces only the small left-hand accessory. The fixed
+2.8 × 1.3 workbench, its 0.85-high parcel surface, and the separate tablet
+remain functional. Models cannot replace conveyor ports or the entire room.
+Rear furniture and plants are omitted when their full footprint would
+intersect a belt, station or arrival path. Floors cover the room rectangle
+and do not add collision geometry. This keeps growth and theme choice
+independent.
+
+Loads are shared per mounted view. Pending, failed or incompatible assets
+leave a functional procedural fallback; a successful load repaints scenery
+without updating tasks, restarting motion or notifying a human again.
+Switching themes preserves selected cards, camera follow, assignments and
+human requests. Late results use the current theme, not the theme that
+started the request. Per-room floor texture transforms are separate while
+source images are shared. Loaded resources are released on unmount; the
+cache limits each view to 32 distinct model/floor URLs, so additional URLs
+use fallbacks. Reuse stable asset URLs during a session.
+
+### Budgets for generated art (#26)
+
+Working presets are authored geometry and 256 × 256 floor textures. For
+future generated art, target at most 500 triangles per station accessory,
+2,000 per rear furnishing, two materials per model and a shared 512 × 512
+color atlas. Avoid transparent layers and embedded lighting. Keep the room
+sparse: one accessory per station and at most one rear furnishing plus a
+plant per room. A 100-agent map should add no more than 50,000 accessory
+triangles; room furniture adds 2,000 triangles per visible room. These are
+production targets, not measured frame-rate guarantees.
+
+The loader's compatibility ceiling is 10,000 triangles per model and 1024
+pixels per texture dimension. Assets above it fall back before being added
+to the scene. It does not enforce download-byte budgets: keep each generated
+GLB under 1 MB and the four-preset asset pack under 8 MB at publication.
+Use `onRenderMetrics` and the paper browser fixtures to compare frame time,
+draw calls and texture memory before accepting final art. Check the mixed
+four-room view and an expanded seven-agent room at the fixed camera angle.

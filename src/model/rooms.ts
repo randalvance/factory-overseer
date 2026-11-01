@@ -1,3 +1,4 @@
+import type { RoomThemeDefinition } from "./roomThemes"
 import type { Agent, Task } from "./types"
 
 /** Theme definitions and assets are supplied by the theme registry. */
@@ -17,6 +18,8 @@ export interface Room {
   role: string
   kind: "intake" | "work" | "deployment"
   theme?: RoomTheme
+  /** Visual overrides; no effect on routing, roles, or station allocation. */
+  themeOverrides?: RoomThemeDefinition
   billboard?: RoomBillboard
 }
 

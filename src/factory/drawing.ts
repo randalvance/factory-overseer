@@ -6,6 +6,8 @@
 // and agents can change status in place.
 
 import * as THREE from "three"
+import type { ResolvedRoomTheme } from "~/model/roomThemes"
+import type { ThemeAssets } from "./roomThemeAssets"
 import { drawRooms } from "./rooms"
 import { drawPaperGround } from "./paperGround"
 import { drawPaperTrees } from "./paperTrees"
@@ -25,7 +27,7 @@ import { beltTile, bench, containerWalls, door, floorSlab, hopper, pallet, patch
  * how far along it is; a bench for its station; a patch for its bay; and so
  * on. The same name in the next drawing is the same piece, slid there.
  */
-export function drawFactory(layout: Layout, pieces: Pieces): THREE.Group {
+export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets): THREE.Group {
   const group = new THREE.Group()
   group.userData.paper = !!pieces.paper
   const add = (name: string, piece: THREE.Object3D) => {
@@ -45,7 +47,7 @@ export function drawFactory(layout: Layout, pieces: Pieces): THREE.Group {
     if (layout.rooms) (floor.material as THREE.MeshLambertMaterial).color.setHex(0x303941)
     add("floor", floor)
   }
-  drawRooms(layout, pieces.floor, add, pieces.paper)
+  drawRooms(layout, pieces.floor, add, pieces.paper, themes, assets)
   if (!pieces.paper) add("patch:intake", patch(layout.intake.rect, "intake"))
   if (!pieces.paper) for (const bay of layout.bays) add(`patch:${bay.id}`, patch(bay.rect, "bay"))
   if (layout.staging && !pieces.paper) add("patch:staging", patch(layout.staging.rect, "staging"))
@@ -67,7 +69,8 @@ export function drawFactory(layout: Layout, pieces: Pieces): THREE.Group {
     })
   }
 
-  for (const bay of layout.bays) for (const station of bay.stations) add(`bench:${station.id}`, bench(station.bench, station.vacant, pieces, station.role))
+  const stationPalette = new Map<number, THREE.MeshLambertMaterial>()
+  for (const bay of layout.bays) for (const station of bay.stations) add(`bench:${station.id}`, bench(station.bench, station.vacant, pieces, station.role, themes?.get(bay.id), assets, stationPalette))
   if (layout.staging) {
     add("bench:staging", bench(layout.staging.bench, false, pieces))
     // The first staging spot is the bench itself; the rest are shelves beside the inspector.
@@ -91,17 +94,19 @@ export function drawFactory(layout: Layout, pieces: Pieces): THREE.Group {
 
 /** Let go of the geometries and materials of every mesh under an object, but not what it shares with the pieces. Textures stay. */
 export function disposeMeshes(root: THREE.Object3D) {
+  const resources = new Set<THREE.BufferGeometry | THREE.Material | THREE.Texture>()
   root.traverse((object) => {
     if (!(object instanceof THREE.Mesh)) return
     if (object instanceof THREE.InstancedMesh) object.dispose()
-    if (object.userData.disposeTexture) {
-      const material = object.material as THREE.MeshBasicMaterial
-      material.map?.dispose()
+    const materials = Array.isArray(object.material) ? object.material : [object.material]
+    if (object.userData.disposeTexture) for (const material of materials) {
+      const map = (material as THREE.MeshBasicMaterial).map
+      if (map) resources.add(map)
     }
-    if (!isShared(object.geometry)) object.geometry.dispose()
-    const materials: THREE.Material[] = Array.isArray(object.material) ? object.material : [object.material]
-    for (const material of materials) if (!isShared(material)) material.dispose()
+    if (!isShared(object.geometry)) resources.add(object.geometry)
+    for (const material of materials) if (!isShared(material)) resources.add(material)
   })
+  for (const resource of resources) resource.dispose()
 }
 
 // Keep named pieces for layout glides, but batch repeated solid furniture and

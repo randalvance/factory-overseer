@@ -2,8 +2,8 @@ import * as THREE from "three"
 import type { RoomFootprint } from "~/floor/types"
 import { canvasTexture } from "./textures"
 
-export const PAPER_FLOOR_PROFILES = ["kraft-pavers", "blue-grid", "honey-planks", "sage-checker", "terracotta-bays"] as const
-export type PaperFloorProfile = typeof PAPER_FLOOR_PROFILES[number]
+import { PAPER_FLOOR_PROFILES, type PaperFloorProfile } from "~/model/roomThemes"
+export { PAPER_FLOOR_PROFILES, type PaperFloorProfile } from "~/model/roomThemes"
 
 /** Identity defaults, separate from the future host theme/furniture registry. */
 export function paperFloorProfile(room: Pick<RoomFootprint, "id" | "kind">): PaperFloorProfile {

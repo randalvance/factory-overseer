@@ -101,8 +101,15 @@ validation, checked examples and migration, and
 [ADR 0011](docs/adr/0011-configured-room-conveyors.md) for physical routing.
 
 The earlier room-growth demo remains at `?layout=rooms`, and the original
-bay demo at `?layout=legacy`. Physical image billboards and themes follow
-in their separate tickets.
+bay demo at `?layout=legacy`. Host image billboards follow in #24.
+
+
+Select a room and use **Theme** to switch between Research lab, Foundry,
+Factory and Fabrication plant while tasks keep moving. Themes control paper
+floors, wall colors, station construction and sparse furnishings. Hosts can
+supply `roomThemes` and per-room `themeOverrides`; the [theme contract](docs/room-contract.md#room-themes)
+covers custom assets, safe placement, loading fallbacks and art budgets.
+[Theme verification](docs/screenshots/themes/README.md) includes screenshots, browser checks and render measurements.
 
 
 Shared-work demo: at [localhost:3000](http://localhost:3000), send a task to
@@ -116,7 +123,7 @@ The factory still draws and counts one box for that task.
 
 The default demo now uses compact paper rooms, thick card
 platforms, folded braces, illustrated signs mounted directly atop the back
-walls, role-colored desks, small paper
+walls, theme-colored desks, small paper
 furnishings and illustrated standee agents. The paper camera uses a lower 38-degree fixed perspective
 view to expose desk fronts and conveyor supports, with nearer rooms appearing
 larger; legacy keeps its 50-degree orthographic view. Raised paper conveyors have folded legs and feet, and parcels ride at
