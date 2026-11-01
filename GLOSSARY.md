@@ -92,7 +92,8 @@ _Avoid_: Group, column, pool, team
 
 **Annex**:
 A further bay for a role whose bay has no lane left, appended at the end of
-the line like any other bay.
+the line like any other bay. A handoff between a role's bay and its annex
+rides the line like one between roles.
 _Avoid_: Overflow bay, second bay, extension
 
 **Station**:

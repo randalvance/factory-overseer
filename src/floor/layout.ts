@@ -1,12 +1,14 @@
 // The floor core: a pipeline and a snapshot in, a layout out (ADR 0002). Pure:
 // no renderer, no time, no randomness. Everything sits on a tile grid along
-// the line: intake, one bay per role, staging, container. The line runs along
-// a band across the floor until the next structure would not fit in the
-// floor's width; then the trunk turns at the edge and the line goes on in a
-// band below, running the other way (ADR 0006). Inside a bay, lanes stack
-// toward the camera, one station each; rework rides a return belt along the
-// back of each band and up the turns, laid the first time it is needed (ADR
-// 0003).
+// the line: intake, a bay per role, staging, container. The line runs along a
+// band across the floor until the next structure would not fit in the floor's
+// width; then the trunk turns at the edge and the line goes on in a band
+// below, running the other way (ADR 0006). Inside a bay, lanes stack toward
+// the camera, one station each, up to a fixed number; the next agent of the
+// role takes a lane in an annex, a further bay for the role appended at the
+// end of the line (ADR 0007). Rework, and any handoff to a bay behind along
+// the line, rides a return belt along the back of each band and up the turns,
+// laid the first time it is needed (ADR 0003).
 
 import type { Agent, Pipeline, Snapshot, Task } from "~/model/types"
 import { opposite } from "./tiles"
@@ -37,10 +39,8 @@ const INTAKE_W = 2
 const BAY_W = 3
 /** Rows from one lane's bench to the next: the belts between, the agent, the bench. */
 const LANE_H = 3
-/** The lanes a band leaves room for in each of its bays: the fixed number ADR 0007 gives a bay. The cap itself is not kept yet, so a lane past them runs into the band below. */
+/** The lanes a bay holds unless the host says otherwise (ADR 0007). */
 const LANES_PER_BAY = 3
-/** Rows from one band's return belt to the next band's: the belts, the lanes, and one row of floor in front. */
-const BAND_H = TRUNK_BELOW_RETURN + 1 + (LANES_PER_BAY - 1) * LANE_H + 1
 const STAGING_W = 3
 const CONTAINER_W = 3
 /** Belt tiles between one structure and the next. */
@@ -50,13 +50,16 @@ const TURN_W = 2
 /** The narrowest floor the line can always be laid in: a band must take a turn and both ends after it. */
 const MIN_WIDTH = TURN_W + GAP + STAGING_W + GAP + CONTAINER_W
 
-export function bayId(role: string): string {
-  return `bay:${role}`
+/** The id of a role's own bay, or of its annex number `annex`, counted from one. */
+export function bayId(role: string, annex = 0): string {
+  return annex === 0 ? `bay:${role}` : `bay:${role}:${annex}`
 }
 
 export interface FloorOptions {
   /** Whether boxes pass an inspector before they ship. On unless switched off. */
   staging?: boolean
+  /** How many lanes a bay holds, fixed when the first layout is laid: three unless given. The next agent of the role takes a lane in an annex. */
+  lanes?: number
   /**
    * The floor's width in tiles, fixed when the first layout is laid; once laid,
    * the layout before keeps it. As wide as the first line needs when not given,
@@ -66,13 +69,14 @@ export interface FloorOptions {
 }
 
 export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: Layout, options: FloorOptions = {}): Layout {
-  const roles = roleOrder(pipeline, snapshot, previous)
+  const order = bayOrder(pipeline, snapshot, previous)
   const withStaging = options.staging ?? true
-  const width = previous?.bounds.w ?? Math.max(MIN_WIDTH, options.width ?? lineWidth(roles.length, withStaging))
-  const bands: Band[] = [bandAt(0)]
+  const lanesPerBay = previous?.lanesPerBay ?? Math.max(1, options.lanes ?? LANES_PER_BAY)
+  const width = previous?.bounds.w ?? Math.max(MIN_WIDTH, options.width ?? lineWidth(firstLineBays(order, snapshot, lanesPerBay), withStaging))
+  const bands: Band[] = [bandAt(0, lanesPerBay)]
   /** The line turns down into a new band, whose first free column is past the turn and a gap. */
   const turnDown = (): LineHead => {
-    const band = bandAt(bands.length)
+    const band = bandAt(bands.length, lanesPerBay)
     bands.push(band)
     return { band: bands.length - 1, column: ahead(firstColumn(band, width), band, TURN_W + GAP) }
   }
@@ -91,12 +95,19 @@ export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: L
   }
   let head: LineHead = { band: 0, column: INTAKE_W + GAP }
 
-  const bays: Bay[] = roles.map((role) => {
+  const stationing = stationingOf(snapshot, previous, lanesPerBay)
+  const bays: Bay[] = []
+  const layNextBay = (bay: BayToLay) => {
     if (room(head) < BAY_W + GAP + TURN_W) head = turnDown()
-    const bay = layBay(role, startOf(head, BAY_W), head.band, bands[head.band]!, snapshot, previous?.bays.find((b) => b.role === role))
+    bays.push(layBay(bay, startOf(head, BAY_W), head.band, bands[head.band]!, stationing))
     head = advance(head, BAY_W + GAP)
-    return bay
-  })
+  }
+  for (const bay of order) layNextBay(bay)
+  // Whoever still has no station takes a lane in an annex: the role's next bay, appended like any other, holding as many of them as it has lanes.
+  for (const agent of snapshot.agents) {
+    if (stationing.placed.has(agent.id)) continue
+    layNextBay({ role: agent.role, annex: bays.filter((bay) => bay.role === agent.role).length, before: undefined })
+  }
 
   // The two ends go together: the staging area and the container, or the container alone.
   if (room(head) < (withStaging ? STAGING_W + GAP : 0) + CONTAINER_W) head = turnDown()
@@ -111,13 +122,14 @@ export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: L
   const { boxes, unplacedTaskIds } = placeBoxes(snapshot.tasks, { bays, intake, staging, container, belts }, previous)
   // Once laid, the return belt stays; it is laid the first time a box is rework.
   const hadReturnBelt = previous?.belts.some((belt) => belt.kind === "return") ?? false
-  if (hadReturnBelt || boxes.some((box) => isRework(box, bays, previous))) belts.push(...returnBelts(bays, staging, bands, width))
+  if (hadReturnBelt || boxes.some((box) => goesBack(box, bays, previous))) belts.push(...returnBelts(bays, staging, bands, width))
   // One row of floor in front of the frontmost lane, or of the last band's trunk.
   const front = Math.max(bands.at(-1)!.trunkRow + 1, ...bays.map((bay) => bay.rect.y + bay.rect.h))
 
   return {
     bounds: { x: 0, y: 0, w: width, h: front + 1 },
     bands,
+    lanesPerBay,
     door: { x: intake.rect.x + intake.rect.w, y: WALL_ROW },
     intake,
     bays,
@@ -129,14 +141,27 @@ export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: L
   }
 }
 
-/** The width the line takes laid along one band: the intake, a bay per role, the ends. */
-function lineWidth(roleCount: number, withStaging: boolean): number {
-  return INTAKE_W + GAP + roleCount * (BAY_W + GAP) + (withStaging ? STAGING_W + GAP : 0) + CONTAINER_W
+/** The width the line takes laid along one band: the intake, the bays, the ends. */
+function lineWidth(bayCount: number, withStaging: boolean): number {
+  return INTAKE_W + GAP + bayCount * (BAY_W + GAP) + (withStaging ? STAGING_W + GAP : 0) + CONTAINER_W
 }
 
-/** The band at a depth from the back wall: east along the first, the other way in each below, one band's rows apart. */
-function bandAt(index: number): Band {
-  const returnRow = FIRST_RETURN_ROW + index * BAND_H
+/** The bays the first line needs: one per role, and an annex for each further lot of its agents past a bay's lanes. */
+function firstLineBays(order: BayToLay[], snapshot: Snapshot, lanesPerBay: number): number {
+  return order.reduce((bays, { role }) => {
+    const agents = snapshot.agents.filter((agent) => agent.role === role).length
+    return bays + Math.max(1, Math.ceil(agents / lanesPerBay))
+  }, 0)
+}
+
+/**
+ * The band at a depth from the back wall: east along the first, the other way
+ * in each below. From one band's return belt to the next band's: the belts,
+ * the lanes a bay holds, and one row of floor in front.
+ */
+function bandAt(index: number, lanesPerBay: number): Band {
+  const bandHeight = TRUNK_BELOW_RETURN + 1 + (lanesPerBay - 1) * LANE_H + 1
+  const returnRow = FIRST_RETURN_ROW + index * bandHeight
   return { dir: index % 2 === 0 ? "e" : "w", returnRow, trunkRow: returnRow + TRUNK_BELOW_RETURN }
 }
 
@@ -181,57 +206,109 @@ function footprint(x: number, w: number, band: Band): Rect {
   return { x, y: band.trunkRow - 1, w, h: 2 }
 }
 
+/** A bay to lay: the role's own or one of its annexes, and the bay it was last time, if any. */
+interface BayToLay {
+  role: string
+  annex: number
+  before: Bay | undefined
+}
+
 /**
  * Bays keep the order they were first laid out in, so laying out from a
  * previous layout reproduces it exactly and roles seen for the first time
- * append. Declared roles get a bay before any agent of theirs arrives.
+ * append. Declared roles get a bay before any agent of theirs arrives. An
+ * annex laid before is a bay like any other; new ones are laid once every
+ * bay here is full.
  */
-function roleOrder(pipeline: Pipeline, snapshot: Snapshot, previous?: Layout): string[] {
-  const order: string[] = []
+function bayOrder(pipeline: Pipeline, snapshot: Snapshot, previous?: Layout): BayToLay[] {
+  const order: BayToLay[] = (previous?.bays ?? []).map((bay) => ({ role: bay.role, annex: bay.annex, before: bay }))
   const add = (role: string) => {
-    if (!order.includes(role)) order.push(role)
+    if (!order.some((entry) => entry.role === role)) order.push({ role, annex: 0, before: undefined })
   }
-  for (const bay of previous?.bays ?? []) add(bay.role)
   for (const role of pipeline.roles) add(role)
   for (const agent of snapshot.agents) add(agent.role)
   return order
 }
 
 /**
- * A bay, lane by lane: the stations it had, each vacant when its agent is no
- * longer in the snapshot, then every agent of the role new to the bay at the
- * first vacant station or, failing one, on a new lane in front. A vacant
- * bench with a box still on it keeps the box until the host moves it, so a
- * newcomer passes it by. The back of the bay never moves.
+ * What laying the bays goes by for who stands where: the snapshot, the lanes
+ * a bay holds, the agents placed at a station so far, and the next index for
+ * a role's station ids, which count across its bays.
  */
-function layBay(role: string, x: number, bandIndex: number, band: Band, snapshot: Snapshot, previous: Bay | undefined): Bay {
-  const here = snapshot.agents.filter((agent) => agent.role === role)
-  const stations: Station[] = (previous?.stations ?? []).map((station) => ({
-    ...station,
-    vacant: !here.some((agent) => agent.id === station.agentId),
-  }))
+interface Stationing {
+  snapshot: Snapshot
+  lanesPerBay: number
+  placed: Set<string>
+  nextStationIndex: (role: string) => number
+}
+
+/** Everyone at a station of the previous layout, still there in that role, keeps it: placed before any bay is laid. */
+function stationingOf(snapshot: Snapshot, previous: Layout | undefined, lanesPerBay: number): Stationing {
+  const stations = previous?.bays.flatMap((bay) => bay.stations) ?? []
+  const nextStationIndex = indexer()
+  for (const station of stations) nextStationIndex(station.role)
+  return {
+    snapshot,
+    lanesPerBay,
+    placed: new Set(stations.filter((station) => stillThere(station, snapshot)).map((station) => station.agentId)),
+    nextStationIndex,
+  }
+}
+
+/** Whether the station's agent is in the snapshot in the station's role. */
+function stillThere(station: Station, snapshot: Snapshot): boolean {
+  return snapshot.agents.some((agent) => agent.id === station.agentId && agent.role === station.role)
+}
+
+/** A running count per key: each call gives the key's next index, from zero. */
+function indexer(): (key: string) => number {
+  const counts = new Map<string, number>()
+  return (key) => {
+    const n = counts.get(key) ?? 0
+    counts.set(key, n + 1)
+    return n
+  }
+}
+
+/**
+ * A bay, lane by lane: the stations it had, each vacant when its agent is no
+ * longer in the snapshot, then every agent of the role without a station yet
+ * at the first vacant station or, failing one, on a new lane in front while
+ * the bay has lanes left. A vacant bench with a box still on it keeps the box
+ * until the host moves it, so a newcomer passes it by. The back of the bay
+ * never moves.
+ */
+function layBay(bay: BayToLay, x: number, bandIndex: number, band: Band, stationing: Stationing): Bay {
+  const { role, annex, before } = bay
+  const id = bayId(role, annex)
+  const { snapshot, placed, lanesPerBay } = stationing
+  const stations: Station[] = (before?.stations ?? []).map((station) => ({ ...station, vacant: !stillThere(station, snapshot) }))
   const holdsABox = (station: Station) =>
     snapshot.tasks.some((task) => typeof task.at === "object" && task.at.agent === station.agentId)
-  for (const agent of here) {
-    if (stations.some((station) => station.agentId === agent.id)) continue
+  for (const agent of snapshot.agents) {
+    if (agent.role !== role || placed.has(agent.id)) continue
     const vacantStation = stations.find((station) => station.vacant && !holdsABox(station))
     if (vacantStation) {
       vacantStation.agentId = agent.id
       vacantStation.vacant = false
+    } else if (stations.length < lanesPerBay) {
+      stations.push(laneStation(id, role, stationing.nextStationIndex(role), x, band, stations.length, agent.id))
     } else {
-      stations.push(laneStation(role, x, band, stations.length, agent.id))
+      break
     }
+    placed.add(agent.id)
   }
   const lanes = Math.max(stations.length, 1)
-  return { role, band: bandIndex, rect: { x, y: band.trunkRow - 1, w: BAY_W, h: lanes * LANE_H - 1 }, stations }
+  return { id, role, annex, band: bandIndex, rect: { x, y: band.trunkRow - 1, w: BAY_W, h: lanes * LANE_H - 1 }, stations }
 }
 
-/** A station on a lane of the bay at x: the bench in the bay's middle column, the agent behind it. */
-function laneStation(role: string, x: number, band: Band, lane: number, agentId: string): Station {
+/** A station on a lane of the bay at x: the bench in the bay's middle column, the agent behind it. Its id counts the role's stations across its bays. */
+function laneStation(bay: string, role: string, index: number, x: number, band: Band, lane: number, agentId: string): Station {
   const benchRow = band.trunkRow + lane * LANE_H
   return {
-    id: `station:${role}:${lane}`,
+    id: `station:${role}:${index}`,
     role,
+    bay,
     lane,
     agentId,
     vacant: false,
@@ -295,7 +372,7 @@ function trunkBelts(intake: Intake, bays: Bay[], staging: StagingArea | undefine
     { id: "intake", band: 0, exit: intake.rect.x + intake.rect.w - 1, entry: intake.rect.x },
     ...staffed(bays).map((bay) => {
       const band = bands[bay.band]!
-      return { id: bayId(bay.role), band: bay.band, entry: feederColumn(bay, band), exit: collectorColumn(bay, band) }
+      return { id: bay.id, band: bay.band, entry: feederColumn(bay, band), exit: collectorColumn(bay, band) }
     }),
     ...(staging
       ? [{ id: "staging", band: staging.band, exit: staging.bench.x, entry: staging.bench.x, riserColumn: riserColumn(staging, bands[staging.band]!) }]
@@ -387,7 +464,7 @@ function bayBelts(bay: Bay, band: Band): Belt[] {
           : { kind: "straight", x: cx, y, dir: "n" },
     )
   }
-  const id = bayId(bay.role)
+  const id = bay.id
   return [
     { id: `${id}:feeder`, kind: "feeder", from: id, to: id, tiles: feeder },
     { id: `${id}:collector`, kind: "collector", from: id, to: id, tiles: collector },
@@ -416,7 +493,7 @@ function returnBelts(bays: Bay[], staging: StagingArea | undefined, bands: Band[
   // The line's end, where the return path starts: the staging riser, or the last served bay's riser.
   const end = staging
     ? { id: "staging", band: staging.band, column: riserColumn(staging, bands[staging.band]!) }
-    : { id: bayId(last.role), band: last.band, column: collectorColumn(last, bands[last.band]!) }
+    : { id: last.id, band: last.band, column: collectorColumn(last, bands[last.band]!) }
   const endIndex = end.band
   const runs: Belt[] = []
   const turnRisers: Belt[] = []
@@ -462,7 +539,7 @@ function returnBelts(bays: Bay[], staging: StagingArea | undefined, bands: Band[
       id: `return:${i}`,
       kind: "return",
       from: i === endIndex ? end.id : `return:${i + 1}`,
-      to: i === firstIndex ? bayId(first.role) : `return:${i - 1}`,
+      to: i === firstIndex ? first.id : `return:${i - 1}`,
       tiles,
     })
   }
@@ -475,7 +552,7 @@ function returnBelts(bays: Bay[], staging: StagingArea | undefined, bands: Band[
     ...stagingRiser,
     ...turnRisers,
     ...served.flatMap((bay): Belt[] => {
-      const id = bayId(bay.role)
+      const id = bay.id
       const band = bands[bay.band]!
       const riser: BeltTile = { kind: "straight", x: collectorColumn(bay, band), y: band.returnRow + 1, dir: "n" }
       const drop: BeltTile = { kind: "straight", x: feederColumn(bay, band), y: band.returnRow + 1, dir: "s" }
@@ -508,12 +585,14 @@ function riserColumn(staging: StagingArea, band: Band): number {
 }
 
 /**
- * Whether a box is rework: it now rests at a station behind where the
- * previous layout rested it, or at another station of the same bay, and so
- * rides the return belt. A queue advancing, a handoff forward and a box new
- * to the floor are not.
+ * Whether a box goes back along the line: it now rests at a station behind
+ * where the previous layout rested it, or at another station of the same
+ * bay, and so rides the return belt. Rework does, and so does a handoff
+ * forward in the pipeline to a bay that lies behind: from an annex, or from a
+ * late role's bay. A queue advancing, a handoff on along the line and a box
+ * new to the floor do not.
  */
-function isRework(box: BoxPlacement, bays: Bay[], previous: Layout | undefined): boolean {
+function goesBack(box: BoxPlacement, bays: Bay[], previous: Layout | undefined): boolean {
   const before = previous?.boxes.find((b) => b.taskId === box.taskId)
   if (!before || !previous || stationOf(box.spot) === undefined) return false
   const wasAt = alongTheLine(before.spot, previous.bays)
@@ -549,12 +628,7 @@ function placeBoxes(tasks: Task[], places: Places, previous: Layout | undefined)
   const unplacedTaskIds: string[] = []
   const stations = places.bays.flatMap((bay) => bay.stations)
   const shippedBefore = new Set(previous ? inContainer(previous).map((box) => box.taskId) : [])
-  const counts = new Map<string, number>()
-  const nextIndexAt = (key: string): number => {
-    const n = counts.get(key) ?? 0
-    counts.set(key, n + 1)
-    return n
-  }
+  const nextIndexAt = indexer()
   const pileTile = (pile: Tile[], index: number): Tile => pile[Math.min(index, pile.length - 1)]!
   const queueTile = (station: Station, index: number): Tile => {
     if (index === 0) return station.bench
@@ -598,9 +672,8 @@ function placeBoxes(tasks: Task[], places: Places, previous: Layout | undefined)
 
 /** The belt tiles behind a station's bench, nearest first: its stretch of the feeder up to the trunk, then the trunk into the bay. */
 function queueBehind(station: Station, belts: Belt[]): Tile[] {
-  const bay = bayId(station.role)
-  const feeder = belts.find((b) => b.kind === "feeder" && b.from === bay)?.tiles ?? []
-  const inbound = belts.find((b) => b.kind === "trunk" && b.to === bay)?.tiles ?? []
+  const feeder = belts.find((b) => b.kind === "feeder" && b.from === station.bay)?.tiles ?? []
+  const inbound = belts.find((b) => b.kind === "trunk" && b.to === station.bay)?.tiles ?? []
   return [...feeder.filter((t) => t.y <= station.bench.y).reverse(), ...inbound.slice().reverse()]
 }
 

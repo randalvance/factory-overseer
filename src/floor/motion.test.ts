@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { Pipeline, Snapshot, TaskLocation } from "~/model/types"
+import type { Agent, Pipeline, Snapshot, TaskLocation } from "~/model/types"
 import { layoutFloor } from "./layout"
 import { motionsFor, restingTiles } from "./motion"
 import type { Layout, Tile } from "./types"
@@ -20,6 +20,11 @@ function snapshot(tasks: Record<string, TaskLocation>): Snapshot {
 
 function tiles(...pairs: [number, number][]): Tile[] {
   return pairs.map(([x, y]) => ({ x, y }))
+}
+
+/** The trunk row's tiles from one column to another along the first band. */
+function trunkEastward(fromX: number, toX: number): Tile[] {
+  return Array.from({ length: toX - fromX + 1 }, (_, i) => ({ x: fromX + i, y: 3 }))
 }
 
 /** The floor for the next snapshot, laid out additively on the floor before it. */
@@ -78,6 +83,20 @@ describe("the ends of the line", () => {
 
     expect(toStaging.toPlay[0]!.path).toEqual(tiles([15, 3], [16, 3], [17, 3], [18, 3], [19, 3], [20, 3]))
     expect(toContainer.toPlay[0]!.path).toEqual(tiles([20, 3], [21, 3], [22, 3], [23, 3], [24, 3], [25, 3]))
+  })
+
+  it("ships a box the host hands straight from the last bay to shipped over the staging bench and on into the container, the staging area still on", () => {
+    const atQa = layoutFloor(pipeline, snapshot({ "t-1": { agent: "qa-1" } }))
+    const shipped = nextSnapshot(atQa, { "t-1": "shipped" })
+
+    const motions = motionsFor(shipped, restingTiles(atQa))
+
+    expect(motions.unrouted).toEqual([])
+    expect(motions.toPlay[0]!.path).toEqual(trunkEastward(15, 25))
+    expect(motions.toPlay[0]!.junctions).toEqual([
+      { tile: { x: 16, y: 3 }, exit: "e" },
+      { tile: { x: 21, y: 3 }, exit: "e" },
+    ])
   })
 
   it("carries a second box awaiting review onto the shelf before the bench, then onto the bench when it frees", () => {
@@ -355,6 +374,85 @@ describe("across a turn", () => {
       { tile: { x: 6, y: 1 }, exit: "w" },
       { tile: { x: 4, y: 1 }, exit: "s" },
       { tile: { x: 4, y: 3 }, exit: "e" },
+    ])
+  })
+})
+
+// Thirty-two tiles wide, the line stays on one band however it grows: a bay
+// appended after the qa's stands at x = 19, its bench at (20, 3), and the
+// ends stand past it. Band 0's return belt runs west along y = 1.
+
+describe("the line grows while it runs", () => {
+  const wide = { width: 32 }
+  const more = (ids: string[], role: string): Agent[] => ids.map((id) => ({ id, name: id, role, status: "idle" }))
+  /** The floor for a pipeline with these agents beside one of each role, laid additively on the floor before it. */
+  const grownBy = (roles: Pipeline, extra: Agent[]) => (tasks: Record<string, TaskLocation>, before?: Layout): Layout => {
+    const base = snapshot(tasks)
+    return layoutFloor(roles, { ...base, agents: [...base.agents, ...extra] }, before, wide)
+  }
+  const withAnnex = grownBy(pipeline, more(["imp-2", "imp-3", "imp-4"], "implementer"))
+  const withSecurity = grownBy({ roles: ["implementer", "reviewer", "security", "qa"] }, more(["sec-1"], "security"))
+
+  it("rides from the intake along the trunk past every bay to a bench in the implementers' annex", () => {
+    const before = withAnnex({ "t-1": "intake" })
+    const after = withAnnex({ "t-1": { agent: "imp-4" } }, before)
+
+    const motions = motionsFor(after, restingTiles(before))
+
+    expect(motions.unrouted).toEqual([])
+    expect(motions.toPlay[0]!.path).toEqual(trunkEastward(1, 20))
+    expect(motions.toPlay[0]!.junctions).toEqual(
+      [4, 6, 9, 11, 14, 16, 19].map((x) => ({ tile: { x, y: 3 }, exit: "e" })),
+    )
+  })
+
+  it("rides a handoff on to the reviewer from the annex behind it along the line: up the annex's riser, along the return belt and down into the reviewer's bay", () => {
+    const before = withAnnex({ "t-1": { agent: "imp-4" } })
+    const after = withAnnex({ "t-1": { agent: "rev-1" } }, before)
+
+    const motions = motionsFor(after, restingTiles(before))
+
+    expect(before.belts.some((belt) => belt.kind === "return")).toBe(false)
+    expect(motions.unrouted).toEqual([])
+    expect(motions.toPlay[0]!.path).toEqual(
+      tiles([20, 3], [21, 3], [21, 2], [21, 1], [20, 1], [19, 1], [18, 1], [17, 1], [16, 1], [15, 1], [14, 1], [13, 1], [12, 1], [11, 1], [10, 1], [9, 1], [9, 2], [9, 3], [10, 3]),
+    )
+    expect(motions.toPlay[0]!.junctions).toEqual([
+      { tile: { x: 21, y: 3 }, exit: "n" },
+      { tile: { x: 21, y: 1 }, exit: "w" },
+      { tile: { x: 19, y: 1 }, exit: "w" },
+      { tile: { x: 16, y: 1 }, exit: "w" },
+      { tile: { x: 14, y: 1 }, exit: "w" },
+      { tile: { x: 11, y: 1 }, exit: "w" },
+      { tile: { x: 9, y: 1 }, exit: "s" },
+      { tile: { x: 9, y: 3 }, exit: "e" },
+    ])
+  })
+
+  it("rides on along the trunk to a late role's bay at the end of the line, and back along the return belt, laid for it, to the role after it in the pipeline", () => {
+    const first = layoutFloor(pipeline, snapshot({ "t-1": { agent: "rev-1" } }), undefined, wide)
+    const atSecurity = withSecurity({ "t-1": { agent: "sec-1" } }, first)
+    const atQa = withSecurity({ "t-1": { agent: "qa-1" } }, atSecurity)
+
+    const forward = motionsFor(atSecurity, restingTiles(first))
+    const back = motionsFor(atQa, restingTiles(atSecurity))
+
+    expect(atSecurity.bays.map((bay) => bay.id)).toEqual(["bay:implementer", "bay:reviewer", "bay:qa", "bay:security"])
+    expect(forward.toPlay[0]!.path).toEqual(trunkEastward(10, 20))
+    expect(forward.toPlay[0]!.junctions).toEqual([11, 14, 16, 19].map((x) => ({ tile: { x, y: 3 }, exit: "e" })))
+    expect(atSecurity.belts.some((belt) => belt.kind === "return")).toBe(false)
+    expect(atQa.belts.some((belt) => belt.kind === "return")).toBe(true)
+    expect(back.unrouted).toEqual([])
+    expect(back.toPlay[0]!.path).toEqual(
+      tiles([20, 3], [21, 3], [21, 2], [21, 1], [20, 1], [19, 1], [18, 1], [17, 1], [16, 1], [15, 1], [14, 1], [14, 2], [14, 3], [15, 3]),
+    )
+    expect(back.toPlay[0]!.junctions).toEqual([
+      { tile: { x: 21, y: 3 }, exit: "n" },
+      { tile: { x: 21, y: 1 }, exit: "w" },
+      { tile: { x: 19, y: 1 }, exit: "w" },
+      { tile: { x: 16, y: 1 }, exit: "w" },
+      { tile: { x: 14, y: 1 }, exit: "s" },
+      { tile: { x: 14, y: 3 }, exit: "e" },
     ])
   })
 })

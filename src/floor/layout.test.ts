@@ -3,7 +3,7 @@ import type { Agent, Pipeline, Snapshot, Task } from "~/model/types"
 import { carriesRework } from "./belts"
 import { bayId, layoutFloor, stationed } from "./layout"
 import { tileKey } from "./tiles"
-import type { Belt, BeltTile, Layout } from "./types"
+import type { Belt, BeltTile, Layout, Rect } from "./types"
 
 const pipeline: Pipeline = { roles: ["implementer", "reviewer", "qa"] }
 
@@ -262,7 +262,7 @@ describe("growing the floor", () => {
       before,
     )
     expect(after.bays.map((b) => b.role)).toEqual(["implementer", "reviewer", "qa", "security"])
-    expect(after.bays.slice(0, 3)).toEqual(before.bays)
+    expectPlacedToStay(before, after)
   })
 
   it("changes nothing already placed when another agent of an existing role arrives: every reserved tile stays as it was", () => {
@@ -387,7 +387,7 @@ describe("lanes", () => {
     expect(after.unplaced.taskIds).toEqual([])
   })
 
-  it("gives a newcomer of the role the first vacant lane before building a new one", () => {
+  it("gives a newcomer of the role the first vacant lane, and the next newcomer a lane in an annex once the bay is full", () => {
     const full = layoutFloor(pipeline, threeImplementers)
     const oneGone = layoutFloor(pipeline, { ...threeImplementers, agents: threeImplementers.agents.filter((a) => a.id !== "imp-2") }, full)
     const twoNew = layoutFloor(
@@ -400,12 +400,11 @@ describe("lanes", () => {
       [0, "imp-1", false],
       [1, "imp-4", false],
       [2, "imp-3", false],
-      [3, "imp-5", false],
     ])
-    expect(twoNew.bays[0]!.stations[3]!.bench).toEqual({ x: 5, y: 12 })
+    expect(twoNew.bays[3]).toMatchObject({ id: "bay:implementer:1", stations: [{ lane: 0, agentId: "imp-5", bench: { x: 20, y: 3 } }] })
   })
 
-  it("keeps a vacant bench for the box left on it: a newcomer gets a new lane until the host moves the box", () => {
+  it("keeps a vacant bench for the box left on it: a newcomer passes it by until the host moves the box", () => {
     const full = layoutFloor(pipeline, threeImplementers)
     const without = threeImplementers.agents.filter((a) => a.id !== "imp-2")
     const oneGone = layoutFloor(pipeline, { agents: without, tasks: [task("t-left", { agent: "imp-2" })] }, full)
@@ -419,8 +418,8 @@ describe("lanes", () => {
       [0, "imp-1", false],
       [1, "imp-2", true],
       [2, "imp-3", false],
-      [3, "imp-4", false],
     ])
+    expect(newcomer.bays[3]).toMatchObject({ id: "bay:implementer:1", stations: [{ lane: 0, agentId: "imp-4" }] })
     expect(boxesByTask(newcomer)["t-left"]!.tile).toEqual({ x: 5, y: 6 })
 
     const boxMoved = layoutFloor(
@@ -432,20 +431,181 @@ describe("lanes", () => {
   })
 
   it("keeps every tile a bay reserved when a lane is added to it", () => {
-    const before = layoutFloor(pipeline, threeImplementers)
-    const after = layoutFloor(pipeline, { ...threeImplementers, agents: [...threeImplementers.agents, agent("imp-4", "implementer")] }, before)
+    const twoImplementers = { ...threeImplementers, agents: threeImplementers.agents.filter((a) => a.id !== "imp-3") }
+    const before = layoutFloor(pipeline, twoImplementers)
+    const after = layoutFloor(pipeline, threeImplementers, before)
 
     const beforeTiles = beltTiles(before)
     const afterTiles = beltTiles(after)
     for (const [key, tile] of beforeTiles) expect(afterTiles.get(key)).toEqual(tile)
     expect(afterTiles.size).toBeGreaterThan(beforeTiles.size)
-    expect(after.bays[0]!.stations.slice(0, 3)).toEqual(before.bays[0]!.stations)
+    expect(after.bays[0]!.stations.slice(0, 2)).toEqual(before.bays[0]!.stations)
+    expect(after.bays[0]!.stations[2]).toMatchObject({ lane: 2, agentId: "imp-3", bench: { x: 5, y: 9 } })
     expect(after.bays.slice(1)).toEqual(before.bays.slice(1))
   })
 
   it("puts the door in the back wall, above the belt into the first bay", () => {
     const layout = layoutFloor(pipeline, oneOfEach)
     expect(layout.door).toEqual({ x: 2, y: 0 })
+  })
+})
+
+// A bay holds three lanes. Thirty-two tiles wide, the line runs along one
+// band: the implementer bay at x = 4, the reviewer's at 9, the qa's at 14,
+// then an annex for the implementers at 19 and the ends past it.
+
+describe("annexes", () => {
+  const wide = { width: 32 }
+  const implementers = (n: number) => Array.from({ length: n }, (_, i) => agent(`imp-${i + 1}`, "implementer"))
+  const crew = (n: number): Snapshot => ({ agents: [...implementers(n), agent("rev-1", "reviewer"), agent("qa-1", "qa")], tasks: [] })
+  const crewWithout = (n: number, id: string): Snapshot => ({ ...crew(n), agents: crew(n).agents.filter((a) => a.id !== id) })
+
+  it("puts the fourth agent of a role in an annex at the end of the line, a further bay of the role before the ends", () => {
+    const layout = layoutFloor(pipeline, crew(4), undefined, wide)
+
+    expect(layout.bays.map((b) => [b.id, b.role, b.annex, b.rect.x, b.stations.length])).toEqual([
+      ["bay:implementer", "implementer", 0, 4, 3],
+      ["bay:reviewer", "reviewer", 0, 9, 1],
+      ["bay:qa", "qa", 0, 14, 1],
+      ["bay:implementer:1", "implementer", 1, 19, 1],
+    ])
+    expect(layout.bays[3]!.stations[0]).toEqual({
+      id: "station:implementer:3",
+      role: "implementer",
+      bay: "bay:implementer:1",
+      lane: 0,
+      agentId: "imp-4",
+      vacant: false,
+      bench: { x: 20, y: 3 },
+      agentTile: { x: 20, y: 2 },
+    })
+    expect(layout.bays[0]!.stations.map((s) => [s.id, s.bay])).toEqual([
+      ["station:implementer:0", "bay:implementer"],
+      ["station:implementer:1", "bay:implementer"],
+      ["station:implementer:2", "bay:implementer"],
+    ])
+    expect(layout.staging!.rect.x).toBe(24)
+    expect(layout.bounds).toEqual({ x: 0, y: 0, w: 32, h: 11 })
+  })
+
+  it("appends the annex when the fourth agent arrives, and nothing placed before it moves", () => {
+    const before = layoutFloor(pipeline, crew(3), undefined, wide)
+    const after = layoutFloor(pipeline, crew(4), before, wide)
+
+    expectPlacedToStay(before, after)
+    expect(after.bays[3]).toMatchObject({ id: "bay:implementer:1", rect: { x: 19, y: 2, w: 3, h: 2 } })
+    const trunk = after.belts.filter((b) => b.kind === "trunk").map((b) => b.id)
+    expect(trunk).toEqual(["intake>bay:implementer", "bay:implementer>bay:reviewer", "bay:reviewer>bay:qa", "bay:qa>bay:implementer:1", "bay:implementer:1>staging", "staging>container"])
+    expect(after.belts.find((b) => b.id === "bay:implementer:1:feeder")!.tiles[0]).toEqual({ kind: "junction", x: 19, y: 3, dir: "e", entries: ["e", "s"], exits: ["e", "s"] })
+  })
+
+  it("fills a vacancy in the role's own bay before an annex, an annex's lanes before another annex", () => {
+    const full = layoutFloor(pipeline, crew(4), undefined, wide)
+    const oneGone = layoutFloor(pipeline, crewWithout(4, "imp-2"), full, wide)
+    const replaced = layoutFloor(pipeline, crewWithout(5, "imp-2"), oneGone, wide)
+    const seven = layoutFloor(pipeline, crewWithout(8, "imp-2"), replaced, wide)
+
+    expect(replaced.bays[0]!.stations.map((s) => s.agentId)).toEqual(["imp-1", "imp-5", "imp-3"])
+    expect(replaced.bays[3]!.stations.map((s) => s.agentId)).toEqual(["imp-4"])
+    expect(seven.bays[3]!.stations.map((s) => [s.lane, s.agentId])).toEqual([
+      [0, "imp-4"],
+      [1, "imp-6"],
+      [2, "imp-7"],
+    ])
+    expect(seven.bays[4]).toMatchObject({ id: "bay:implementer:2", annex: 2, rect: { x: 24, y: 2, w: 3, h: 2 }, stations: [{ id: "station:implementer:6", agentId: "imp-8" }] })
+    // The third bay of the implementers leaves no room for the ends on the first band, so they wrap into the next.
+    expect(seven.staging).toMatchObject({ band: 1, rect: { x: 25 } })
+  })
+
+  it("appends an annex for each role whose lanes are all taken in one snapshot, in the order their agents come", () => {
+    const reviewers = (n: number) => Array.from({ length: n }, (_, i) => agent(`rev-${i + 1}`, "reviewer"))
+    const crews = (imps: number, revs: number): Snapshot => ({ agents: [...implementers(imps), ...reviewers(revs), agent("qa-1", "qa")], tasks: [] })
+    const before = layoutFloor(pipeline, crews(3, 3), undefined, { width: 40 })
+    const after = layoutFloor(pipeline, crews(4, 4), before, { width: 40 })
+
+    expectPlacedToStay(before, after)
+    expect(after.bays.map((b) => [b.id, b.rect.x, b.stations.map((s) => s.agentId)])).toEqual([
+      ["bay:implementer", 4, ["imp-1", "imp-2", "imp-3"]],
+      ["bay:reviewer", 9, ["rev-1", "rev-2", "rev-3"]],
+      ["bay:qa", 14, ["qa-1"]],
+      ["bay:implementer:1", 19, ["imp-4"]],
+      ["bay:reviewer:1", 24, ["rev-4"]],
+    ])
+  })
+
+  it("extends the return belt to an annex appended after it was laid, its stretch over the bays so far unchanged", () => {
+    const withTask = (n: number, at: Task["at"]): Snapshot => ({ ...crew(n), tasks: [task("t-1", at)] })
+    const before = layoutFloor(pipeline, withTask(3, { agent: "rev-1" }), undefined, wide)
+    const laid = layoutFloor(pipeline, withTask(3, { agent: "imp-1" }), before, wide)
+    const appended = layoutFloor(pipeline, withTask(4, { agent: "imp-1" }), laid, wide)
+    const run = appended.belts.find((b) => b.id === "return:0")!
+
+    // The staging area's riser moved along with it; the annex has a riser and a drop of its own.
+    expect(run.tiles[0]).toEqual({ kind: "corner", x: 26, y: 1, from: "n", to: "w" })
+    expect(run.tiles.find((t) => t.x === 21)).toEqual({ kind: "junction", x: 21, y: 1, dir: "w", entries: ["w", "n"], exits: ["w"] })
+    expect(run.tiles.find((t) => t.x === 19)).toEqual({ kind: "junction", x: 19, y: 1, dir: "w", entries: ["w"], exits: ["w", "s"] })
+    const appendedTiles = beltTiles(appended)
+    const overTheBays = laid.belts.filter((b) => b.kind === "return").flatMap((b) => b.tiles).filter((t) => t.x <= 16)
+    for (const tile of overTheBays) expect(appendedTiles.get(tileKey(tile))).toEqual(tile)
+  })
+
+  // Twenty-two tiles wide with the staging area off, the container just fits
+  // after the qa bay; an annex does not, and starts a band below.
+  it("starts a new band for an annex that does not fit in the last bay's band, the container after it, and leaves what came before as it was", () => {
+    const narrow = { width: 22, staging: false }
+    const before = layoutFloor(pipeline, crew(3), undefined, narrow)
+    const after = layoutFloor(pipeline, crew(4), before, narrow)
+
+    expectPlacedToStay(before, after)
+    expect(before.container).toMatchObject({ band: 0, rect: { x: 19 } })
+    expect(after.bays[3]).toMatchObject({ id: "bay:implementer:1", band: 1, rect: { x: 15, y: 12, w: 3, h: 2 } })
+    expect(after.container).toMatchObject({ band: 1, rect: { x: 10 } })
+    expect(after.bounds).toEqual({ x: 0, y: 0, w: 22, h: 15 })
+  })
+
+  it("is as wide as the first line needs, annexes and all, when the host gives no width", () => {
+    const layout = layoutFloor(pipeline, crew(4))
+
+    expect(layout.bounds.w).toBe(32)
+    expect(layout.bands).toHaveLength(1)
+  })
+
+  // Twenty tiles wide, the qa bay already starts a second band, which has room
+  // for the annex after it but not for the ends: they go to a third.
+  it("extends the floor's bounds to cover an annex in a band below, and the ends in the band after it", () => {
+    const layout = layoutFloor(pipeline, crew(4), undefined, { width: 20 })
+    const inside = (rect: Rect) => rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= layout.bounds.w && rect.y + rect.h <= layout.bounds.h
+
+    expect(layout.bands).toEqual([
+      { dir: "e", returnRow: 1, trunkRow: 3 },
+      { dir: "w", returnRow: 11, trunkRow: 13 },
+      { dir: "e", returnRow: 21, trunkRow: 23 },
+    ])
+    expect(layout.bays[3]).toMatchObject({ id: "bay:implementer:1", band: 1, rect: { x: 8, y: 12, w: 3, h: 2 } })
+    expect(layout.staging).toMatchObject({ band: 2, rect: { x: 4 } })
+    expect(layout.container).toMatchObject({ band: 2, rect: { x: 9 } })
+    expect(layout.bounds).toEqual({ x: 0, y: 0, w: 20, h: 25 })
+    expect([...layout.bays.map((bay) => bay.rect), layout.staging!.rect, layout.container.rect].every(inside)).toBe(true)
+  })
+
+  it("holds as many lanes as the host says, with the bands spaced for them, fixed when the first layout is laid", () => {
+    const twoLanes = layoutFloor(pipeline, crew(3), undefined, { width: 20, lanes: 2 })
+    const later = layoutFloor(pipeline, crew(3), twoLanes, { width: 20, lanes: 5 })
+
+    expect(twoLanes.lanesPerBay).toBe(2)
+    expect(twoLanes.bays.map((b) => [b.id, b.stations.length])).toEqual([
+      ["bay:implementer", 2],
+      ["bay:reviewer", 1],
+      ["bay:qa", 1],
+      ["bay:implementer:1", 1],
+    ])
+    expect(twoLanes.bands).toEqual([
+      { dir: "e", returnRow: 1, trunkRow: 3 },
+      { dir: "w", returnRow: 8, trunkRow: 10 },
+      { dir: "e", returnRow: 15, trunkRow: 17 },
+    ])
+    expect(later.lanesPerBay).toBe(2)
+    expect(later).toEqual(twoLanes)
   })
 })
 

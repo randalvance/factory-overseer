@@ -30,6 +30,8 @@ export interface FactoryProps {
    * wide as the first line needs when not given.
    */
   width?: number
+  /** How many lanes a bay holds, fixed like the width: three unless given. The next agent of the role takes a lane in an annex (ADR 0007). */
+  lanes?: number
   /** What each status looks like, cell by cell over the defaults. Keep the same object between renders. */
   statusStyles?: StatusStyleOverrides
   /** The stock sheets each role's agents draw from, over the defaults. Keep the same object between renders. */
@@ -38,7 +40,7 @@ export interface FactoryProps {
   onLayout?: (layout: Layout, motions: Motions) => void
 }
 
-export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, width, statusStyles, wardrobes, onLayout }: FactoryProps) {
+export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
@@ -66,7 +68,7 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, wi
 
   useEffect(() => {
     if (!view.current) return
-    const layout = layoutFloor(pipeline, { agents, tasks }, previous.current, { staging, width })
+    const layout = layoutFloor(pipeline, { agents, tasks }, previous.current, { staging, width, lanes })
     const traffic = comingsAndGoings(previous.current, layout)
     previous.current = layout
     let stale = false
@@ -81,7 +83,7 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, wi
     return () => {
       stale = true
     }
-  }, [pipeline, agents, tasks, staging, width, statusStyles, wardrobes])
+  }, [pipeline, agents, tasks, staging, width, lanes, statusStyles, wardrobes])
 
   return <div ref={mount} className="factory" role="img" aria-label="Factory floor" data-drawn={drawn} />
 }

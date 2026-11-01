@@ -36,13 +36,21 @@ test("the demo opens on the factory in 3D and draws it without errors", async ({
   await page.screenshot({ path: `${screenshots}/demo.png` })
 })
 
-test("a role and a task joining are drawn without errors", async ({ page }) => {
+test("a role joining mid-run gets a bay at the end of the line, a task rides to it and on, and a task joining is drawn, without errors", async ({ page }) => {
   const factory = await openFactory(page)
+  const addRole = page.getByRole("button", { name: "Add a role" })
+  await page.getByRole("combobox", { name: "Speed" }).selectOption("4")
 
-  await page.getByRole("button", { name: "Add a role" }).click()
+  // The new role's bay goes after the qa bay in the second band, and the ends wrap into a third; t-42 rides there from the intake.
+  await addRole.click()
   await expect(factory).toHaveAttribute("data-drawn", "2")
-  await page.getByRole("button", { name: "Add a task" }).click()
+  await page.waitForTimeout(2500)
+  await page.screenshot({ path: `${screenshots}/late-role.png` })
+  // A second new role takes t-42 on from the first.
+  await addRole.click()
   await expect(factory).toHaveAttribute("data-drawn", "3")
+  await page.getByRole("button", { name: "Add a task" }).click()
+  await expect(factory).toHaveAttribute("data-drawn", "4")
   // The new box is on its way down out of the hopper.
   await page.waitForTimeout(250)
   await page.screenshot({ path: `${screenshots}/hopper.png` })
@@ -148,6 +156,11 @@ test("implementers come and go without errors", async ({ page }) => {
   await expect(factory).toHaveAttribute("data-drawn", "5")
   await page.waitForTimeout(3500)
   await page.screenshot({ path: `${screenshots}/lanes.png` })
+  // The bay's three lanes are taken: Frances takes a lane in an annex at the end of the line, in the band below.
+  await add.click()
+  await expect(factory).toHaveAttribute("data-drawn", "6")
+  await page.waitForTimeout(4000)
+  await page.screenshot({ path: `${screenshots}/annex.png` })
 })
 
 test("the flat debug view is still there behind a toggle", async ({ page }) => {

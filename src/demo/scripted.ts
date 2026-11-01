@@ -32,13 +32,18 @@ export const opening: DemoScript = {
   },
 }
 
-/** A new role joins the pipeline with one agent. */
+/**
+ * A new role joins the pipeline with one agent, and t-42 goes on to it: from
+ * the intake to the first role to join, then from each of them to the next.
+ */
 export function withAnotherRole({ pipeline, snapshot }: DemoScript): DemoScript {
   const role = `role-${pipeline.roles.length + 1}`
-  return {
+  const agent: Agent = { id: `${role}-1`, name: role, role, status: "idle" }
+  const joined: DemoScript = {
     pipeline: { roles: [...pipeline.roles, role] },
-    snapshot: { ...snapshot, agents: [...snapshot.agents, { id: `${role}-1`, name: role, role, status: "idle" }] },
+    snapshot: { ...snapshot, agents: [...snapshot.agents, agent] },
   }
+  return withHandoffs(joined, [{ id: "t-42", to: { agent: agent.id } }])
 }
 
 /** What the cycled agent says in each status; in the rest it falls back to the status default. */

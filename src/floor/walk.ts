@@ -46,7 +46,7 @@ function seated(layout: Layout): Station[] {
  * bay, down the aisle, and in to the station's tile.
  */
 export function wayIn(layout: Layout, station: Station): Tile[] {
-  const bay = layout.bays.find((b) => b.role === station.role)
+  const bay = layout.bays.find((b) => b.id === station.bay)
   if (!bay) return []
   const band = layout.bands[bay.band]!
   const aisle = aisleColumn(bay, band)

@@ -30,7 +30,7 @@ export function LayoutDebugView({ layout, motions = [] }: { layout: Layout; moti
 
       <Zone rect={layout.intake.rect} label="intake" fill="#2c3e6b" />
       {layout.bays.map((bay) => (
-        <Zone key={bay.role} rect={bay.rect} label={bay.role} fill="#275c4d" />
+        <Zone key={bay.id} rect={bay.rect} label={bay.annex ? `${bay.role} annex ${bay.annex}` : bay.role} fill="#275c4d" />
       ))}
       {layout.staging && <Zone rect={layout.staging.rect} label="staging" fill="#6b4a23" />}
       <Zone rect={layout.container.rect} label="container" fill="#5a3366" />

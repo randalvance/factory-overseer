@@ -61,6 +61,8 @@ export interface Belt {
 export interface Station {
   id: string
   role: string
+  /** The bay the station is in, by id: the role's own bay or one of its annexes. */
+  bay: string
   /** Which lane of its bay, counted from the back wall. */
   lane: number
   /** The agent working here, or the one that left while the bench is vacant. */
@@ -72,11 +74,19 @@ export interface Station {
   agentTile: Tile
 }
 
+/**
+ * A role's bay, or one of its annexes: a further bay for the role, appended
+ * at the end of the line once the bay has no lane left (ADR 0007).
+ */
 export interface Bay {
+  /** bay:<role> for the role's own bay; bay:<role>:1, bay:<role>:2 and so on for its annexes, numbered from one. */
+  id: string
   role: string
+  /** Which bay of its role: 0 for the role's own, 1 for its first annex, and so on. */
+  annex: number
   /** The band the bay stands in: an index into the layout's bands. */
   band: number
-  /** Grows toward the camera, a lane per station. */
+  /** Grows toward the camera, a lane per station, up to the layout's lanes per bay. */
   rect: Rect
   /** Empty until an agent of the role arrives; from then on one per lane, vacant or not. */
   stations: Station[]
@@ -125,6 +135,8 @@ export interface Layout {
   bounds: Rect
   /** From the back wall toward the camera; the line runs along them in turn. */
   bands: Band[]
+  /** How many lanes a bay holds, fixed when the first layout is laid. */
+  lanesPerBay: number
   /** The door in the back wall that new agents walk in through. */
   door: Tile
   intake: Intake
