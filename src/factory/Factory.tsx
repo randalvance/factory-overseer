@@ -21,11 +21,15 @@ import { type Trails, recordTrails } from "~/model/trails"
 import type { Agent, Pipeline, Snapshot, Subject, Task } from "~/model/types"
 import { Hud } from "./Hud"
 import type { Wardrobes } from "./sprites"
+import type { RoomThemeRegistry } from "~/model/roomThemes"
+export type { RoomThemeDefinition, RoomThemeRegistry, RoomModelAsset, RoomThemeAssets } from "~/model/roomThemes"
 import type { PetAssets } from "./petAssets"
 export type { PetAsset, PetAssets, PetAnimation, PetAnimations } from "./petAssets"
 import { type FactoryView, type Styling, createFactoryView } from "./view"
 
 export interface FactoryProps {
+  /** Host theme registry layered over the four paper presets. Replace immutably to update. */
+  roomThemes?: RoomThemeRegistry
   /** Transparent pet images or 6×4 sheets selected by agent, role, then default. */
   petAssets?: PetAssets
   onRenderMetrics?: (metrics: import("./view").RenderMetrics) => void
@@ -80,12 +84,12 @@ export interface FactoryHandle {
   reorganize(): void
 }
 
-export function Factory({ petAssets, onRenderMetrics, appearance = "paper", pipeline, agents, tasks, roomLayout = false, roomState, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }: FactoryProps) {
+export function Factory({ roomThemes, petAssets, onRenderMetrics, appearance = "paper", pipeline, agents, tasks, roomLayout = false, roomState, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
   /** The props as last rendered, for the handle, which is called between renders. */
-  const latest = useRef({ pipeline, agents, tasks, staging, roomLayout, roomState, onRenderMetrics, appearance, petAssets, statusStyles, wardrobes, onLayout, onReady, onTaskLanded })
+  const latest = useRef({ pipeline, agents, tasks, staging, roomLayout, roomState, onRenderMetrics, appearance, petAssets, roomThemes, statusStyles, wardrobes, onLayout, onReady, onTaskLanded })
   /** How many drawings have been asked of the view; only the latest counts once drawn. */
   const asked = useRef(0)
   /** How many snapshots the view has drawn; the first makes the factory ready. */
@@ -100,7 +104,7 @@ export function Factory({ petAssets, onRenderMetrics, appearance = "paper", pipe
   const styles = useMemo(() => resolveStatusStyles(statusStyles), [statusStyles])
 
   useEffect(() => {
-    latest.current = { pipeline, agents, tasks, staging, roomLayout, roomState, onRenderMetrics, appearance, petAssets, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }
+    latest.current = { pipeline, agents, tasks, staging, roomLayout, roomState, onRenderMetrics, appearance, petAssets, roomThemes, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }
   })
 
   useEffect(() => {
@@ -159,8 +163,8 @@ export function Factory({ petAssets, onRenderMetrics, appearance = "paper", pipe
       : layoutFloor(pipeline, { agents, tasks }, previous.current, { staging, width, lanes, roomLayout })
     const traffic = comingsAndGoings(previous.current, layout)
     previous.current = layout
-    drawnBy(view.current.show(layout, roomState ? roomSnapshotForView(roomState) : { agents, tasks }, { ...styling(statusStyles, wardrobes), appearance, petAssets }, traffic), layout, "The factory could not be drawn")
-  }, [pipeline, agents, tasks, staging, width, lanes, roomLayout, roomState, appearance, petAssets, statusStyles, wardrobes])
+    drawnBy(view.current.show(layout, roomState ? roomSnapshotForView(roomState) : { agents, tasks }, { ...styling(statusStyles, wardrobes), appearance, petAssets, roomThemes }, traffic), layout, "The factory could not be drawn")
+  }, [pipeline, agents, tasks, staging, width, lanes, roomLayout, roomState, appearance, petAssets, roomThemes, statusStyles, wardrobes])
 
   const handle = useRef<FactoryHandle>({
     focus(subject) {
@@ -175,13 +179,13 @@ export function Factory({ petAssets, onRenderMetrics, appearance = "paper", pipe
       view.current?.fitAll()
     },
     reorganize() {
-      const { pipeline, agents, tasks, staging, roomState, appearance, petAssets, statusStyles, wardrobes } = latest.current
+      const { pipeline, agents, tasks, staging, roomState, appearance, petAssets, roomThemes, statusStyles, wardrobes } = latest.current
       if (!view.current || !previous.current) return
       const layout = roomState
         ? layoutConfiguredRooms(roomState, previous.current, previous.current.bounds.w, activeRides.current, true)
         : reorganizedFloor(pipeline, { agents, tasks }, previous.current, { staging })
       previous.current = layout
-      drawnBy(view.current.reorganize(layout, roomState ? roomSnapshotForView(roomState) : { agents, tasks }, { ...styling(statusStyles, wardrobes), appearance, petAssets }), layout, "The factory could not be reorganized")
+      drawnBy(view.current.reorganize(layout, roomState ? roomSnapshotForView(roomState) : { agents, tasks }, { ...styling(statusStyles, wardrobes), appearance, petAssets, roomThemes }), layout, "The factory could not be reorganized")
     },
   })
 

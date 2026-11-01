@@ -6,6 +6,9 @@
 // and the boxes are built elsewhere.
 
 import * as THREE from "three"
+import type { ResolvedRoomTheme, RoomThemeRegistry } from "~/model/roomThemes"
+import { themesForLayout } from "./themesForLayout"
+import { createRoomThemeAssets } from "./roomThemeAssets"
 import { PAPER_GRASS_COLOR } from "./paperGround"
 import { createPaperSurfaces } from "./paperMaterial"
 import { roomGeometryChanged, stationed } from "~/floor/layout"
@@ -58,6 +61,7 @@ export interface FactoryView {
 
 /** How the host wants agents to look. */
 export interface Styling {
+  roomThemes?: RoomThemeRegistry
   petAssets?: PetAssets
   appearance?: "paper" | "legacy"
   /** What each status looks like, resolved. */
@@ -97,6 +101,10 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   const assetBase = options.assetBase ?? "/"
   const petTextures = createPetTextures(assetBase)
   const paperSurfaces = createPaperSurfaces()
+  let themePaintPending = false
+  const themeAssets = createRoomThemeAssets(() => { themePaintPending = true })
+  let shownThemes: ReadonlyMap<string, ResolvedRoomTheme> | undefined
+  let shownPieces: Pieces | undefined
   const canvas = document.createElement("canvas")
   mount.append(canvas)
 
@@ -277,6 +285,18 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
         aimCamera()
       }
     }
+    if (themePaintPending && !slide && shown && shownPieces?.paper) {
+      // Asset completion repaints only scenery: never replay a ride, a walk, or a human hook.
+      themePaintPending = false
+      unbatchPaperDrawing(drawing)
+      scene.remove(drawing)
+      disposeMeshes(drawing)
+      drawing = drawFactory(shown, shownPieces, shownThemes, themeAssets)
+      paperSurfaces.apply(drawing)
+      batchPaperDrawing(drawing)
+      scene.add(drawing)
+      renderer.shadowMap.needsUpdate = true
+    }
     const landings = boxes.tick(dt, speed)
     agents.tick(dt, speed, landings)
     for (const landing of landings) options.onLanded?.(landing.taskId)
@@ -321,7 +341,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   let laidAfresh = false
 
   /** The sheets, icons and pieces a snapshot needs, or nothing once a newer one has been asked for while they loaded. */
-  async function dressed(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Dressed | undefined> {
+  async function dressed(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<(Dressed & { themes: ReadonlyMap<string, ResolvedRoomTheme> }) | undefined> {
     const call = ++generation
     const usePaper = !!layout.rooms && styling.appearance !== "legacy"
     const petIds = new Set(snapshot.agents.filter((agent) => petAssetFor(agent, styling.petAssets, usePaper, styling.wardrobes)).map((agent) => agent.id))
@@ -351,7 +371,9 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     } else sun.position.set(5, 12, 8)
     sun.intensity = usePaper ? .9 : 1.5
     if (usePaper) paper ??= paperPieces(pieces)
-    return { sheets, petIds, customWardrobes: new Set(Object.keys(styling.wardrobes)), looks: { styles: styling.styles, icons }, pieces: usePaper ? paper! : pieces }
+    const themes = themesForLayout(layout, styling.roomThemes)
+    if (usePaper) themeAssets.update(themes.values())
+    return { themes, sheets, petIds, customWardrobes: new Set(Object.keys(styling.wardrobes)), looks: { styles: styling.styles, icons }, pieces: usePaper ? paper! : pieces }
   }
 
   async function show(layout: Layout, snapshot: Snapshot, styling: Styling, traffic: ComingsAndGoings): Promise<Motions> {
@@ -378,13 +400,16 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   }
 
   /** Draw the layout in place of the one shown, everything standing where it now is at once, or gliding there as the drawing slides. */
-  function draw(layout: Layout, snapshot: Snapshot, ready: Dressed, traffic: ComingsAndGoings, settling: Settling): Motions {
+  function draw(layout: Layout, snapshot: Snapshot, ready: Dressed & { themes: ReadonlyMap<string, ResolvedRoomTheme> }, traffic: ComingsAndGoings, settling: Settling): Motions {
     floor = layout.bounds
     slide?.end()
     unbatchPaperDrawing(drawing)
     const stood = drawing
     belts = ready.pieces.belts
-    drawing = drawFactory(layout, ready.pieces)
+    shownPieces = ready.pieces
+    shownThemes = ready.themes
+    drawing = drawFactory(layout, ready.pieces, ready.themes, themeAssets)
+    themePaintPending = false
     if (ready.pieces.paper) paperSurfaces.apply(drawing)
     scene.add(drawing)
     if (settling === "glide") {
@@ -424,6 +449,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     petTextures.dispose()
     paperSurfaces.dispose()
     boxes.dispose()
+    themeAssets.dispose()
     paper?.dispose?.()
     renderer.dispose()
     canvas.remove()

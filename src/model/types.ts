@@ -49,3 +49,5 @@ export type Subject = { agent: string } | { task: string }
 
 // Room-based host contract; legacy types above remain supported.
 export type { RoomTheme, RoomBillboard, Room, RoomTransition, RoomConfiguration, RoomAgent, TaskAssignment, RoomTaskLocation, RoomTask, HumanAttentionRequest, OnHumanNeeded, RoomSnapshot, RoomFactoryState } from "./rooms"
+
+export type { RoomThemeDefinition, RoomThemeRegistry, RoomModelAsset, RoomThemeAssets, BuiltinRoomTheme } from "./roomThemes"

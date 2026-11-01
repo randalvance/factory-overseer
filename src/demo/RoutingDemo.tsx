@@ -7,6 +7,11 @@ import { changeParticipant, implementationReady } from "./sharedWork"
 import { needsHuman, requestHuman, resolveHuman } from "./humanAttention"
 import type { HumanAttentionRequest, RoomFactoryState, RoomTask, RoomTaskLocation } from "~/model/types"
 import { exampleRooms } from "~/model/roomExamples"
+import { ROOM_THEMES, type RoomThemeRegistry } from "~/model/roomThemes"
+
+const DEMO_ROOM_THEMES = {
+  "paper-garden": { extends: "research-lab", label: "Paper garden", wall: "#a4b99a", accent: "#5f806b", floor: "kraft-pavers", station: "lab", decoration: "shelves" },
+} satisfies RoomThemeRegistry
 
 function opening(): RoomFactoryState {
   return {
@@ -101,6 +106,11 @@ export function RoutingDemo() {
     setPlanning((before) => ({ ...before, [id]: needsPlanning }))
     setSelected(id)
   }
+  function setRoomTheme(theme: string) {
+    setState((before) => ({ ...before, configuration: { ...before.configuration,
+      rooms: before.configuration.rooms.map((room) => room.id === roomChoice ? { ...room, theme } : room),
+    } }))
+  }
   function addAgent() {
     setState((before) => {
       const room = before.configuration.rooms.find((room) => room.id === roomChoice)!
@@ -183,6 +193,10 @@ export function RoutingDemo() {
         </span>
         <span className="demo-cluster">
           <select aria-label="Room" value={roomChoice} onChange={(event) => setRoomChoice(event.target.value)}>{choices}</select>
+          <label>Theme <select aria-label="Room theme" value={state.configuration.rooms.find((room) => room.id === roomChoice)?.theme ?? "factory"} onChange={(event) => setRoomTheme(event.target.value)}>
+            {Object.entries(ROOM_THEMES).map(([id, theme]) => <option key={id} value={id}>{theme.label}</option>)}
+            {Object.entries(DEMO_ROOM_THEMES).map(([id, theme]) => <option key={id} value={id}>{theme.label} (custom)</option>)}
+          </select></label>
           <button onClick={addAgent}>Add agent</button>
           <button onClick={togglePlanner} disabled={state.snapshot.humanRequests.some((request) => request.roomId === "planning")}>{plannerPresent ? "Unstaff planning" : "Staff planning"}</button>
           <button onClick={toggleQA} disabled={hasQA && (riding.size > 0 || state.snapshot.tasks.some((task) => task.at.roomId === "qa"))}>{hasQA ? "Remove QA room" : "Include QA room"}</button>
@@ -219,7 +233,7 @@ export function RoutingDemo() {
       <p className="route-status" role="status">{task.label}: {riding.has(selected) ? "riding to " : task.at.kind === "shipped" ? "shipped from " : "in "}{room.label}{waitingForHuman ? " · waiting for your response" : room.kind === "intake" ? " · ready to route" : task.at.kind === "room" && !task.at.assignment ? " · waiting for assignment" : ""}</p>
     </header>
     <section className="demo-factory">
-      <RoomFactory petAssets={new URLSearchParams(location.search).get("art") === "legacy" ? undefined : DEFAULT_PET_ASSETS} appearance={new URLSearchParams(location.search).get("art") === "legacy" ? "legacy" : "paper"} state={state} speed={speed} width={28} onReady={setHandle}
+      <RoomFactory roomThemes={DEMO_ROOM_THEMES} petAssets={new URLSearchParams(location.search).get("art") === "legacy" ? undefined : DEFAULT_PET_ASSETS} appearance={new URLSearchParams(location.search).get("art") === "legacy" ? "legacy" : "paper"} state={state} speed={speed} width={28} onReady={setHandle}
         onTaskLanded={taskLanded}
         onHumanNeeded={(request) => setNotifications((before) => [...before, request])}
         onLayout={(_layout, motions) => { setRiding(new Set(motions.toPlay.map((motion) => motion.taskId))); setUnrouted(motions.unrouted) }} />

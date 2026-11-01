@@ -1,6 +1,6 @@
-import { expect, it } from "vitest"
+import { expect, it, vi } from "vitest"
 import * as THREE from "three"
-import { batchPaperDrawing, unbatchPaperDrawing } from "./drawing"
+import { batchPaperDrawing, unbatchPaperDrawing, disposeMeshes } from "./drawing"
 
 it("batches nearby repeated meshes while retaining distant culling groups and named slide pieces", () => {
   const root = new THREE.Group()
@@ -42,4 +42,21 @@ it("leaves legacy drawings alone", () => {
   const root = new THREE.Group()
   batchPaperDrawing(root)
   expect(root.children).toHaveLength(0)
+})
+
+it("releases drawing-owned shared geometry, palettes and floor textures exactly once", () => {
+  const group = new THREE.Group()
+  const geometry = new THREE.BoxGeometry(), texture = new THREE.Texture()
+  const material = new THREE.MeshLambertMaterial({ map: texture })
+  const released = { geometry: vi.fn(), material: vi.fn(), texture: vi.fn() }
+  geometry.addEventListener("dispose", released.geometry)
+  material.addEventListener("dispose", released.material)
+  texture.addEventListener("dispose", released.texture)
+  for (let i = 0; i < 3; i++) {
+    const mesh = new THREE.Mesh(geometry, material)
+    mesh.userData.disposeTexture = true
+    group.add(mesh)
+  }
+  disposeMeshes(group)
+  for (const callback of Object.values(released)) expect(callback).toHaveBeenCalledTimes(1)
 })

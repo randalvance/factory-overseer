@@ -1,5 +1,9 @@
 import * as THREE from "three"
 import type { Layout, RoomFootprint } from "~/floor/types"
+import { ROOM_THEME_SLOTS, type ResolvedRoomTheme } from "~/model/roomThemes"
+import { wayIn } from "~/floor/walk"
+import type { ThemeAssets } from "./roomThemeAssets"
+import { isShared } from "./models"
 import { floorSlab } from "./pieces"
 import { paperFloorProfile, paperFloorTexture } from "./paperFlooring"
 import { canvasTexture, pixelated } from "./textures"
@@ -7,12 +11,12 @@ import { canvasTexture, pixelated } from "./textures"
 type Add = (name: string, piece: THREE.Object3D) => void
 
 /** The paper room is an authored piece of scenery; routing owns all openings. */
-export function drawRooms(layout: Layout, floorTexture: THREE.Texture, add: Add, paper = false) {
+export function drawRooms(layout: Layout, floorTexture: THREE.Texture, add: Add, paper = false, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets) {
   const occupied = new Set(layout.belts.flatMap((belt) => belt.tiles.map((tile) => `${tile.x},${tile.y}`)))
   for (const room of layout.rooms ?? []) {
     // Intake remains a logical routing endpoint, with its hopper on grass.
     if (paper && room.kind === "intake") continue
-    if (paper) { drawPaperRoom(room, occupied, add); continue }
+    if (paper) { drawPaperRoom(room, occupied, add, layout, themes?.get(room.id), assets); continue }
     const { x, y, w, h } = room.rect
     const color = room.kind === "intake" ? 0x5278ab : room.kind === "deployment" ? 0xb17a49 : room.kind === "staging" ? 0xc7a454 : 0x638a7d
     const floor = floorSlab(room.rect, floorTexture)
@@ -53,13 +57,13 @@ function identity(room: RoomFootprint) {
   return { color: 0xa6b88d, ink: "#71967b", icon: "parcel" }
 }
 
-function drawPaperRoom(room: RoomFootprint, occupied: Set<string>, add: Add) {
+function drawPaperRoom(room: RoomFootprint, occupied: Set<string>, add: Add, layout: Layout, theme?: ResolvedRoomTheme, assets?: ThemeAssets) {
   const { x, y, w, h } = room.rect
   const palette = identity(room)
   const cream = new THREE.MeshLambertMaterial({ color: 0xfff1d5 })
   const edge = new THREE.MeshLambertMaterial({ color: 0xd5bf96 })
   const white = new THREE.MeshLambertMaterial({ color: 0xfff9e9 })
-  const color = new THREE.MeshLambertMaterial({ color: palette.color })
+  const color = new THREE.MeshLambertMaterial({ color: theme?.wall ?? palette.color })
   const cardGeometry = new THREE.BoxGeometry(1, 1, 1)
   const box = (sx: number, sy: number, sz: number, px: number, py: number, pz: number, material: THREE.Material = cream) => {
     const mesh = new THREE.Mesh(cardGeometry, material)
@@ -70,7 +74,8 @@ function drawPaperRoom(room: RoomFootprint, occupied: Set<string>, add: Add) {
   const put = (key: string, piece: THREE.Object3D) => add(`room:${room.id}:${key}`, piece)
   // The floor's visible thickness and bright cut edge establish the cardstock scale.
   put("plinth", box(w + .16, .20, h + .16, x + w / 2, -.12, y + h / 2, edge))
-  const floorMap = paperFloorTexture(paperFloorProfile(room), w + .12, h + .12)
+  const floorMap = (theme?.assets.floor ? assets?.floor(theme.assets.floor, w + .12, h + .12) : undefined) ??
+    paperFloorTexture(theme?.floor ?? paperFloorProfile(room), w + .12, h + .12)
   const floorMaterial = new THREE.MeshLambertMaterial({ map: floorMap })
   const floor = box(w + .12, .045, h + .12, x + w / 2, -.005, y + h / 2, floorMaterial)
   floor.userData.disposeTexture = true
@@ -140,58 +145,102 @@ function drawPaperRoom(room: RoomFootprint, occupied: Set<string>, add: Add) {
   sign.position.set(x + w / 2, wallTop + boardH / 2, y + .09)
   put("sign", sign)
 
-  const clear = (px: number, pz: number) => !occupied.has(`${Math.floor(px)},${Math.floor(pz)}`)
-  // Paper plant and a few pasted notes communicate scale without filling circulation.
-  const plantX = x + w - 2.65, plantZ = y + 1.45
-  if (clear(plantX, plantZ)) {
-    const plant = new THREE.Group()
-    const pot = new THREE.Mesh(new THREE.CylinderGeometry(.28, .21, .45, 4, 1), cream)
-    pot.rotation.y = Math.PI / 4; pot.position.y = .225; pot.castShadow = true; plant.add(pot)
-    const greens = [0x718c5e, 0x8eaa72, 0x618268]
-    for (let i = 0; i < 4; i++) {
-      const leafShape = new THREE.Shape()
-      leafShape.moveTo(0, 0); leafShape.quadraticCurveTo(-.32, .42, 0, .95); leafShape.quadraticCurveTo(.31, .42, 0, 0)
-      const leaf = new THREE.Mesh(new THREE.ShapeGeometry(leafShape), new THREE.MeshLambertMaterial({ color: greens[i % 3], side: THREE.DoubleSide }))
-      leaf.position.set(0, .37, 0); leaf.rotation.z = (i - 1.5) * .40; leaf.rotation.y = i * 1.5
-      leaf.castShadow = true; plant.add(leaf)
-    }
-    plant.position.set(plantX, .03, plantZ); put("plant", plant)
+  // Test complete world footprints, not just their center tile: tall folded
+  // props cannot intrude into conveyors, station surfaces or arriving pets.
+  const obstacles = layout.belts.flatMap((belt) => belt.tiles.map((tile) => ({ x: tile.x, y: tile.y, w: 1, h: 1 })))
+  for (const station of layout.bays.flatMap((bay) => bay.stations)) {
+    obstacles.push({ x: station.bench.x + .5 - 1.4, y: station.bench.y + .5 - .65, w: 2.8, h: 1.3 })
+    obstacles.push(...wayIn(layout, station).map((tile) => ({ x: tile.x, y: tile.y, w: 1, h: 1 })))
   }
-  const furnishingX = x + 2.65, furnishingZ = y + .55
-  if (clear(furnishingX, furnishingZ) && ["bulb", "code", "hammer"].includes(palette.icon)) {
-    const furniture = new THREE.Group()
-    // A scored card sleeve: two sides, a folded foot and a colored front flap.
-    furniture.add(box(1.15, .08, .82, 0, .72, 0, color))
-    for (const dx of [-.51, .51]) {
-      furniture.add(box(.06, .70, .76, dx, .35, 0))
-      furniture.add(box(.22, .025, .76, dx - Math.sign(dx) * .08, .025, 0, white))
-    }
-    if (palette.icon === "hammer") {
-      furniture.add(box(1.06, .66, .05, 0, .36, .38, color))
-      // Cream inset drawer faces with a narrow crease and flat pull tabs.
-      for (const cy of [.22, .52]) {
-        furniture.add(box(.90, .22, .025, 0, cy, .414, cream))
-        furniture.add(box(.24, .045, .035, 0, cy + .03, .44, edge))
+  const placed: THREE.Box3[] = []
+  const clear = (piece: THREE.Object3D) => {
+    piece.updateMatrixWorld(true)
+    const bounds = new THREE.Box3().setFromObject(piece)
+    const margin = ROOM_THEME_SLOTS.decoration.clearance
+    const expanded = bounds.clone().expandByScalar(margin)
+    if (expanded.min.x < x + .16 || expanded.max.x > x + w - .16 || expanded.min.z < y + .16 || expanded.max.z > y + h - .16) return false
+    if (obstacles.some((rect) => expanded.max.x > rect.x && expanded.min.x < rect.x + rect.w &&
+      expanded.max.z > rect.y && expanded.min.z < rect.y + rect.h)) return false
+    if (placed.some((other) => expanded.intersectsBox(other))) return false
+    placed.push(bounds)
+    return true
+  }
+  const discard = (piece: THREE.Object3D) => {
+    const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>()
+    piece.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return
+      if (object.geometry !== cardGeometry && !isShared(object.geometry)) geometries.add(object.geometry)
+      for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+        if (![cream, edge, white, color].includes(material) && !isShared(material)) materials.add(material)
       }
-      const toolbox = box(.64, .28, .40, .08, .90, -.08, color)
-      furniture.add(toolbox, box(.32, .035, .025, .08, 1.06, -.08, cream))
+    })
+    for (const geometry of geometries) geometry.dispose()
+    for (const material of materials) material.dispose()
+  }
+  const furnishing = theme?.decoration ?? (palette.icon === "hammer" ? "press" : palette.icon === "code" ? "parts" : palette.icon === "truck" ? "cutter" : "shelves")
+  let furniture = theme?.assets.decoration ? assets?.model(theme.assets.decoration, "decoration") : undefined
+  if (!furniture) {
+    const accent = new THREE.MeshLambertMaterial({ color: theme?.accent ?? palette.color })
+    furniture = new THREE.Group()
+    const putPart = (sx: number, sy: number, sz: number, px: number, py: number, pz: number, material: THREE.Material = accent) => {
+      const mesh = box(sx, sy, sz, px, py, pz, material); furniture!.add(mesh); return mesh
+    }
+    if (furnishing === "shelves") {
+      for (const dx of [-.52, .52]) putPart(.08, 1.24, .74, dx, .62, 0, cream)
+      for (const cy of [.08, .58, 1.08]) {
+        putPart(1.12, .07, .80, 0, cy, 0)
+        if (cy < 1) for (const [index, dx] of [-.31, 0, .29].entries()) {
+          putPart(.20, .31, .48, dx, cy + .19, .04, index % 2 ? cream : color)
+          putPart(.025, .27, .025, dx - .06, cy + .19, .29, edge)
+        }
+      }
+    } else if (furnishing === "press") {
+      putPart(1.12, .13, .80, 0, .065, 0, edge)
+      for (const dx of [-.45, .45]) putPart(.16, 1.1, .67, dx, .65, 0)
+      putPart(1.1, .16, .78, 0, 1.20, 0)
+      putPart(.14, .34, .18, 0, .95, 0, cream)
+      putPart(.52, .10, .52, 0, .73, 0, edge)
+      putPart(.70, .12, .62, 0, .28, 0, cream)
+    } else if (furnishing === "parts") {
+      putPart(1.12, .10, .80, 0, .08, 0, edge)
+      for (const dx of [-.51, .51]) putPart(.08, 1.18, .76, dx, .64, 0, cream)
+      for (const cy of [.30, .83]) {
+        putPart(1.05, .07, .78, 0, cy - .12, 0)
+        for (const dx of [-.26, .26]) {
+          putPart(.44, .31, .60, dx, cy + .07, .05)
+          putPart(.20, .08, .025, dx, cy + .08, .365, cream)
+        }
+      }
     } else {
-      // Three paper books. Separate thin covers and page blocks make their
-      // folded construction legible without photographic texture.
-      for (let i = 0; i < 3; i++) {
-        const book = new THREE.Group()
-        const cy = .80 + i * .16
-        book.add(box(.80, .10, .56, 0, cy, 0, white))
-        book.add(box(.84, .025, .60, 0, cy - .057, 0, i === 1 ? cream : color))
-        book.add(box(.84, .025, .60, 0, cy + .057, 0, i === 1 ? cream : color))
-        book.add(box(.025, .14, .60, -.41, cy, 0, i === 1 ? cream : color))
-        book.rotation.y = (i - 1) * .07
-        furniture.add(book)
-      }
+      for (const dx of [-.45, .45]) putPart(.10, .65, .72, dx, .33, 0, cream)
+      putPart(1.12, .10, .80, 0, .70, 0)
+      putPart(.9, .025, .65, 0, .763, .02, cream)
+      putPart(.09, .51, .12, -.43, 1.0, -.26, edge)
+      const blade = putPart(.85, .07, .09, -.03, 1.11, -.26)
+      blade.rotation.z = -.23
+      for (const dx of [-.2, 0, .2]) putPart(.012, .012, .5, dx, .783, .02, edge)
     }
-    furniture.position.set(furnishingX, .02, furnishingZ)
-    put("side-furnishing", furniture)
   }
+  furniture.userData.themeDecoration = furnishing
+  furniture.position.set(x + 2.75, .02, y + .77)
+  if (clear(furniture)) put("side-furnishing", furniture)
+  else discard(furniture)
+
+  const plant = new THREE.Group()
+  const pot = new THREE.Mesh(new THREE.CylinderGeometry(.28, .21, .45, 4, 1), cream)
+  pot.rotation.y = Math.PI / 4; pot.position.y = .225; pot.castShadow = true; plant.add(pot)
+  const greens = [0x718c5e, 0x8eaa72, 0x618268]
+  for (let i = 0; i < 4; i++) {
+    const leafShape = new THREE.Shape()
+    leafShape.moveTo(0, 0); leafShape.quadraticCurveTo(-.32, .42, 0, .95); leafShape.quadraticCurveTo(.31, .42, 0, 0)
+    const leaf = new THREE.Mesh(new THREE.ShapeGeometry(leafShape), new THREE.MeshLambertMaterial({ color: greens[i % 3], side: THREE.DoubleSide }))
+    leaf.position.set(0, .37, 0); leaf.rotation.z = (i - 1.5) * .40; leaf.rotation.y = i * 1.5
+    leaf.castShadow = true; plant.add(leaf)
+  }
+  plant.scale.setScalar(.65)
+  plant.position.set(x + w - 2.55, .03, y + 1.0)
+  if (clear(plant)) put("plant", plant)
+  else discard(plant)
   // The entire note cluster fits within one solid wall tile. Decorative
   // notes must not float over a conveyor cutout as the room grows or mirrors.
   let noteColumn = w - 3
