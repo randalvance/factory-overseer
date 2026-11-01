@@ -26,8 +26,12 @@ export interface BeltTextures {
 }
 
 export interface Pieces {
+  paper?: boolean
+  /** One support pair under a complete paper belt tile, separate from junction arms. */
+  beltSupport?: (name: BeltPieceName, floorY: number) => THREE.Object3D
+  dispose?: () => void
   /** A copy of the piece standing at the origin, on the piece's own geometry and materials: a mesh, or a group of them when it wears more than one material. */
-  clone(name: PieceName): THREE.Object3D
+  clone(name: PieceName, accent?: number): THREE.Object3D
   /** The floor tile's texture, which the floor wears once a tile. */
   floor: THREE.Texture
   /** The box's cardboard, which each box's label is drawn over. */
@@ -38,6 +42,7 @@ export interface Pieces {
 
 /** What the copies share with the pieces, and what is never disposed with a copy. */
 const shared = new WeakSet<THREE.BufferGeometry | THREE.Material>()
+export function shareResource(resource: THREE.BufferGeometry | THREE.Material) { shared.add(resource); return resource }
 
 /** Whether a geometry or material is a piece's own, shared by every copy, so disposing a copy must leave it be. */
 export function isShared(thing: THREE.BufferGeometry | THREE.Material): boolean {

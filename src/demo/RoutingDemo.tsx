@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState } from "react"
 import { RoomFactory } from "~/factory/RoomFactory"
+import { DEFAULT_PET_ASSETS } from "~/factory/petAssets"
 import type { FactoryHandle } from "~/factory/Factory"
 import { HumanAttentionPanel, type HumanAnswer } from "./HumanAttentionPanel"
+import { changeParticipant, implementationReady } from "./sharedWork"
 import { needsHuman, requestHuman, resolveHuman } from "./humanAttention"
 import type { HumanAttentionRequest, RoomFactoryState, RoomTask, RoomTaskLocation } from "~/model/types"
 import { exampleRooms } from "~/model/roomExamples"
@@ -10,9 +12,9 @@ function opening(): RoomFactoryState {
   return {
     configuration: structuredClone(exampleRooms),
     snapshot: {
-      agents: exampleRooms.rooms.map((room) => ({ id: room.id + "-1", name: room.label + " agent", roomId: room.id, role: room.role, status: "idle" })),
+      agents: exampleRooms.rooms.filter((room) => room.kind !== "intake").map((room) => ({ id: room.id + "-1", name: room.label + " agent", roomId: room.id, role: room.role, status: "idle" })),
       tasks: [
-        { id: "task-1", label: "Plan a new feature", at: { kind: "room", roomId: "intake", assignment: { agentIds: ["intake-1"], completedAgentIds: [] } } },
+        { id: "task-1", label: "Plan a new feature", at: { kind: "room", roomId: "intake" } },
         { id: "task-2", label: "Fix a typo directly", at: { kind: "room", roomId: "intake" } },
       ],
       humanRequests: [],
@@ -28,6 +30,7 @@ function destination(state: RoomFactoryState, roomId: string): RoomTaskLocation 
 /** A host example for #21: controls change snapshots; the renderer never decides work. */
 export function RoutingDemo() {
   const [state, setState] = useState(opening)
+  const [sharedTasks, setSharedTasks] = useState<Set<string>>(new Set())
   const [notifications, setNotifications] = useState<HumanAttentionRequest[]>([])
   const [answers, setAnswers] = useState<HumanAnswer[]>([])
   const requestSequence = useRef(0)
@@ -50,14 +53,46 @@ export function RoutingDemo() {
   const edge = state.configuration.transitions.find((edge) => edge.from === task.at.roomId && edge.outcome === outcome)
   const routeLabel = task.at.kind === "shipped" ? "Shipped" : task.at.roomId === "deployment" ? "Ship task" :
     edge ? `Send to ${state.configuration.rooms.find((room) => room.id === edge.to)!.label}` : "No next room"
-  const choices = useMemo(() => state.configuration.rooms.map((room) => <option key={room.id} value={room.id}>{room.label}</option>), [state.configuration.rooms])
+  const choices = useMemo(() => state.configuration.rooms.filter((room) => room.kind !== "intake").map((room) => <option key={room.id} value={room.id}>{room.label}</option>), [state.configuration.rooms])
 
   function moveTo(roomId: string | "shipped") {
-    if (needsHuman(state, selected)) return
-    setState((before) => ({ ...before, snapshot: { ...before.snapshot, tasks: before.snapshot.tasks.map((task) => task.id !== selected ? task : {
-      ...task, at: roomId === "shipped" ? { kind: "shipped", roomId: "deployment" } : destination(before, roomId),
-    }) } }))
+    if (needsHuman(state, selected) || (roomId !== "planning" && sharedTasks.has(selected) && !implementationReady(state, selected))) return
+    setState((before) => {
+      const at = roomId === "shipped" ? { kind: "shipped" as const, roomId: "deployment" } : destination(before, roomId)
+      if (at.kind === "room" && roomId === "implementation" && sharedTasks.has(selected)) {
+        const agentIds = before.snapshot.agents.filter((agent) => agent.roomId === roomId && agent.status !== "offline").slice(0, 2).map((agent) => agent.id)
+        at.assignment = agentIds.length ? { agentIds, completedAgentIds: [] } : undefined
+      }
+      const tasks = before.snapshot.tasks.map((task) => task.id !== selected ? task : { ...task, at })
+      const previous = before.snapshot.tasks.find((task) => task.id === selected)
+      const formerMembers = previous?.at.kind === "room" ? previous.at.assignment?.agentIds ?? [] : []
+      return { ...before, snapshot: { ...before.snapshot,
+        tasks,
+        agents: before.snapshot.agents.map((agent) => {
+          if (at.kind === "room" && at.assignment?.agentIds.includes(agent.id)) return { ...agent, status: "working" as const }
+          const stillAssigned = tasks.some((task) => task.at.kind === "room" && task.at.assignment?.agentIds.includes(agent.id))
+          return formerMembers.includes(agent.id) && !stillAssigned ? { ...agent, status: "idle" as const } : agent
+        }),
+      } }
+    })
     if (follow) handle?.focus({ task: selected })
+  }
+  function shareTask() {
+    setSharedTasks((before) => new Set([...before, selected]))
+    setState((before) => {
+      const members = before.snapshot.agents.filter((agent) => agent.roomId === "implementation" && agent.status !== "offline")
+      const added = members.length < 2 ? Array.from({ length: 2 - members.length }, (_, index) => ({
+        id: `shared-implementer-${index}`, name: `Implementer ${members.length + index + 1}`,
+        roomId: "implementation", role: "implementer", status: "working" as const,
+      })) : []
+      const agentIds = [...members, ...added].slice(0, 2).map((agent) => agent.id)
+      return { ...before, snapshot: { ...before.snapshot,
+        agents: [...before.snapshot.agents, ...added].map((agent) => agentIds.includes(agent.id) ? { ...agent, status: "working" as const } : agent),
+        tasks: before.snapshot.tasks.map((item) => item.id !== selected ? item : {
+          ...item, at: { kind: "room", roomId: "implementation", assignment: { agentIds, completedAgentIds: [] } },
+        }),
+      } }
+    })
   }
   function addTask(needsPlanning: boolean) {
     const id = `task-${state.snapshot.tasks.length + 1}`
@@ -130,9 +165,12 @@ export function RoutingDemo() {
     setState((before) => resolveHuman(before, request.id, followUp))
   }
   const waitingForHuman = needsHuman(state, selected)
-  return <main className="demo">
+  const shared = sharedTasks.has(selected) && task.at.kind === "room" && task.at.roomId === "implementation"
+  const assignment = task.at.kind === "room" ? task.at.assignment : undefined
+  const joinBlocked = shared && !implementationReady(state, selected)
+  return <main className={new URLSearchParams(location.search).get("art") === "legacy" ? "demo" : "demo paper-demo"}>
     <header className="demo-header">
-      <h1>Factory Overseer</h1><span>Rooms and human attention</span>
+      <h1>Factory Overseer</h1><span>Paper workshop</span>
       <div className="demo-controls">
         <span className="demo-cluster">
           <select aria-label="Task" value={selected} onChange={(event) => setSelected(event.target.value)}>
@@ -140,7 +178,7 @@ export function RoutingDemo() {
           </select>
           <button onClick={() => addTask(true)}>Add planning task</button>
           <button onClick={() => addTask(false)}>Add direct task</button>
-          <button onClick={() => moveTo(task.at.roomId === "deployment" ? "shipped" : edge!.to)} disabled={!handle || waitingForHuman || riding.has(selected) || task.at.kind === "shipped" || (!edge && task.at.roomId !== "deployment")}>{routeLabel}</button>
+          <button onClick={() => moveTo(task.at.roomId === "deployment" ? "shipped" : edge!.to)} disabled={!handle || joinBlocked || waitingForHuman || riding.has(selected) || task.at.kind === "shipped" || (!edge && task.at.roomId !== "deployment")}>{routeLabel}</button>
           <button onClick={() => moveTo("planning")} disabled={!handle || waitingForHuman || riding.has(selected) || task.at.roomId !== "implementation"}>Return to planning</button>
         </span>
         <span className="demo-cluster">
@@ -160,10 +198,28 @@ export function RoutingDemo() {
           <button onClick={() => askForHuman(selected, "approval", "May this task continue?")} disabled={!handle || waitingForHuman || riding.has(selected) || task.at.kind === "shipped"}>Request approval</button>
         </span>
       </div>
-      <p className="route-status" role="status">{task.label}: {riding.has(selected) ? "riding to " : task.at.kind === "shipped" ? "shipped from " : "in "}{room.label}{waitingForHuman ? " · waiting for your response" : task.at.kind === "room" && !task.at.assignment ? " · waiting for assignment" : ""}</p>
+      {task.at.kind === "room" && task.at.roomId === "implementation" && <section className="shared-work" aria-label="Shared implementation">
+        <button onClick={() => handle?.inspect({ task: selected })}>Inspect task</button>
+        <button onClick={shareTask} disabled={!handle || waitingForHuman || riding.has(selected)}>Assign two implementers</button>
+        {shared && <>
+          <span>{assignment?.completedAgentIds.length ?? 0}/{assignment?.agentIds.length ?? 0} complete · {joinBlocked ? "waiting for participants" : "ready for host handoff"}</span>
+          {assignment?.agentIds.map((id) => {
+            const agent = state.snapshot.agents.find((agent) => agent.id === id)!
+            const complete = assignment.completedAgentIds.includes(id)
+            return <span className="demo-cluster" key={id}>
+              <button onClick={() => handle?.inspect({ agent: id })}>{agent.name}</button>
+              <span>{complete ? "complete" : agent.status}</span>
+              <button disabled={waitingForHuman || riding.has(selected) || complete} onClick={() => setState((before) => changeParticipant(before, selected, id, "complete"))}>Complete {agent.name}</button>
+              <button disabled={waitingForHuman || riding.has(selected)} onClick={() => setState((before) => changeParticipant(before, selected, id, "fail"))}>Fail {agent.name}</button>
+              <button disabled={waitingForHuman || riding.has(selected)} onClick={() => setState((before) => changeParticipant(before, selected, id, "remove"))}>Unassign {agent.name}</button>
+            </span>
+          })}
+        </>}
+      </section>}
+      <p className="route-status" role="status">{task.label}: {riding.has(selected) ? "riding to " : task.at.kind === "shipped" ? "shipped from " : "in "}{room.label}{waitingForHuman ? " · waiting for your response" : room.kind === "intake" ? " · ready to route" : task.at.kind === "room" && !task.at.assignment ? " · waiting for assignment" : ""}</p>
     </header>
     <section className="demo-factory">
-      <RoomFactory state={state} speed={speed} width={24} onReady={setHandle}
+      <RoomFactory petAssets={new URLSearchParams(location.search).get("art") === "legacy" ? undefined : DEFAULT_PET_ASSETS} appearance={new URLSearchParams(location.search).get("art") === "legacy" ? "legacy" : "paper"} state={state} speed={speed} width={28} onReady={setHandle}
         onTaskLanded={taskLanded}
         onHumanNeeded={(request) => setNotifications((before) => [...before, request])}
         onLayout={(_layout, motions) => { setRiding(new Set(motions.toPlay.map((motion) => motion.taskId))); setUnrouted(motions.unrouted) }} />

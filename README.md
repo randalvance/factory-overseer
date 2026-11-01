@@ -85,8 +85,8 @@ MIT for the code. The art has its own terms: see [ASSETS.md](ASSETS.md).
 
 ## Configurable rooms
 
-The demo at localhost:3000 now shows the configured intake, planning,
-implementation, code review and deployment rooms. Select a task and use
+The demo at localhost:3000 now shows an outdoor intake hopper connected to
+planning, implementation, code review and deployment rooms. Select a task and use
 **Send to …** to watch a handoff. One opening task needs planning; the other
 goes directly to implementation. Planning asks two questions through the
 optional `onHumanNeeded` hook; answer them in the host's attention panel,
@@ -103,3 +103,100 @@ validation, checked examples and migration, and
 The earlier room-growth demo remains at `?layout=rooms`, and the original
 bay demo at `?layout=legacy`. Physical image billboards and themes follow
 in their separate tickets.
+
+
+Shared-work demo: at [localhost:3000](http://localhost:3000), send a task to
+Implementation, then choose **Assign two implementers**. Complete one member,
+ask for help or fail the other, and return to planning for rework. Both members
+must complete before the demo enables the explicit review handoff. Unassign
+moves ownership to the remaining member, or queues the box when none remain.
+The factory still draws and counts one box for that task.
+
+## Paper diorama preview
+
+The default demo now uses compact paper rooms, thick card
+platforms, folded braces, illustrated signs mounted directly atop the back
+walls, role-colored desks, small paper
+furnishings and illustrated standee agents. The paper camera uses a lower 38-degree fixed perspective
+view to expose desk fronts and conveyor supports, with nearer rooms appearing
+larger; legacy keeps its 50-degree orthographic view. Raised paper conveyors have folded legs and feet, and parcels ride at
+the deck height. Paper-mode Fit all frames both dimensions and leaves space for the HUD.
+Stations fill left-to-right, three pets per row. A room widens for its second
+and third stations, then adds depth for its fourth and seventh; full-size
+desks keep their spacing. Vacancies are reused before growth, and Reorganize
+compacts them. In the demo, choose Implementation and click **Add agent**
+successively to see the first, second and third rows form. **Fit all** frames
+the floor after it expands. Room growth and configured conveyor handoffs
+remain live. The main conveyor
+runs across the front desks and turns through the lower row. Bypasses, rework
+and local returns retain real exterior paths; they are more extensive than
+the concept's illustrative paths.
+
+Use `appearance="legacy"` on Factory/RoomFactory for the old environment and
+characters; the demo exposes this at `/?art=legacy`. Explicit agent sprite
+URLs/indices and custom role wardrobes remain supported. Paper standees
+retain walking, work poses, status badges, shared task labels and human waits.
+
+Architecture and furniture are authored meshes with shared geometry/materials;
+the standee cast and signage are authored canvas artwork. No new paid assets
+were generated. Comfy Cloud was not available in the session's tool catalog.
+The design reference remains `docs/design/paper-diorama-concept.png`.
+
+Repeating belts and desks are instanced in four-tile spatial groups while
+settled and restored to named pieces for room glides. The paper view uses a
+single cached soft VSM directional shadow map, refreshed during layout changes and glides. Moving parcels do not cast into that static map. Source resources are released with
+the view; existing shared label caches remain page-scoped.
+
+With localhost:3000 running, reproduce the comparison using:
+`devcontainer exec --workspace-folder . node tools/measure-paper.mjs`.
+Fixtures contain 20 agents/30 tasks and 100 agents/150 tasks. Results and
+actual-browser screenshots are in `docs/screenshots/paper/`.
+
+The optional `onRenderMetrics` callback, supplied at mount, reports 30-frame
+average intervals, draw calls, triangles, geometry/texture counts and estimated
+source RGBA texture bytes. That byte estimate excludes shadow-map/framebuffer
+storage and is not measured GPU allocation. Large maps are pannable: metrics
+describe the current visible viewport, not all agents visible simultaneously.
+Software-rendered Chromium is a reproducible regression check, not a promise
+of hardware frame rates. The 60 fps normal target needs a hardware check.
+
+Earlier paper-preview baseline, before the raised conveyors and perspective correction,
+measured with Chromium 156/ANGLE SwiftShader (software rendering), 1280×800, DPR 1, after warmup:
+
+| Appearance | Agents / tasks | Mean frame interval | Draw calls (last sample) | Estimated source textures |
+| --- | --- | ---: | ---: | ---: |
+| legacy | 20 / 30 | 26.04 ms | 1054 | 3.3 MiB |
+| paper | 20 / 30 | 39.79 ms | 876 | 19.4 MiB |
+| legacy | 100 / 150 | 28.19 ms | 1142 | 10.9 MiB |
+| paper | 100 / 150 | 41.25 ms | 837 | 29.4 MiB |
+
+These results cover settled scenes. Room glides regenerate shadows and can be slower. Later props should stay within this measured envelope until hardware profiling establishes more headroom.
+
+
+The paper demo supplies a pet cast through `petAssets`: rabbit planning,
+cat implementation, owl review and fox deployment, with a corgi available
+for host-supplied intake agents. Intake is an outdoor hopper with one outgoing
+belt and a downstream splitter; it has no enclosure or dedicated worker. Pass
+per-agent, per-role or default image/sprite-sheet URLs to `RoomFactory` or
+`Factory`; see [the pet asset contract](docs/room-contract.md#pet-assets).
+The entire outdoor ground is paper grass, with folded-paper trees around
+the perimeter and a clear truck road. Each room has a distinct paper
+floor pattern. Pets work with alternating paw poses and wave when they need
+human attention. Active human requests select the animation without changing
+the host's status, and clearing the request restores its normal animation.
+A delivery truck waits in side view on a horizontal road continuing out of
+the scene. Its open rear connects to the conveyor exiting the left side of deployment;
+shipped boxes ride into its cargo bay. A paper counter on the truck shows how
+many tasks have arrived, including zero before the first shipment. It stays
+parked while the host controls shipping. Fit all includes the truck and loading conveyor without trying to
+frame the distant grass or road. Splitters and mergers mark conveyor junctions;
+all paper conveyor decks share the same sage color. Junctions are raised
+four-port paper housings, with conveyors entering connected side openings
+and fitted paper covers closing unused ports. Conveyors fade into dark
+interiors at connected openings. Conveyors enter and leave rooms only through the left, right or rear wall,
+never the front edge. Room walls open only at conveyor crossings, with raised
+cream cardstock frames around the cutouts. Every rear-wall passage contains
+a shadowed splitter/merger housing, including straight-through belts; notes
+stay on solid wall sections.
+Shared pulp grain, fibers and subtle surface relief give the walls, floors,
+furniture, conveyors, grass and truck a visible paper texture.

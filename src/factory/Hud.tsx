@@ -78,7 +78,9 @@ function AgentCard({
 }) {
   const agent = snapshot.agents.find((a) => a.id === id)
   if (!agent) return null
-  const onBench = tasksAt(snapshot.tasks, id)[0]
+  const associated = snapshot.assignments
+    ? snapshot.tasks.filter((task) => snapshot.assignments?.[task.id]?.agentIds.includes(id))
+    : tasksAt(snapshot.tasks, id)
   return (
     <Card title={agent.name} onClose={onClose}>
       <dt>Role</dt>
@@ -88,7 +90,7 @@ function AgentCard({
       <dt>Activity</dt>
       <dd>{bubbleText(agent.status, agent.activity, styles) ?? "none"}</dd>
       <dt>Task</dt>
-      <dd>{onBench?.label ?? "none"}</dd>
+      <dd>{associated.map((task) => `${task.label}${snapshot.assignments?.[task.id]?.completedAgentIds.includes(id) ? " (complete)" : ""}`).join(", ") || "none"}</dd>
     </Card>
   )
 }
@@ -119,6 +121,13 @@ function BoxCard({
     <Card title={task.label} onClose={onClose}>
       <dt>Where</dt>
       <dd>{roomTask && roomState ? `${riding ? "Riding to " : ""}${roomPlace(roomTask, roomState)}` : whereText(task, snapshot, riding ? "riding" : "arrived")}</dd>
+      {roomTask?.at.kind === "room" && roomTask.at.assignment && <>
+        <dt>Participants</dt>
+        <dd><ul>{roomTask.at.assignment.agentIds.map((id) => <li key={id}>
+          {roomState!.snapshot.agents.find((agent) => agent.id === id)?.name ?? id}: {roomTask.at.kind === "room" && roomTask.at.assignment!.completedAgentIds.includes(id) ? "complete" : roomState!.snapshot.agents.find((agent) => agent.id === id)?.status}
+        </li>)}</ul></dd>
+        <dt>Join</dt><dd>{roomTask.at.assignment.completedAgentIds.length}/{roomTask.at.assignment.agentIds.length} complete · host controls handoff</dd>
+      </>}
       <dt>Trail</dt>
       <dd>{roomState ? roomTrail?.join(" → ") : trail.map((place) => placeText(place, snapshot.agents)).join(" → ")}</dd>
     </Card>
@@ -140,7 +149,6 @@ function Card({ title, onClose, children }: { title: string; onClose: () => void
 function roomPlace(task: RoomTask, state: RoomFactoryState): string {
   const label = state.configuration.rooms.find((room) => room.id === task.at.roomId)?.label ?? task.at.roomId
   if (task.at.kind === "shipped") return `Shipped from ${label}`
-  const holder = task.at.assignment?.agentIds[0]
-  const agent = state.snapshot.agents.find((agent) => agent.id === holder)
-  return holder ? `${label} — ${agent?.name ?? holder}` : `${label} — waiting for assignment`
+  const members = task.at.assignment?.agentIds
+  return members ? `${label} — ${members.map((id) => state.snapshot.agents.find((agent) => agent.id === id)?.name ?? id).join(" + ")}` : `${label} — waiting for assignment`
 }

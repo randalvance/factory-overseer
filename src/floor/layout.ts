@@ -877,6 +877,6 @@ export function layoutRoomFloor(pipeline: Pipeline, snapshot: Snapshot, previous
 /** Geometry changes that require the room drawing and its occupants to glide. */
 export function roomGeometryChanged(before: Layout | undefined, after: Layout): boolean {
   if (!before?.rooms || !after.rooms) return false
-  return JSON.stringify([before.rooms, before.bays.map((bay) => bay.stations.map((station) => [station.id, station.bench]))]) !==
-    JSON.stringify([after.rooms, after.bays.map((bay) => bay.stations.map((station) => [station.id, station.bench]))])
+  return JSON.stringify([before.rooms, before.shippingDock, before.bays.map((bay) => bay.stations.map((station) => [station.id, station.bench]))]) !==
+    JSON.stringify([after.rooms, after.shippingDock, after.bays.map((bay) => bay.stations.map((station) => [station.id, station.bench]))])
 }

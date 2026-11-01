@@ -15,6 +15,8 @@ import type { Task } from "~/model/types"
 import type { Pieces } from "./models"
 import { BOX_SIZE, box, boxFace, containerCount, heightsOver, hopperMouth, recount, tileCenter } from "./pieces"
 import { type Candidate, nearestOf } from "./picking"
+import { paperTruckPlacement } from "./paperTruck"
+import { truckCount, recountTruck } from "./paperTruckCount"
 import { type Glide, glide, startGlide } from "./slide"
 
 /** Belt travel in tiles per second at speed 1. */
@@ -87,7 +89,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
   function update(layout: Layout, tasks: Task[], motions: Motion[], pieces: Pieces, slid?: BoxTiles, blocked?: ReadonlySet<string>) {
     const taskById = new Map(tasks.map((task) => [task.id, task]))
     const motionOf = new Map(motions.map((motion) => [motion.taskId, motion]))
-    const heightOver = heightsOver(layout)
+    const heightOver = heightsOver(layout, pieces.paper)
     const over = (tile: Tile) => {
       const centre = tileCenter(tile)
       return new THREE.Vector3(centre.x, heightOver(tile) + BOX_SIZE / 2, centre.z)
@@ -146,7 +148,8 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
     for (const taskId of boxes.keys()) if (!kept.has(taskId)) remove(taskId)
     const plateStood = plate?.position.clone()
     removePlate()
-    plate = containerCount(layout.container, restingInContainer())
+    const truck = pieces.paper ? paperTruckPlacement(layout) : undefined
+    plate = truck ? truckCount(truck, restingInContainer()) : containerCount(layout.container, restingInContainer(), pieces.paper)
     group.add(plate)
     plateGlide = undefined
     if (slid && plateStood && !plateStood.equals(plate.position)) {
@@ -181,7 +184,9 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
     if (!plate) return
     group.remove(plate)
     plate.geometry.dispose()
-    ;(plate.material as THREE.Material).dispose()
+    const material = plate.material as THREE.MeshBasicMaterial
+    if (plate.userData.disposeTexture) material.map?.dispose()
+    material.dispose()
     plate = undefined
   }
 
@@ -218,7 +223,10 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
         landings.push({ taskId, tile: floorBox.tile })
       }
     }
-    if (landings.length > 0 && plate) recount(plate, restingInContainer())
+    if (landings.length > 0 && plate) {
+      if (plate.userData.truckCount) recountTruck(plate, restingInContainer())
+      else recount(plate, restingInContainer())
+    }
     return landings
   }
 

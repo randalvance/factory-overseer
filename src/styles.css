@@ -239,3 +239,28 @@ body,
 .human-attention details { font-size: 0.8rem; line-height: 1.5; }
 .human-attention summary { cursor: pointer; }
 .human-attention ul { padding-left: 1.2rem; }
+
+.shared-work { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .5rem 0; font-size: .8rem; }
+.shared-work > .demo-cluster { border-left: 1px solid #465365; padding-left: .6rem; }
+
+/* Paper workshop shell: the map is the focus; controls use printed-card colors. */
+.paper-demo { background: #f8f1e5; color: #39464d; font-family: ui-sans-serif, system-ui, sans-serif; }
+.paper-demo .demo-header { background: #faf5eb; border-color: #ded3bd; gap: .35rem 1rem; }
+.paper-demo .demo-header h1 { font-size: 1.35rem; font-weight: 850; letter-spacing: -.04em; }
+.paper-demo .demo-header > span { font-size: .8rem; color: #8a795e; }
+.paper-demo .demo-controls { gap: .35rem .6rem; }
+.paper-demo button, .paper-demo select { color: #46514c; background: #fffaf0; border: 1px solid #d8ccb4; border-radius: 5px; padding: .25rem .5rem; font-size: .75rem; font-family: inherit; }
+.paper-demo button:hover:enabled { background: #e4eadc; border-color: #8ca391; }
+.paper-demo button:disabled { opacity: .42; }
+.paper-demo .demo-cluster label { color: #6f796e; font-size: .75rem; }
+.paper-demo .route-status { color: #5e7568; margin: .15rem 0; font-size: .78rem; }
+.paper-demo .factory-hud-header { background: rgba(248,241,229,.92); color: #5c695f; border-bottom: 1px solid #e3d9c5; }
+.paper-demo .factory-card, .paper-demo .human-attention { background: #fffaf0; color: #39464d; border-color: #d8ccb4; box-shadow: 0 8px 28px #5b49341a; }
+.paper-demo .factory-card dd, .paper-demo .factory-card dt { color: #4d5e58; }
+
+.paper-demo .factory-hud-counts { color: #657369; }
+.paper-demo .factory-card { font-family: ui-sans-serif, system-ui, sans-serif; }
+
+.paper-demo .human-attention h2 { color: #805f33; }
+.paper-demo .human-attention textarea { color: #39464d; background: #fffdf7; border-color: #b7c5b5; }
+.paper-demo .attention-context, .paper-demo .attention-note { color: #667568; }

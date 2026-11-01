@@ -67,6 +67,30 @@ One task counts once. Completion of one or even all members does not cause a
 handoff until the host changes the task location. This also supports a
 host-driven return to planning with the same task ID and context.
 
+The sprite layer labels every shared participant with the task ID. Completed
+participants show a full tablet bar and stop emitting work sparks; other
+participants retain the host's status (including waiting and error). When an
+agent participates in multiple tasks, snapshot order selects its tablet's
+current task; its card lists all assigned tasks. The task card lists every
+participant and the completion fraction. Call the ready handle's
+inspect({ agent: id }) or inspect({ task: id }) to open a card and focus its
+subject; focus alone continues to move only the camera. These are task-specific completion
+values: an agent's global status alone never completes its assignments.
+
+Removing the first participant moves the existing box to the next member
+over the room's internal conveyor loop. Removing all participants leaves
+the same box queued in its room. Repeated completion snapshots create no
+additional boxes or rides. The host must remove references atomically before
+removing an agent itself.
+
+In the demo, send either task to Implementation and choose **Assign two
+implementers**. Individual Complete, Fail and Unassign controls publish host
+snapshots. The demo permits review only after all remaining participants
+complete and human requests resolve; the component does not enforce that
+host policy. Even then, Send to Code review is an explicit action. Return to
+planning retains the task ID, asks new questions, and starts a fresh
+implementation assignment on return.
+
 Keep an agent as offline while an occupied station or active request
 references it, or update all references in the same snapshot. Do not reuse
 task or agent IDs for different entities during a mounted session. Shipped
@@ -199,5 +223,94 @@ identity, camera follow and cards.
 
 This older preview remains available at ?layout=rooms and retains the old
 runtime and sequential/return belts. The default demo and RoomFactory now
-use the configured graph described in ADR 0011. Both preserve the original
-camera and agent/box interaction layer.
+use the configured graph described in ADR 0011. The paper appearance uses the lower fixed perspective camera described in
+ADR 0008; the legacy appearance retains the original orthographic camera.
+Agent/box interactions remain available in both.
+
+## Pet assets
+
+`RoomFactory` and `Factory` accept a `petAssets` prop, independent of task
+snapshots. The paper appearance includes a bundled animal cast; the demo
+passes `DEFAULT_PET_ASSETS` explicitly. Replace those URLs with host-served
+transparent PNG, WebP or SVG artwork:
+
+```tsx
+<RoomFactory
+  state={state}
+  petAssets={{
+    default: { src: "/my-pets/cat.png" },
+    byRole: { planner: { src: "/my-pets/rabbit.svg" } },
+    byAgent: {
+      "implementation-1": {
+        src: "/my-pets/dog-sheet.png",
+        layout: "sheet",
+        height: 2.3,
+        aspectRatio: 2 / 3,
+        animations: {
+          working: { frames: [3, 4], fps: 5.5 },
+          attention: { frames: [5, 0], fps: 3.2 },
+        },
+      },
+    },
+  }}
+/>
+```
+
+`PetAsset`, `PetAssets`, `PetAnimation` and `PetAnimations` are exported from
+`src/factory/petAssets.ts` and `src/factory/Factory.tsx`.
+Each asset has a `src` URL, optional `layout` (`image` by default, or
+`sheet`), optional height in floor tiles (default 2.3), and optional
+frame width/height ratio (otherwise read from the image). Relative asset
+paths resolve under the app's asset base; root-relative and absolute URLs
+are used as supplied. Remote images must allow browser texture loading.
+
+An explicit `agent.sprite` still selects a legacy sprite. Otherwise pet
+selection uses agent ID, role, then the configured default. A custom legacy
+wardrobe remains effective when no pet override is supplied. Supply new
+immutable asset props to replace art without changing agent/task IDs.
+Missing pet images fall back to the bundled cat; a drawn pet remains if
+that fallback also cannot load.
+
+A static image is displayed whole and travels with its agent; it does not
+need an animation atlas. Working pets tap and lean; pets asking for a human
+hop, sway and stretch. A `sheet` uses the established six-column,
+four-facing layout (down, left, right, up). Optional `animations.working`
+and `animations.attention` select frame columns in playback order, with
+`fps` controlling real-time playback independently of conveyor speed.
+Omitted clips use columns `[3, 4]` at 5.5 fps for working and `[5, 0]` at
+3.2 fps for attention. Invalid columns are ignored; a clip with no valid
+columns falls back to that default. FPS must be positive and is capped at
+30. The bundled corgi, rabbit, cat, owl and fox sheets contain actual
+alternating paw poses and raised-paw waves.
+
+An active human request takes precedence over a working animation, even
+when the host keeps the agent's status as `working`. Explicit request
+agents animate; requests without agent IDs use task participants or room
+members. Clearing the request restores the status animation. Walking
+still takes precedence while an agent arrives at its station. Attention
+badges, shared-task labels, picking and arrival movement remain active.
+Pet artwork never changes the host's workflow state.
+
+Paper grass covers the outdoor ground and continues beyond the visible
+scene. Folded tufts leave belts and the loading road clear. Each room has a
+distinct paper floor pattern: intake pavers, planning graph tiles,
+implementation planks, review checkerboard and deployment loading panels.
+A paper delivery truck waits outside the deployment door; it is
+scenery and does not automatically ship tasks. The host still reports
+`kind: "shipped"`. A paper road continues from its loading area out of the scene. Fit All
+frames the rooms and truck, while grass and road continue beyond the view.
+The loading area stays clear as rooms grow or Reorganize.
+
+### Outdoor intake and shipping
+
+The configured `kind: "intake"` entry remains required as the logical source
+for task locations and transitions. In paper mode it draws as an outdoor
+hopper with one outgoing belt, without a room enclosure or default agent.
+The demo branches downstream to planning or implementation. Hosts can still
+supply intake agents or incoming transitions when their workflow requires it.
+
+Deployment keeps its logical ID when a task becomes `shipped`. The visual
+ride continues from the deployment room’s left-side conveyor into the parked
+truck, using a real conveyor path. Room conveyors may enter or exit through
+the left, right or rear wall, never through the front edge facing the camera.
+The truck stays parked; shipping remains a host decision.

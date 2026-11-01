@@ -6,6 +6,8 @@
 // and the boxes are built elsewhere.
 
 import * as THREE from "three"
+import { PAPER_GRASS_COLOR } from "./paperGround"
+import { createPaperSurfaces } from "./paperMaterial"
 import { roomGeometryChanged, stationed } from "~/floor/layout"
 import { type Motions, motionsFor } from "~/floor/motion"
 import type { Layout, Rect } from "~/floor/types"
@@ -14,15 +16,17 @@ import { comingsAndGoings, type ComingsAndGoings } from "~/floor/walk"
 import type { Agent, Snapshot, Subject } from "~/model/types"
 import { INSPECTOR, type Dressed, type Icons, type Settling, createAgents } from "./agents"
 import { BELT_SPEED, createBoxes } from "./boxes"
-import { type CameraPose, PITCH, PX_PER_TILE, clampToFloor, fitFloor, panBy, pinchBy, zoomBy, zoomStep } from "./camera"
+import { type CameraPose, PAPER_CAMERA_DISTANCE, PAPER_PITCH, PITCH, PX_PER_TILE, clampToFloor, fitDiorama, fitDioramaLayout, fitFloor, panBy, panDiorama, paperFieldOfView, pinchBy, zoomBy, zoomStep } from "./camera"
 import { type Point, attachControls } from "./controls"
-import { disposeMeshes, drawFactory } from "./drawing"
-import { type BeltTextures, loadPieces } from "./models"
+import { batchPaperDrawing, unbatchPaperDrawing, disposeMeshes, drawFactory } from "./drawing"
+import { paperPieces } from "./paper"
+import { type Pieces, type BeltTextures, loadPieces } from "./models"
 import { nearer } from "./picking"
 import { BOX_SIZE, halo } from "./pieces"
 import { type Slide, startSlide } from "./slide"
 import { type Wardrobes, sheetUrl } from "./sprites"
 import { blankTexture, loadTexture } from "./textures"
+import { createPetTextures, petAssetFor, type PetAssets } from "./petAssets"
 
 export interface FactoryView {
   /**
@@ -54,13 +58,25 @@ export interface FactoryView {
 
 /** How the host wants agents to look. */
 export interface Styling {
+  petAssets?: PetAssets
+  appearance?: "paper" | "legacy"
   /** What each status looks like, resolved. */
   styles: Readonly<Record<AgentStatus, StatusStyle>>
   /** The stock sheets each role draws from, over the defaults. */
   wardrobes: Wardrobes
 }
 
+export interface RenderMetrics {
+  frameMs: number
+  calls: number
+  triangles: number
+  geometries: number
+  textures: number
+  estimatedTextureBytes: number
+}
 export interface FactoryViewOptions {
+  /** Optional diagnostics, sampled once per 30 rendered frames. */
+  onRenderMetrics?: (metrics: RenderMetrics) => void
   /** The app's base path, where the stock sheets are served from. */
   assetBase?: string
   /** Called with what a click on the canvas lands on, or nothing when it lands on the floor. */
@@ -79,20 +95,35 @@ const NONE: Motions = { toPlay: [], unrouted: [] }
 
 export function createFactoryView(mount: HTMLElement, options: FactoryViewOptions = {}): FactoryView {
   const assetBase = options.assetBase ?? "/"
+  const petTextures = createPetTextures(assetBase)
+  const paperSurfaces = createPaperSurfaces()
   const canvas = document.createElement("canvas")
   mount.append(canvas)
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false })
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.setClearColor(BACKGROUND)
+  renderer.shadowMap.type = THREE.VSMShadowMap
+  renderer.shadowMap.autoUpdate = false
 
   const scene = new THREE.Scene()
-  scene.add(new THREE.HemisphereLight(0xe8eef7, 0x3a3e47, 1.2))
+  const ambient = new THREE.HemisphereLight(0xe8eef7, 0x3a3e47, 1.2)
+  scene.add(ambient)
+  let paper: Pieces | undefined
+  let paperAppearance = false
   const sun = new THREE.DirectionalLight(0xfff1dc, 1.5)
   sun.position.set(5, 12, 8)
   scene.add(sun)
+  scene.add(sun.target)
+  sun.shadow.mapSize.set(2048, 2048)
+  sun.shadow.bias = -.001
+  sun.shadow.normalBias = .025
+  sun.shadow.radius = 6
+  sun.shadow.blurSamples = 12
 
-  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, CAMERA_DISTANCE * 3)
+  const legacyCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, CAMERA_DISTANCE * 3)
+  const paperCamera = new THREE.PerspectiveCamera(20, 1, .1, 2000)
+  let camera: THREE.OrthographicCamera | THREE.PerspectiveCamera = legacyCamera
   let viewport = { width: 0, height: 0 }
   /** False while the mount has no size, as when the demo hides it; nothing is drawn then. */
   let visible = false
@@ -123,16 +154,24 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
 
   /** Frame the whole line once both the floor and the viewport are known; from then on keep the camera on its pose. */
   function aimCamera() {
-    if (!pose && floor && visible) pose = fitFloor(floor, viewport)
+    if (!pose && floor && visible) pose = paperAppearance && shown ? fitDioramaLayout(shown, viewport) : (paperAppearance ? fitDiorama : fitFloor)(floor, viewport)
     if (!pose) return
     const halfW = viewport.width / PX_PER_TILE / 2
     const halfH = viewport.height / PX_PER_TILE / 2
-    camera.left = -halfW
-    camera.right = halfW
-    camera.top = halfH
-    camera.bottom = -halfH
+    camera = paperAppearance ? paperCamera : legacyCamera
+    if (camera instanceof THREE.PerspectiveCamera) {
+      camera.aspect = viewport.width / viewport.height
+      camera.fov = paperFieldOfView(viewport.height)
+    } else {
+      camera.left = -halfW
+      camera.right = halfW
+      camera.top = halfH
+      camera.bottom = -halfH
+    }
     camera.zoom = pose.zoom
-    camera.position.set(pose.x, CAMERA_DISTANCE * Math.sin(PITCH), pose.z + CAMERA_DISTANCE * Math.cos(PITCH))
+    const pitch = paperAppearance ? PAPER_PITCH : PITCH
+    const distance = paperAppearance ? PAPER_CAMERA_DISTANCE : CAMERA_DISTANCE
+    camera.position.set(pose.x, distance * Math.sin(pitch), pose.z + distance * Math.cos(pitch))
     camera.lookAt(pose.x, 0, pose.z)
     camera.updateProjectionMatrix()
   }
@@ -159,7 +198,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
 
   function fitAll() {
     following = undefined
-    if (floor && visible) pose = fitFloor(floor, viewport)
+    if (floor && visible) pose = paperAppearance && shown ? fitDioramaLayout(shown, viewport) : (paperAppearance ? fitDiorama : fitFloor)(floor, viewport)
     aimCamera()
   }
 
@@ -185,10 +224,10 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   }
 
   const detachControls = attachControls(canvas, {
-    pan(dx, dy) {
+    pan(dx, dy, at) {
       if (!pose || !floor) return
       following = undefined
-      pose = clampToFloor(panBy(pose, dx, dy), floor)
+      pose = clampToFloor(paperAppearance ? panDiorama(pose, viewport, dx, dy, at) : panBy(pose, dx, dy), floor)
       aimCamera()
     },
     zoom(deltaY) {
@@ -221,12 +260,17 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   // The belt textures repeat once per tile, so they scroll as far as the boxes ride.
   let beltTravel = 0
   let lastFrame: number | undefined
+  let metricFrames = 0
+  let metricTime = 0
   renderer.setAnimationLoop((time) => {
     const dt = lastFrame === undefined ? 0 : Math.min((time - lastFrame) / 1000, MAX_FRAME_S)
+    metricTime += lastFrame === undefined ? 0 : time - lastFrame
     lastFrame = time
+    if (slide) renderer.shadowMap.needsUpdate = true
     if (slide?.tick(dt, speed)) {
       slide = undefined
       finishSlideWaits()
+      batchPaperDrawing(drawing)
       // The floor has settled; the camera keeps its pose, within the floor as it now is.
       if (pose && floor) {
         pose = clampToFloor(pose, floor)
@@ -244,7 +288,28 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
       else following = undefined
     }
     placeRing()
-    if (visible) renderer.render(scene, camera)
+    if (visible) {
+      renderer.render(scene, camera)
+      if (options.onRenderMetrics && ++metricFrames >= 30) {
+        const sources = new Set<object>()
+        let bytes = 0
+        scene.traverse((object) => {
+          if (!(object instanceof THREE.Mesh || object instanceof THREE.Sprite)) return
+          for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+            for (const value of Object.values(material)) {
+              if (!(value instanceof THREE.Texture) || sources.has(value.source)) continue
+              sources.add(value.source)
+              const data = value.source.data
+              bytes += (data?.width ?? 0) * (data?.height ?? 0) * 4 * (value.generateMipmaps ? 4 / 3 : 1)
+            }
+          }
+        })
+        options.onRenderMetrics({ frameMs: metricTime / metricFrames, calls: renderer.info.render.calls,
+          triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries,
+          textures: renderer.info.memory.textures, estimatedTextureBytes: Math.round(bytes) })
+        metricFrames = 0; metricTime = 0
+      }
+    }
   })
 
   let generation = 0
@@ -258,12 +323,35 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   /** The sheets, icons and pieces a snapshot needs, or nothing once a newer one has been asked for while they loaded. */
   async function dressed(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Dressed | undefined> {
     const call = ++generation
+    const usePaper = !!layout.rooms && styling.appearance !== "legacy"
+    const petIds = new Set(snapshot.agents.filter((agent) => petAssetFor(agent, styling.petAssets, usePaper, styling.wardrobes)).map((agent) => agent.id))
     const [sheets, icons, pieces] = await Promise.all([
-      sheetsOf(layout, snapshot.agents, assetBase, styling.wardrobes),
+      sheetsOf(layout, snapshot.agents, assetBase, styling.wardrobes, usePaper, styling.petAssets, petTextures),
       iconsAt(assetBase),
       loadPieces(`${assetBase}assets/models/pieces.glb`),
     ])
-    return call === generation ? { sheets, looks: { styles: styling.styles, icons }, pieces } : undefined
+    if (disposed || call !== generation) return undefined
+    paperAppearance = usePaper
+    renderer.setClearColor(usePaper ? PAPER_GRASS_COLOR : BACKGROUND)
+    ambient.color.setHex(usePaper ? 0xffffff : 0xe8eef7)
+    ambient.groundColor.setHex(usePaper ? 0xbcae94 : 0x3a3e47)
+    ambient.intensity = usePaper ? 2.0 : 1.2
+    renderer.shadowMap.enabled = usePaper
+    sun.castShadow = usePaper
+    sun.color.setHex(usePaper ? 0xffffff : 0xfff1dc)
+    if (usePaper) {
+      const { x, y, w, h } = layout.bounds
+      sun.position.set(x + w / 2 - 12, 30, y + h / 2 + 15)
+      sun.target.position.set(x + w / 2, 0, y + h / 2)
+      const radius = Math.max(w, h) * .65 + 4
+      sun.shadow.camera.left = -radius; sun.shadow.camera.right = radius
+      sun.shadow.camera.top = radius; sun.shadow.camera.bottom = -radius
+      sun.shadow.camera.far = 100
+      sun.shadow.camera.updateProjectionMatrix()
+    } else sun.position.set(5, 12, 8)
+    sun.intensity = usePaper ? .9 : 1.5
+    if (usePaper) paper ??= paperPieces(pieces)
+    return { sheets, petIds, customWardrobes: new Set(Object.keys(styling.wardrobes)), looks: { styles: styling.styles, icons }, pieces: usePaper ? paper! : pieces }
   }
 
   async function show(layout: Layout, snapshot: Snapshot, styling: Styling, traffic: ComingsAndGoings): Promise<Motions> {
@@ -293,9 +381,11 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   function draw(layout: Layout, snapshot: Snapshot, ready: Dressed, traffic: ComingsAndGoings, settling: Settling): Motions {
     floor = layout.bounds
     slide?.end()
+    unbatchPaperDrawing(drawing)
     const stood = drawing
     belts = ready.pieces.belts
     drawing = drawFactory(layout, ready.pieces)
+    if (ready.pieces.paper) paperSurfaces.apply(drawing)
     scene.add(drawing)
     if (settling === "glide") {
       slide = startSlide(stood, drawing)
@@ -309,6 +399,10 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     const slid = settling === "glide" && shown ? boxes.tilesAfterSlide(shown, layout) : undefined
     const motions = motionsFor(layout, slid ?? boxes.tiles(), shown)
     boxes.update(layout, snapshot.tasks, motions.toPlay, ready.pieces, slid, layout.routing ? new Set(motions.unrouted) : undefined)
+    if (ready.pieces.paper) paperSurfaces.apply(scene)
+    else paperSurfaces.restore(scene)
+    if (settling !== "glide") batchPaperDrawing(drawing)
+    renderer.shadowMap.needsUpdate = true
     shown = layout
     laidAfresh = false
     aimCamera()
@@ -327,7 +421,10 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     disposeMeshes(drawing)
     disposeMeshes(ring)
     agents.dispose()
+    petTextures.dispose()
+    paperSurfaces.dispose()
     boxes.dispose()
+    paper?.dispose?.()
     renderer.dispose()
     canvas.remove()
   }
@@ -360,11 +457,17 @@ async function sheetsOf(
   agents: Agent[],
   assetBase: string,
   wardrobes: Wardrobes,
+  paper: boolean,
+  petAssets: PetAssets | undefined,
+  pets: ReturnType<typeof createPetTextures>,
 ): Promise<Map<string, THREE.Texture>> {
   const standing: Wearer[] = stationed(layout, agents).flatMap(({ agent }) => (agent ? [agent] : []))
   if (layout.staging) standing.push(INSPECTOR)
-  const sheets = await Promise.all(standing.map((wearer) => sheetOf(wearer, assetBase, wardrobes)))
-  return new Map(standing.map((wearer, i) => [wearer.id, sheets[i]!]))
+  const sheets = await Promise.all(standing.map((wearer) => {
+    const asset = petAssetFor(wearer, petAssets, paper, wardrobes)
+    return asset ? pets.get(asset) : sheetOf(wearer, assetBase, wardrobes)
+  }))
+  return new Map(standing.flatMap((wearer, i) => sheets[i] ? [[wearer.id, sheets[i]!]] : []))
 }
 
 /** The agent's own sheet, or the one derived from its id when its own cannot be loaded. */

@@ -9,6 +9,7 @@
 // HUD over the canvas, the counts and the cards, is React too.
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import { roomSnapshotForView } from "~/model/roomRouting"
 import { layoutConfiguredRooms } from "~/floor/configuredRooms"
 import type { RoomFactoryState } from "~/model/types"
 import { layoutFloor, reorganizedFloor } from "~/floor/layout"
@@ -20,9 +21,16 @@ import { type Trails, recordTrails } from "~/model/trails"
 import type { Agent, Pipeline, Snapshot, Subject, Task } from "~/model/types"
 import { Hud } from "./Hud"
 import type { Wardrobes } from "./sprites"
+import type { PetAssets } from "./petAssets"
+export type { PetAsset, PetAssets, PetAnimation, PetAnimations } from "./petAssets"
 import { type FactoryView, type Styling, createFactoryView } from "./view"
 
 export interface FactoryProps {
+  /** Transparent pet images or 6×4 sheets selected by agent, role, then default. */
+  petAssets?: PetAssets
+  onRenderMetrics?: (metrics: import("./view").RenderMetrics) => void
+  /** Paper room environment; legacy retains the original assets. */
+  appearance?: "paper" | "legacy"
   pipeline: Pipeline
   /** Separated expandable rooms using the existing pipeline order. */
   roomLayout?: boolean
@@ -58,6 +66,8 @@ export interface FactoryProps {
 export interface FactoryHandle {
   /** Put an agent under the middle of the screen; or a task, and keep it there until the overseer pans, fits all or focuses elsewhere. */
   focus(subject: Subject): void
+  /** Open the subject card and focus it. */
+  inspect(subject: Subject): void
   /** Frame the floor's width, and the whole floor when it fits, as the view opened. */
   fitAll(): void
   /**
@@ -70,12 +80,12 @@ export interface FactoryHandle {
   reorganize(): void
 }
 
-export function Factory({ pipeline, agents, tasks, roomLayout = false, roomState, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }: FactoryProps) {
+export function Factory({ petAssets, onRenderMetrics, appearance = "paper", pipeline, agents, tasks, roomLayout = false, roomState, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
   /** The props as last rendered, for the handle, which is called between renders. */
-  const latest = useRef({ pipeline, agents, tasks, staging, roomLayout, roomState, statusStyles, wardrobes, onLayout, onReady, onTaskLanded })
+  const latest = useRef({ pipeline, agents, tasks, staging, roomLayout, roomState, onRenderMetrics, appearance, petAssets, statusStyles, wardrobes, onLayout, onReady, onTaskLanded })
   /** How many drawings have been asked of the view; only the latest counts once drawn. */
   const asked = useRef(0)
   /** How many snapshots the view has drawn; the first makes the factory ready. */
@@ -90,7 +100,7 @@ export function Factory({ pipeline, agents, tasks, roomLayout = false, roomState
   const styles = useMemo(() => resolveStatusStyles(statusStyles), [statusStyles])
 
   useEffect(() => {
-    latest.current = { pipeline, agents, tasks, staging, roomLayout, roomState, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }
+    latest.current = { pipeline, agents, tasks, staging, roomLayout, roomState, onRenderMetrics, appearance, petAssets, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }
   })
 
   useEffect(() => {
@@ -103,6 +113,7 @@ export function Factory({ pipeline, agents, tasks, roomLayout = false, roomState
     if (!mount.current) return
     const created = createFactoryView(mount.current, {
       assetBase: import.meta.env.BASE_URL,
+      onRenderMetrics: onRenderMetrics ? (metrics) => latest.current.onRenderMetrics?.(metrics) : undefined,
       onClick: setPicked,
       onLanded: (taskId) => {
         activeRides.current.delete(taskId)
@@ -148,25 +159,29 @@ export function Factory({ pipeline, agents, tasks, roomLayout = false, roomState
       : layoutFloor(pipeline, { agents, tasks }, previous.current, { staging, width, lanes, roomLayout })
     const traffic = comingsAndGoings(previous.current, layout)
     previous.current = layout
-    drawnBy(view.current.show(layout, { agents, tasks }, styling(statusStyles, wardrobes), traffic), layout, "The factory could not be drawn")
-  }, [pipeline, agents, tasks, staging, width, lanes, roomLayout, roomState, statusStyles, wardrobes])
+    drawnBy(view.current.show(layout, roomState ? roomSnapshotForView(roomState) : { agents, tasks }, { ...styling(statusStyles, wardrobes), appearance, petAssets }, traffic), layout, "The factory could not be drawn")
+  }, [pipeline, agents, tasks, staging, width, lanes, roomLayout, roomState, appearance, petAssets, statusStyles, wardrobes])
 
   const handle = useRef<FactoryHandle>({
     focus(subject) {
       if ("agent" in subject) view.current?.focusAgent(subject.agent)
       else view.current?.followTask(subject.task)
     },
+    inspect(subject) {
+      setPicked(subject)
+      handle.current.focus(subject)
+    },
     fitAll() {
       view.current?.fitAll()
     },
     reorganize() {
-      const { pipeline, agents, tasks, staging, roomState, statusStyles, wardrobes } = latest.current
+      const { pipeline, agents, tasks, staging, roomState, appearance, petAssets, statusStyles, wardrobes } = latest.current
       if (!view.current || !previous.current) return
       const layout = roomState
         ? layoutConfiguredRooms(roomState, previous.current, previous.current.bounds.w, activeRides.current, true)
         : reorganizedFloor(pipeline, { agents, tasks }, previous.current, { staging })
       previous.current = layout
-      drawnBy(view.current.reorganize(layout, { agents, tasks }, styling(statusStyles, wardrobes)), layout, "The factory could not be reorganized")
+      drawnBy(view.current.reorganize(layout, roomState ? roomSnapshotForView(roomState) : { agents, tasks }, { ...styling(statusStyles, wardrobes), appearance, petAssets }), layout, "The factory could not be reorganized")
     },
   })
 
@@ -178,7 +193,7 @@ export function Factory({ pipeline, agents, tasks, roomLayout = false, roomState
     <div className="factory">
       <div ref={mount} className="factory-canvas" role="img" aria-label="Factory floor" data-drawn={drawn} data-rooms={previous.current?.rooms?.length ?? 0} />
       <Hud
-        snapshot={{ agents, tasks }}
+        snapshot={roomState ? roomSnapshotForView(roomState) : { agents, tasks }}
         roomState={roomState}
         trails={trails}
         riding={riding}
