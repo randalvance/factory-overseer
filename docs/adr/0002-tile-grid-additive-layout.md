@@ -27,3 +27,7 @@ because the overseer watches the floor continuously, and a floor that
 rearranges itself destroys the mental map that makes the visualization useful.
 The grid is also what makes the belt pieces modular and the routing testable
 without a renderer.
+
+For the new room contract, see [ADR 0010](0010-configurable-agent-rooms.md),
+which amends this decision for room mode. The rules here remain in force
+for the legacy bay renderer.

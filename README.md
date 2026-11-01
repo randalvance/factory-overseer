@@ -82,3 +82,10 @@ pieces are listed in `ASSETS.md`. The status icons are drawn by a script under
 ## Licence
 
 MIT for the code. The art has its own terms: see [ASSETS.md](ASSETS.md).
+
+## Room contract (in development)
+
+The next host contract models configurable agent rooms and directed belt
+transitions. See [the room contract](docs/room-contract.md) for types, checked
+examples, validation and migration. The current Factory component still uses
+the legacy pipeline; room rendering is being implemented separately.

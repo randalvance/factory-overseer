@@ -9,7 +9,7 @@ next until a human reviews it and it ships.
 **Factory**:
 The whole floor for one agentic system: its belts, bays, agents, staging area
 and shipping container.
-_Avoid_: Room, map, scene
+_Avoid_: Map, scene
 
 **Layout**:
 Where every bay, station, belt and end of the line sits on the floor.
@@ -374,3 +374,52 @@ A spell that keeps an agent from its work: waiting, or in error. It strikes
 an agent at work by chance, or by the control panel's hand, and passes by
 itself after a few beats.
 _Avoid_: Fault, incident, blocker, outage
+
+
+## Rooms (new host contract)
+
+The room contract is defined in ADR 0010. The bay, band and annex vocabulary
+above continues to describe the legacy layout.
+
+**Room**:
+A separately bounded area for agents of one Role, joined to other rooms by
+belts. Its stable ID is distinct from its role; several rooms may share a
+role. A room expands and reorganizes as agents arrive.
+_Avoid_: Bay (the legacy fixed-capacity area)
+
+**Room Transition**:
+A declared directed connection between rooms, selected by a host-defined
+outcome. Branches and return cycles are allowed; the host decides which
+transition a task takes.
+_Avoid_: Pipeline stage (rooms are not restricted to a linear order)
+
+**Deployment**:
+The terminal room. A task works or waits here until the host marks it
+Shipped; no transition leaves this room.
+
+**Assignment**:
+The agents in one room participating in a task, and the subset whose work
+the host reports complete. One task keeps one box anchored at its first
+member; completion does not itself hand the task onward.
+
+**Human Request**:
+An active request for a question, approval or help, identified independently
+of agent status. The onHumanNeeded hook notifies the host; the host owns the
+interaction and resolution.
+
+**Theme**:
+A room's choice of flooring, furniture and decoration, independent of its
+Role. Presets include research lab, foundry, factory and fabrication plant.
+
+**Billboard**:
+A physical sign identifying a room, with a configurable pixel-art image
+and the room's label. Separate from an agent's sprite or Bubble.
+
+In room mode, Intake is the initial room rather than only the source tile.
+Reorganize still means explicit whole-floor compaction; automatic room growth
+may move stations and affected connections without that request. Line and
+Pipeline describe the legacy sequential layout; Room Transitions describe
+the new configurable graph. A room-mode Handoff follows a declared
+transition; Rework can return through a cycle rather than one shared
+Return Belt. Pieces may include generated and script-cleaned assets under
+ADR 0005, rather than only the original one-tile scripted pieces.
