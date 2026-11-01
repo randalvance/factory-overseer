@@ -38,7 +38,7 @@ async function drag(page: Page, dx: number, dy: number) {
 
 /** Open the demo and wait for the factory to draw its first snapshot; the runtime's clock is running. */
 async function openFactory(page: Page): Promise<Locator> {
-  await page.goto("/")
+  await page.goto("/?layout=legacy")
   const factory = page.getByRole("img", { name: "Factory floor" })
   await expect(factory.locator("canvas")).toBeVisible({ timeout: 10_000 })
   await expect(factory).toHaveAttribute("data-drawn", "1", { timeout: 45_000 })

@@ -19,6 +19,7 @@ const WIDEST_FLOOR = 24
 const floorWidth = Math.min(WIDEST_FLOOR, Math.floor(window.innerWidth / PX_PER_TILE))
 
 export function App() {
+  const roomLayout = new URLSearchParams(window.location.search).get("layout") !== "legacy"
   const [runtime, setRuntime] = useState<Runtime>(() => opening())
   const snapshot = useMemo(() => snapshotOf(runtime), [runtime])
   const [playing, setPlaying] = useState(true)
@@ -44,6 +45,7 @@ export function App() {
     <main className="demo">
       <header className="demo-header">
         <h1>Factory Overseer</h1>
+        <span>{roomLayout ? "Expandable rooms" : "Legacy floor"}</span>
         <ControlPanel
           runtime={runtime}
           snapshot={snapshot}
@@ -70,7 +72,8 @@ export function App() {
           tasks={snapshot.tasks}
           speed={speed}
           staging={staging}
-          width={floorWidth}
+          width={roomLayout ? Math.max(18, floorWidth) : floorWidth}
+          roomLayout={roomLayout}
           onLayout={(layout, motions) => setDrawn({ layout, motions })}
           onReady={setFactory}
         />

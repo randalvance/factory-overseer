@@ -27,6 +27,7 @@ import type {
   Intake,
   Layout,
   Rect,
+  RoomFootprint,
   StagingArea,
   Station,
   Tile,
@@ -60,6 +61,8 @@ export function bayId(role: string, annex = 0): string {
 }
 
 export interface FloorOptions {
+  /** Expandable, separated rooms; the legacy pipeline supplies their role order. */
+  roomLayout?: boolean
   /** Whether boxes pass an inspector before they ship. On unless switched off. */
   staging?: boolean
   /** How many lanes a bay holds, fixed when the first layout is laid: three unless given. The next agent of the role takes a lane in an annex. */
@@ -78,6 +81,8 @@ export interface FloorOptions {
  * nothing placed before moving (ADR 0002).
  */
 export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: Layout, options: FloorOptions = {}): Layout {
+  if (previous && Boolean(previous.rooms) !== Boolean(options.roomLayout)) previous = undefined
+  if (options.roomLayout) return layoutRoomFloor(pipeline, snapshot, previous, options)
   const withStaging = options.staging ?? true
   if (!previous) {
     const lanesPerBay = Math.max(1, options.lanes ?? LANES_PER_BAY)
@@ -103,6 +108,7 @@ export function layoutFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: L
  * shipped stays shipped.
  */
 export function reorganizedFloor(pipeline: Pipeline, snapshot: Snapshot, previous: Layout, options: Pick<FloorOptions, "staging"> = {}): Layout {
+  if (previous.rooms) return layoutRoomFloor(pipeline, snapshot, previous, options, true)
   return lay(snapshot, compactBays(pipeline, snapshot, previous, previous.lanesPerBay), {
     width: previous.bounds.w,
     lanesPerBay: previous.lanesPerBay,
@@ -796,4 +802,81 @@ export function inContainer(layout: Pick<Layout, "boxes">): BoxPlacement[] {
 /** A bay's aisle: the column before the bay, the way its band runs, that its agents walk down. */
 export function aisleColumn(bay: Bay, band: Band): number {
   return behind(feederColumn(bay, band), band)
+}
+
+/**
+ * Room-mode packing. Rooms share a row's belt corridor, but each keeps its
+ * own height. Only rows below a growing room move. Vacancies are retained
+ * until explicit Reorganize; a role never spills into an annex.
+ * This stage keeps the legacy line connections; configurable edges follow.
+ */
+export function layoutRoomFloor(pipeline: Pipeline, snapshot: Snapshot, previous?: Layout, options: FloorOptions = {}, compact = false): Layout {
+  const width = previous?.bounds.w ?? options.width ?? 24
+  if (!Number.isInteger(width) || width < 18) throw new Error("Room floor width must be an integer of at least 18 tiles")
+  const capacity = Number.MAX_SAFE_INTEGER
+  const toLay = previous && !compact
+    ? grownBays(pipeline, snapshot, previous)
+    : compactBays(pipeline, snapshot, previous, capacity)
+  const bands: Band[] = [{ dir: "e", returnRow: 1, trunkRow: 3 }]
+  const rooms: RoomFootprint[] = []
+  let bandIndex = 0
+  let column = 0
+  let front = 6
+
+  const place = (id: string, label: string, kind: RoomFootprint["kind"], w: number, h: number) => {
+    let band = bands[bandIndex]!
+    const available = band.dir === "e" ? width - column : column + 1
+    if (available < w + TURN_W) {
+      bandIndex++
+      band = { dir: bandIndex % 2 === 0 ? "e" : "w", returnRow: front + 2, trunkRow: front + 4 }
+      bands.push(band)
+      column = ahead(firstColumn(band, width), band, TURN_W + GAP)
+    }
+    const x = Math.min(column, ahead(column, band, w - 1))
+    const rect = { x, y: band.returnRow - 1, w, h }
+    const room: RoomFootprint = {
+      id, label, kind, rect,
+      door: { x: band.dir === "e" ? x + 1 : x + w - 2, y: rect.y },
+      ports: [rect.x, rect.x + rect.w - 1].flatMap((x) => [band.returnRow, band.trunkRow].map((y) => ({ x, y }))),
+    }
+    rooms.push(room)
+    front = Math.max(front, rect.y + h)
+    column = ahead(column, band, w + GAP)
+    return { room, band, bandIndex }
+  }
+
+  const first = place("intake", "INTAKE", "intake", 6, 6)
+  const intake: Intake = {
+    rect: footprint(first.room.rect.x + 2, 2, first.band),
+    pile: [{ x: 3, y: 3 }, { x: 2, y: 3 }, { x: 3, y: 2 }, { x: 2, y: 2 }],
+  }
+  const bays = toLay.map((bay) => {
+    const placed = place(bay.id, bay.role.toUpperCase(), "work", 7, Math.max(6, bay.stations.length * LANE_H + 3))
+    return placeBay(bay, placed.room.rect.x + 2, placed.bandIndex, placed.band)
+  })
+  let staging: StagingArea | undefined
+  if (options.staging ?? true) {
+    const placed = place("staging", "HUMAN REVIEW", "staging", 7, 6)
+    staging = layStaging(placed.room.rect.x + 2, placed.bandIndex, placed.band)
+  }
+  const last = place("deployment", "DEPLOYMENT", "deployment", 7, 6)
+  const container = layContainer(last.room.rect.x + 2, last.bandIndex, last.band)
+  const belts = [
+    ...trunkBelts(intake, bays, staging, container, bands, width),
+    ...bays.flatMap((bay) => bayBelts(bay, bands[bay.band]!)),
+    ...returnBelts(bays, staging, bands, width),
+  ]
+  const { boxes, unplacedTaskIds } = placeBoxes(snapshot.tasks, { bays, intake, staging, container, belts }, previous)
+  return {
+    bounds: { x: 0, y: 0, w: width, h: front + 1 }, bands, rooms,
+    lanesPerBay: capacity, door: first.room.door, intake, bays, staging, container, belts, boxes,
+    unplaced: { taskIds: unplacedTaskIds },
+  }
+}
+
+/** Geometry changes that require the room drawing and its occupants to glide. */
+export function roomGeometryChanged(before: Layout | undefined, after: Layout): boolean {
+  if (!before?.rooms || !after.rooms) return false
+  return JSON.stringify([before.rooms, before.bays.map((bay) => bay.stations.map((station) => [station.id, station.bench]))]) !==
+    JSON.stringify([after.rooms, after.bays.map((bay) => bay.stations.map((station) => [station.id, station.bench]))])
 }

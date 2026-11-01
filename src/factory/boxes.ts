@@ -8,7 +8,7 @@
 // inside, so it goes up as each one lands.
 
 import * as THREE from "three"
-import { type BoxTiles, type Motion, restingTiles, tileAfterSlide } from "~/floor/motion"
+import { type BoxTiles, type Motion, restingTileAfterSlide, restingTiles, tileAfterSlide } from "~/floor/motion"
 import { sameTile, tileKey } from "~/floor/tiles"
 import type { BoxSpot, Layout, Tile } from "~/floor/types"
 import type { Task } from "~/model/types"
@@ -164,7 +164,8 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
       const rest = resting[taskId]
       const at = now[taskId]
       if (!rest || !at) continue
-      slid[taskId] = (floorBox.ride && !sameTile(at, rest) && tileAfterSlide(shown, next, at)) || rest
+      slid[taskId] = (floorBox.ride && !sameTile(at, rest) && tileAfterSlide(shown, next, at)) ||
+        (next.rooms && restingTileAfterSlide(shown, next, taskId)) || rest
     }
     return slid
   }

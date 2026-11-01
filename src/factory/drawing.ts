@@ -6,6 +6,7 @@
 // and agents can change status in place.
 
 import * as THREE from "three"
+import { drawRooms } from "./rooms"
 import { beltName, carriesRework } from "~/floor/belts"
 import type { Layout } from "~/floor/types"
 import { type Pieces, isShared } from "./models"
@@ -23,7 +24,10 @@ export function drawFactory(layout: Layout, pieces: Pieces): THREE.Group {
     piece.name = name
     group.add(piece)
   }
-  add("floor", floorSlab(layout.bounds, pieces.floor))
+  const floor = floorSlab(layout.bounds, pieces.floor)
+  if (layout.rooms) (floor.material as THREE.MeshLambertMaterial).color.setHex(0x303941)
+  add("floor", floor)
+  drawRooms(layout, pieces.floor, add)
   add("patch:intake", patch(layout.intake.rect, "intake"))
   for (const bay of layout.bays) add(`patch:${bay.id}`, patch(bay.rect, "bay"))
   if (layout.staging) add("patch:staging", patch(layout.staging.rect, "staging"))
@@ -39,7 +43,9 @@ export function drawFactory(layout: Layout, pieces: Pieces): THREE.Group {
     // The first staging spot is the bench itself; the rest are shelves beside the inspector.
     layout.staging.pile.slice(1).forEach((tile, i) => add(`pallet:staging:${i}`, pallet(tile)))
   }
-  add("door", door(layout.door, pieces))
+  if (layout.rooms) {
+    for (const room of layout.rooms) add(`door:${room.id}`, door(room.door, pieces))
+  } else add("door", door(layout.door, pieces))
   layout.intake.pile.forEach((tile, i) => add(`pallet:intake:${i}`, pallet(tile)))
   add("hopper", hopper(layout.intake))
   add("container", containerWalls(layout.container))
@@ -50,6 +56,10 @@ export function drawFactory(layout: Layout, pieces: Pieces): THREE.Group {
 export function disposeMeshes(root: THREE.Object3D) {
   root.traverse((object) => {
     if (!(object instanceof THREE.Mesh)) return
+    if (object.userData.disposeTexture) {
+      const material = object.material as THREE.MeshBasicMaterial
+      material.map?.dispose()
+    }
     if (!isShared(object.geometry)) object.geometry.dispose()
     const materials: THREE.Material[] = Array.isArray(object.material) ? object.material : [object.material]
     for (const material of materials) if (!isShared(material)) material.dispose()
