@@ -42,3 +42,6 @@ export interface Snapshot {
 
 /** An agent or a task, by id: what a click lands on, what a card is for, or what the camera focuses on. */
 export type Subject = { agent: string } | { task: string }
+
+// Room-based host contract; legacy types above remain supported.
+export type { RoomTheme, RoomBillboard, Room, RoomTransition, RoomConfiguration, RoomAgent, TaskAssignment, RoomTaskLocation, RoomTask, HumanAttentionRequest, OnHumanNeeded, RoomSnapshot, RoomFactoryState } from "./rooms"

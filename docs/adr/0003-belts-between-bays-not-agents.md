@@ -10,3 +10,7 @@ We chose this over a belt per pair of agents because N implementers feeding M
 reviewers would otherwise need N×M belts, and because agent sessions come and
 go while roles are stable: a new session adds a lane to a bay, not a new web
 of belts across the floor.
+
+For the new room contract, see [ADR 0010](0010-configurable-agent-rooms.md),
+which amends this decision for room mode. The rules here remain in force
+for the legacy bay renderer.

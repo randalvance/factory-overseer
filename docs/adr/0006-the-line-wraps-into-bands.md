@@ -15,3 +15,7 @@ turn is a short belt at the edge, each band's return belt runs opposite its
 trunk and joins the band above at the same turn, and no box rides an empty
 carriage belt back across the floor. Alternate bands read right to left, which
 the belt chevrons make plain.
+
+For the new room contract, see [ADR 0010](0010-configurable-agent-rooms.md),
+which amends this decision for room mode. The rules here remain in force
+for the legacy bay renderer.

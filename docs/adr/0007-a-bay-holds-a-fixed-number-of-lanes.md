@@ -20,3 +20,7 @@ one the overseer's Reorganize lays (ADR 0002), puts a role's annexes right
 after its own bay, so a team that spans bays stands together and the handoff
 from the bay to its annex is a short one. Only while the floor runs is an
 annex appended at the end of the line.
+
+For the new room contract, see [ADR 0010](0010-configurable-agent-rooms.md),
+which amends this decision for room mode. The rules here remain in force
+for the legacy bay renderer.
