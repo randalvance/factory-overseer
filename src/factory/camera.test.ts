@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Rect } from "~/floor/types"
-import { type CameraPose, clampToFloor, fitFloor, panBy, zoomBy } from "./camera"
+import { type CameraPose, clampToFloor, fitFloor, panBy, pinchBy, zoomBy, zoomStep } from "./camera"
 
 const centred: CameraPose = { x: 10, z: 2.5, zoom: 1 }
 const floor: Rect = { x: 0, y: 0, w: 30, h: 5 }
@@ -22,6 +22,39 @@ describe("wheel zoom", () => {
 
   it("leaves the target where it was", () => {
     expect(zoomBy(centred, -100)).toMatchObject({ x: 10, z: 2.5 })
+  })
+})
+
+describe("zoom keys", () => {
+  // Six presses take the zoom from half to four times, each one the square root of two.
+  it("zooms in a step on plus and out a step on minus", () => {
+    expect(zoomStep(centred, 1).zoom).toBeCloseTo(1.4142, 3)
+    expect(zoomStep(centred, -1).zoom).toBeCloseTo(0.7071, 3)
+  })
+
+  it("stops at the limits", () => {
+    expect(zoomStep({ ...centred, zoom: 4 }, 1).zoom).toBe(4)
+    expect(zoomStep({ ...centred, zoom: 0.5 }, -1).zoom).toBe(0.5)
+    let pose = { ...centred, zoom: 0.5 }
+    for (let i = 0; i < 6; i++) pose = zoomStep(pose, 1)
+    expect(pose.zoom).toBeCloseTo(4, 6)
+  })
+})
+
+describe("pinch zoom", () => {
+  it("scales the zoom as the fingers spread or close", () => {
+    expect(pinchBy(centred, 100, 200).zoom).toBeCloseTo(2, 6)
+    expect(pinchBy(centred, 200, 100).zoom).toBeCloseTo(0.5, 6)
+  })
+
+  it("stops at the limits and leaves the target where it was", () => {
+    expect(pinchBy({ ...centred, zoom: 3 }, 100, 300)).toEqual({ x: 10, z: 2.5, zoom: 4 })
+    expect(pinchBy(centred, 100, 10).zoom).toBe(0.5)
+  })
+
+  it("pinches nothing while the fingers have no distance between them", () => {
+    expect(pinchBy(centred, 0, 100)).toEqual(centred)
+    expect(pinchBy(centred, 100, 0)).toEqual(centred)
   })
 })
 

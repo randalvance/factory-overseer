@@ -1,7 +1,9 @@
 // The factory in 3D: a layout and a snapshot in, a drawing on a canvas out,
 // with plain three.js behind an imperative handle (ADR 0004). The view owns
-// the renderer, the camera and the render loop; the pieces, the drawing, the
-// agents and the boxes are built elsewhere.
+// the renderer, the camera and the render loop, and what the overseer does
+// with them: panning and zooming within the floor, following a box, and
+// looking under the pointer (ADR 0008); the pieces, the drawing, the agents
+// and the boxes are built elsewhere.
 
 import * as THREE from "three"
 import { stationed } from "~/floor/layout"
@@ -9,12 +11,14 @@ import { type Motions, motionsFor } from "~/floor/motion"
 import type { Layout, Rect } from "~/floor/types"
 import { type AgentStatus, STATUS_ICONS, type StatusStyle } from "~/model/status"
 import type { ComingsAndGoings } from "~/floor/walk"
-import type { Agent, Snapshot } from "~/model/types"
+import type { Agent, Snapshot, Subject } from "~/model/types"
 import { INSPECTOR, type Icons, type Settling, type StatusLooks, createAgents } from "./agents"
 import { BELT_SPEED, createBoxes } from "./boxes"
-import { type CameraPose, PITCH, PX_PER_TILE, clampToFloor, fitFloor, panBy, zoomBy } from "./camera"
-import { attachControls } from "./controls"
+import { type CameraPose, PITCH, PX_PER_TILE, clampToFloor, fitFloor, panBy, pinchBy, zoomBy, zoomStep } from "./camera"
+import { type Point, attachControls } from "./controls"
 import { disposeMeshes, drawFactory } from "./drawing"
+import { nearer } from "./picking"
+import { BOX_SIZE, halo } from "./pieces"
 import { type Slide, startSlide } from "./slide"
 import { type Wardrobes, sheetUrl } from "./sprites"
 import { beltTexture, blankTexture, loadTexture, returnBeltTexture } from "./textures"
@@ -38,6 +42,12 @@ export interface FactoryView {
   reorganize(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Motions>
   /** Scale every belt. */
   setSpeed(speed: number): void
+  /** Frame the floor's width, and the whole floor when it fits, as the view opened. A box being followed is let go. */
+  fitAll(): void
+  /** Put the agent's figure under the middle of the screen. A box being followed is let go. */
+  focusAgent(id: string): void
+  /** Keep the task's box under the middle of the screen until the overseer pans, fits all or focuses elsewhere. */
+  followTask(taskId: string): void
   dispose(): void
 }
 
@@ -52,6 +62,10 @@ export interface Styling {
 export interface FactoryViewOptions {
   /** The app's base path, where the stock sheets are served from. */
   assetBase?: string
+  /** Called with what a click on the canvas lands on, or nothing when it lands on the floor. */
+  onClick?: (picked: Subject | undefined) => void
+  /** Called with the task whose box has just come to rest at the end of its ride. */
+  onLanded?: (taskId: string) => void
 }
 
 const BACKGROUND = 0x0b0d12
@@ -100,6 +114,13 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   const agents = createAgents(scene)
   const boxes = createBoxes(scene)
   let speed = 1
+  /** The box the camera keeps under the middle of the screen, until the overseer pans. */
+  let following: string | undefined
+  /** Where the pointer rests on the canvas, if it does; what is under it wears the halo. */
+  let pointerAt: Point | undefined
+  const ring = halo()
+  scene.add(ring)
+  const raycaster = new THREE.Raycaster()
 
   /** Frame the whole line once both the floor and the viewport are known; from then on keep the camera on its pose. */
   function aimCamera() {
@@ -130,9 +151,44 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   observer.observe(mount)
   resize()
 
+  /** Look at a point of the floor, within the floor's margin. */
+  function lookAt(x: number, z: number) {
+    if (!pose || !floor) return
+    pose = clampToFloor({ ...pose, x, z }, floor)
+    aimCamera()
+  }
+
+  function fitAll() {
+    following = undefined
+    if (floor && visible) pose = fitFloor(floor, viewport)
+    aimCamera()
+  }
+
+  /** What is under a point of the canvas: the nearer of the box and the figure on the ray through it. */
+  function pickAt(point: Point): Subject | undefined {
+    raycaster.setFromCamera(new THREE.Vector2((point.x / viewport.width) * 2 - 1, 1 - (point.y / viewport.height) * 2), camera)
+    return nearer(boxes.pick(raycaster), agents.pick(raycaster))
+  }
+
+  /** The point under an agent's feet or a box's underside, where it is this frame. */
+  function underfoot(subject: Subject): THREE.Vector3 | undefined {
+    if ("agent" in subject) return agents.positionOf(subject.agent)
+    const at = boxes.positionOf(subject.task)
+    return at?.setY(at.y - BOX_SIZE / 2)
+  }
+
+  /** Ring whatever is under the pointer this frame: a box that rides out from under a still pointer leaves the ring behind. */
+  function placeRing() {
+    const hovered = pointerAt && pickAt(pointerAt)
+    const at = hovered && underfoot(hovered)
+    ring.visible = at !== undefined
+    if (at) ring.position.set(at.x, at.y + 0.02, at.z)
+  }
+
   const detachControls = attachControls(canvas, {
     pan(dx, dy) {
       if (!pose || !floor) return
+      following = undefined
       pose = clampToFloor(panBy(pose, dx, dy), floor)
       aimCamera()
     },
@@ -140,6 +196,26 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
       if (!pose) return
       pose = zoomBy(pose, deltaY)
       aimCamera()
+    },
+    pinch(from, to) {
+      if (!pose) return
+      pose = pinchBy(pose, from, to)
+      aimCamera()
+    },
+    zoomStep(direction) {
+      if (!pose) return
+      pose = zoomStep(pose, direction)
+      aimCamera()
+    },
+    fitAll,
+    click(point) {
+      const picked = pickAt(point)
+      if (picked && "task" in picked) following = picked.task
+      options.onClick?.(picked)
+    },
+    hover(point) {
+      pointerAt = point
+      return point !== undefined && pickAt(point) !== undefined
     },
   })
 
@@ -157,9 +233,17 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
         aimCamera()
       }
     }
-    agents.tick(dt, speed, boxes.tick(dt, speed))
+    const landings = boxes.tick(dt, speed)
+    agents.tick(dt, speed, landings)
+    for (const landing of landings) options.onLanded?.(landing.taskId)
     beltTravel += dt * BELT_SPEED * speed
     for (const surface of Object.values(surfaces)) surface.offset.x = -beltTravel % 1
+    if (following) {
+      const at = boxes.positionOf(following)
+      if (at) lookAt(at.x, at.z)
+      else following = undefined
+    }
+    placeRing()
     if (visible) renderer.render(scene, camera)
   })
 
@@ -228,6 +312,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     detachControls()
     slide?.end()
     disposeMeshes(drawing)
+    disposeMeshes(ring)
     agents.dispose()
     boxes.dispose()
     renderer.dispose()
@@ -239,6 +324,15 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     reorganize,
     setSpeed: (next) => {
       speed = next
+    },
+    fitAll,
+    focusAgent(id) {
+      following = undefined
+      const at = agents.positionOf(id)
+      if (at) lookAt(at.x, at.z)
+    },
+    followTask(taskId) {
+      following = taskId
     },
     dispose,
   }

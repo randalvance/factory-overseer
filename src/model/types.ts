@@ -39,3 +39,6 @@ export interface Snapshot {
   /** Among tasks at one agent, array order is queue order. */
   tasks: Task[]
 }
+
+/** An agent or a task, by id: what a click lands on, what a card is for, or what the camera focuses on. */
+export type Subject = { agent: string } | { task: string }

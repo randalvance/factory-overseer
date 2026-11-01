@@ -25,6 +25,8 @@ export const PX_PER_TILE = 64
 export const PITCH = (50 * Math.PI) / 180
 /** Pixels of wheel travel for one doubling of the zoom. */
 const WHEEL_PX_PER_DOUBLING = 500
+/** What one press of a zoom key multiplies the zoom by: six presses from half to four times. */
+const ZOOM_STEP = Math.SQRT2
 /** How far past the floor's edge the camera may look. */
 const PAN_MARGIN = 2
 /** Room kept around the floor when framing it, in tiles. */
@@ -34,6 +36,17 @@ const HEADROOM = 2
 
 export function zoomBy(pose: CameraPose, deltaY: number): CameraPose {
   return { ...pose, zoom: clamp(pose.zoom * 2 ** (-deltaY / WHEEL_PX_PER_DOUBLING), ZOOM_MIN, ZOOM_MAX) }
+}
+
+/** One press of a zoom key: in for 1, out for -1. */
+export function zoomStep(pose: CameraPose, direction: 1 | -1): CameraPose {
+  return { ...pose, zoom: clamp(pose.zoom * ZOOM_STEP ** direction, ZOOM_MIN, ZOOM_MAX) }
+}
+
+/** A pinch: the distance between the fingers went from one length to another, in pixels, and the zoom scales with it. Fingers with no distance between them pinch nothing. */
+export function pinchBy(pose: CameraPose, from: number, to: number): CameraPose {
+  if (from <= 0 || to <= 0) return pose
+  return { ...pose, zoom: clamp((pose.zoom * to) / from, ZOOM_MIN, ZOOM_MAX) }
 }
 
 /** Move the target so the floor follows a drag of dx, dy screen pixels. Depth is foreshortened by the pitch. */

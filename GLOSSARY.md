@@ -152,6 +152,66 @@ A station whose agent has left. It keeps its place until an agent of the same
 role takes it, or the floor is laid afresh with no box left on its bench.
 _Avoid_: Empty, free, unassigned
 
+## The overseer's view
+
+**Camera**:
+The overseer's point of view over the floor, at a fixed angle: it pans within
+the floor plus a margin and zooms from half, the whole floor, to four times,
+reading a tablet, and never turns.
+_Avoid_: Orbit, viewpoint, free camera
+
+**Fit All**:
+Framing the floor's width, and the whole floor when it fits, as the view
+opens. The F key and the HUD button ask for it, and so can the host.
+_Avoid_: Zoom to fit, reset view, zoom extents
+
+**Follow**:
+The camera keeping a box under the middle of the screen as it rides, from a
+click on it or the host's focus, until the overseer pans, fits all or focuses
+elsewhere.
+_Avoid_: Track, lock on, chase
+
+**Focus**:
+The host's request to put an agent under the middle of the screen, or a task,
+which is followed from then on.
+_Avoid_: Centre on, jump to, go to
+
+**Pick**:
+What a click or the pointer lands on: an agent or a box, if either. The pick
+opens a card, and the halo rings it.
+_Avoid_: Hit, selection, target
+
+**Halo**:
+The ring of light on the floor under the agent or box the pointer rests on.
+_Avoid_: Highlight, outline, glow, hover state
+
+**HUD**:
+What lies over the factory: the header with its counts and its Fit all and
+Reorganize buttons, and the card for what the overseer clicked. Nothing else.
+_Avoid_: Overlay, toolbar, panel, chrome
+
+**Counts**:
+The header's tally of the snapshot: agents, tasks in flight, tasks awaiting
+review and tasks shipped.
+_Avoid_: Stats, metrics, KPIs
+
+**In Flight**:
+A task on the line before the staging area: in the intake, at a station or
+on a belt. Neither awaiting review nor shipped.
+_Avoid_: Active, in progress, WIP
+
+**Card**:
+What a click on an agent or a box opens: the agent's name, role, status,
+activity and the task on its bench, or the box's label, where it is and its
+trail. One card at a time; it closes from its button, from a click on the
+floor, or when its subject leaves the floor.
+_Avoid_: Popup, modal, tooltip, detail panel
+
+**Trail**:
+The places a task has been this session, in order, as its card tells it: the
+intake, each station, the staging area, the container.
+_Avoid_: History, path, route, log
+
 ## How agents look
 
 **Sheet** (stock sheet):

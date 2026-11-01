@@ -17,6 +17,7 @@ import type { ComingsAndGoings } from "~/floor/walk"
 import { type AgentStatus, type StatusIcon, type StatusStyle, bubbleText } from "~/model/status"
 import type { Agent, Snapshot, Task } from "~/model/types"
 import type { Landing } from "./boxes"
+import { type Candidate, nearestOf } from "./picking"
 import { disposeMeshes } from "./drawing"
 import { type Glide, glide, startGlide } from "./slide"
 import {
@@ -71,6 +72,10 @@ export interface Agents {
    * Walks are scaled with the belts; a status plays in real seconds.
    */
   tick(dt: number, speed: number, landings: Landing[]): void
+  /** The nearest figure on the ray, by agent id. The inspector is no agent, and a figure fading out is past clicking. */
+  pick(raycaster: THREE.Raycaster): Candidate | undefined
+  /** Where the agent's feet are now, in the scene. */
+  positionOf(id: string): THREE.Vector3 | undefined
   dispose(): void
 }
 
@@ -454,13 +459,25 @@ export function createAgents(parent: THREE.Object3D): Agents {
     s.age = Math.random() * s.life
   }
 
+  function pick(raycaster: THREE.Raycaster): Candidate | undefined {
+    const clickable = [...figures.values()].filter((figure) => figure.agent.id !== INSPECTOR_ID && figure.fading === undefined)
+    return nearestOf(
+      raycaster,
+      clickable.map((figure) => [figure.agent.id, figure.body] as const),
+    )
+  }
+
+  function positionOf(id: string): THREE.Vector3 | undefined {
+    return figures.get(id)?.group.position.clone()
+  }
+
   function dispose() {
     for (const id of [...figures.keys()]) removeFigure(id)
     for (const id of [...tablets.keys()]) removeTablet(id)
     parent.remove(layer)
   }
 
-  return { update, tick, dispose }
+  return { update, tick, pick, positionOf, dispose }
 }
 
 /** Show the figure at a fraction of its status's opacity: all of it, or less as it fades. */

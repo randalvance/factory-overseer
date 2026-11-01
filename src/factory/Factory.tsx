@@ -5,15 +5,18 @@
 // overseer (ADR 0002); the boxes whose place changed ride the belts there
 // from wherever they are, and the agents who came and went since the last
 // snapshot walk in and fade. Only the overseer's Reorganize, asked for on the
-// handle the host gets once the factory is ready, lays the floor afresh.
+// handle the host gets once the factory is ready, lays the floor afresh. The
+// HUD over the canvas, the counts and the cards, is React too.
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { layoutFloor, reorganizedFloor } from "~/floor/layout"
 import type { Motions } from "~/floor/motion"
 import type { Layout } from "~/floor/types"
 import { comingsAndGoings } from "~/floor/walk"
 import { type StatusStyleOverrides, resolveStatusStyles } from "~/model/status"
-import type { Agent, Pipeline, Task } from "~/model/types"
+import { type Trails, recordTrails } from "~/model/trails"
+import type { Agent, Pipeline, Snapshot, Subject, Task } from "~/model/types"
+import { Hud } from "./Hud"
 import type { Wardrobes } from "./sprites"
 import { type FactoryView, type Styling, createFactoryView } from "./view"
 
@@ -45,6 +48,10 @@ export interface FactoryProps {
 
 /** What the host asks of the factory once it is ready, beyond what the props say. */
 export interface FactoryHandle {
+  /** Put an agent under the middle of the screen; or a task, and keep it there until the overseer pans, fits all or focuses elsewhere. */
+  focus(subject: Subject): void
+  /** Frame the floor's width, and the whole floor when it fits, as the view opened. */
+  fitAll(): void
   /**
    * Lay the floor afresh as the overseer asks: compact, in pipeline order,
    * every annex beside its role's bay, no vacant lane but one a box still
@@ -65,14 +72,37 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, wi
   const asked = useRef(0)
   /** How many snapshots the view has drawn; the first makes the factory ready. */
   const [drawn, setDrawn] = useState(0)
+  /** What the overseer clicked last, for its card. */
+  const [picked, setPicked] = useState<Subject>()
+  /** Where every task has been this session, for the cards. */
+  const [trails, setTrails] = useState<Trails>({})
+  /** The tasks whose boxes are riding to where the snapshot puts them, until each lands. */
+  const [riding, setRiding] = useState<ReadonlySet<string>>(() => new Set())
+  const styles = useMemo(() => resolveStatusStyles(statusStyles), [statusStyles])
 
   useEffect(() => {
     latest.current = { pipeline, agents, tasks, staging, statusStyles, wardrobes, onLayout, onReady }
   })
 
   useEffect(() => {
+    setTrails((before) => recordTrails(before, { agents, tasks }))
+    // A card whose agent or task has left the floor goes with it.
+    setPicked((before) => (before && !onFloor(before, { agents, tasks }) ? undefined : before))
+  }, [agents, tasks])
+
+  useEffect(() => {
     if (!mount.current) return
-    const created = createFactoryView(mount.current, { assetBase: import.meta.env.BASE_URL })
+    const created = createFactoryView(mount.current, {
+      assetBase: import.meta.env.BASE_URL,
+      onClick: setPicked,
+      onLanded: (taskId) =>
+        setRiding((before) => {
+          if (!before.has(taskId)) return before
+          const after = new Set(before)
+          after.delete(taskId)
+          return after
+        }),
+    })
     view.current = created
     return () => {
       created.dispose()
@@ -88,6 +118,7 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, wi
       .then((motions) => {
         if (call !== asked.current) return
         latest.current.onLayout?.(layout, motions)
+        setRiding(new Set(motions.toPlay.map((motion) => motion.taskId)))
         setDrawn((n) => n + 1)
       })
       .catch((error: unknown) => console.error(failure, error))
@@ -106,6 +137,13 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, wi
   }, [pipeline, agents, tasks, staging, width, lanes, statusStyles, wardrobes])
 
   const handle = useRef<FactoryHandle>({
+    focus(subject) {
+      if ("agent" in subject) view.current?.focusAgent(subject.agent)
+      else view.current?.followTask(subject.task)
+    },
+    fitAll() {
+      view.current?.fitAll()
+    },
     reorganize() {
       const { pipeline, agents, tasks, staging, statusStyles, wardrobes } = latest.current
       if (!view.current || !previous.current) return
@@ -119,7 +157,27 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, wi
     if (drawn === 1) latest.current.onReady?.(handle.current)
   }, [drawn])
 
-  return <div ref={mount} className="factory" role="img" aria-label="Factory floor" data-drawn={drawn} />
+  return (
+    <div className="factory">
+      <div ref={mount} className="factory-canvas" role="img" aria-label="Factory floor" data-drawn={drawn} />
+      <Hud
+        snapshot={{ agents, tasks }}
+        trails={trails}
+        riding={riding}
+        styles={styles}
+        picked={picked}
+        ready={drawn > 0}
+        onClose={() => setPicked(undefined)}
+        onFitAll={() => handle.current.fitAll()}
+        onReorganize={() => handle.current.reorganize()}
+      />
+    </div>
+  )
+}
+
+/** Whether the snapshot still has the subject. */
+function onFloor(subject: Subject, snapshot: Snapshot): boolean {
+  return "agent" in subject ? snapshot.agents.some((agent) => agent.id === subject.agent) : snapshot.tasks.some((task) => task.id === subject.task)
 }
 
 /** How the view is to show the agents, from the host's overrides. */

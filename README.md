@@ -18,6 +18,17 @@ in one pass; nothing moves at any other time. A host with no human review
 switches the staging area off, and the last bay ships straight into the
 container.
 
+The overseer can look anywhere and ask about anything. Drag the floor to pan,
+or hold WASD or the arrow keys with the pointer over it; turn the wheel,
+pinch, or press plus and minus to zoom, from half, the whole floor, to four
+times, reading a tablet; press F or the Fit all button to frame the floor
+again as it opened. The pointer rings whatever it rests on. Click an agent for
+its card: name, role, status, activity and the task on its bench. Click a box
+for its card, its label, where it is and the trail it has taken this session,
+and the camera follows the box until you pan or fit all. The header over the
+floor counts the agents, the tasks in flight, the tasks awaiting review and
+the tasks shipped.
+
 Early days: the floor is being laid. The vocabulary is in [GLOSSARY.md](GLOSSARY.md)
 and the decisions so far are in [docs/adr](docs/adr).
 

@@ -13,6 +13,7 @@ import { sameTile, tileKey } from "~/floor/tiles"
 import type { BoxSpot, Layout, Tile } from "~/floor/types"
 import type { Task } from "~/model/types"
 import { BOX_SIZE, box, boxFace, containerCount, heightsOver, hopperMouth, recount, tileCenter } from "./pieces"
+import { type Candidate, nearestOf } from "./picking"
 import { type Glide, glide, startGlide } from "./slide"
 
 /** Belt travel in tiles per second at speed 1. */
@@ -44,6 +45,7 @@ export interface Landing {
   tile: Tile
 }
 
+
 export interface Boxes {
   /**
    * Rest every box where the layout puts it, riding the motions given. Boxes
@@ -64,6 +66,10 @@ export interface Boxes {
   tick(dt: number, speed: number): Landing[]
   /** Where each box is now: at rest, or over a tile of its ride. */
   tiles(): BoxTiles
+  /** The nearest box on the ray, by task id. */
+  pick(raycaster: THREE.Raycaster): Candidate | undefined
+  /** Where the middle of the box is now, in the scene. */
+  positionOf(taskId: string): THREE.Vector3 | undefined
   dispose(): void
 }
 
@@ -222,11 +228,22 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
     return tiles
   }
 
+  function pick(raycaster: THREE.Raycaster): Candidate | undefined {
+    return nearestOf(
+      raycaster,
+      [...boxes].map(([taskId, floorBox]) => [taskId, floorBox.mesh] as const),
+    )
+  }
+
+  function positionOf(taskId: string): THREE.Vector3 | undefined {
+    return boxes.get(taskId)?.mesh.position.clone()
+  }
+
   function dispose() {
     for (const taskId of [...boxes.keys()]) remove(taskId)
     removePlate()
     parent.remove(group)
   }
 
-  return { update, tilesAfterSlide, tick, tiles, dispose }
+  return { update, tilesAfterSlide, tick, tiles, pick, positionOf, dispose }
 }

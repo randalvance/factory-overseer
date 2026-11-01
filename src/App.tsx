@@ -84,8 +84,12 @@ export function App() {
           <button type="button" onClick={() => setDemo((d) => ({ ...d, script: withAnotherTask(d.script) }))}>
             Add a task
           </button>
-          <button type="button" onClick={() => factory?.reorganize()} disabled={!factory}>
-            Reorganize
+          {/* The handle: the camera focuses on Ada, or follows t-37 across the line. */}
+          <button type="button" onClick={() => factory?.focus({ agent: "imp-1" })} disabled={!factory}>
+            Focus on Ada
+          </button>
+          <button type="button" onClick={() => factory?.focus({ task: "t-37" })} disabled={!factory}>
+            Follow t-37
           </button>
           <button type="button" onClick={() => setStaging((on) => !on)}>
             {staging ? "Staging off" : "Staging on"}

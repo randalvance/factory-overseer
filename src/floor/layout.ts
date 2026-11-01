@@ -14,6 +14,7 @@
 // first time it is needed (ADR 0003).
 
 import type { Agent, Pipeline, Snapshot, Task } from "~/model/types"
+import { tasksAt } from "~/model/tasks"
 import { opposite } from "./tiles"
 import type {
   Band,
@@ -398,7 +399,7 @@ function stillThere(station: StationToLay, snapshot: Snapshot): boolean {
 
 /** Whether a task is at the station's agent, so a box sits or waits there. */
 function holdsABox(station: StationToLay, snapshot: Snapshot): boolean {
-  return snapshot.tasks.some((task) => typeof task.at === "object" && task.at.agent === station.agentId)
+  return tasksAt(snapshot.tasks, station.agentId).length > 0
 }
 
 /** A running count per key: each call gives the key's next index, from zero. */

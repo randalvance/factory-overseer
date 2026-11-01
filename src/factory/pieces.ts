@@ -43,6 +43,7 @@ const COLOR = {
   container: 0x9c4a2f,
   box: "#d9a559",
   sparks: [0xffd166, 0xffb347, 0xfff3c4],
+  halo: 0xffd166,
 }
 
 export function tileCenter(tile: Tile): { x: number; z: number } {
@@ -274,6 +275,14 @@ export function bubble(text: string): THREE.Sprite {
   sprite.center.set(0.5, 0)
   sprite.scale.set(width / TEXT_PX_PER_TILE, height / TEXT_PX_PER_TILE, 1)
   return sprite
+}
+
+/** The ring of light on the floor under whatever the pointer rests on. */
+export function halo(): THREE.Mesh {
+  const material = new THREE.MeshBasicMaterial({ color: COLOR.halo, transparent: true, opacity: 0.85, depthWrite: false })
+  const mesh = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.56, 32).rotateX(-Math.PI / 2), material)
+  mesh.visible = false
+  return mesh
 }
 
 /** One spark: a fleck of hot colour. */

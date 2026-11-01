@@ -22,6 +22,17 @@ const test = base.extend<{ pageErrors: string[] }>({
   ],
 })
 
+/** Drag the floor by dx, dy pixels, from the middle of the window. */
+async function drag(page: Page, dx: number, dy: number) {
+  const x0 = 640 - dx / 2
+  const y0 = 420 - dy / 2
+  await page.mouse.move(x0, y0)
+  await page.mouse.down()
+  await page.mouse.move(x0 + dx / 2, y0 + dy / 2, { steps: 4 })
+  await page.mouse.move(x0 + dx, y0 + dy, { steps: 4 })
+  await page.mouse.up()
+}
+
 /** Open the demo and wait for the factory to draw its first snapshot. */
 async function openFactory(page: Page): Promise<Locator> {
   await page.goto("/")
@@ -189,6 +200,71 @@ test("the overseer reorganizes a messy floor and everything slides to its new pl
   await page.screenshot({ path: `${screenshots}/reorganizing.png` })
   await page.waitForTimeout(1500)
   await page.screenshot({ path: `${screenshots}/reorganized.png` })
+})
+
+test("the overseer pans, zooms and fits all, and clicks an agent and a box for their cards, without errors", async ({ page }) => {
+  const factory = await openFactory(page)
+  await expect(page.getByLabel("Counts")).toHaveText(/3 agents.*5 in flight.*1 awaiting review.*2 shipped/)
+
+  // A drag, a held key and a tapped one pan; the wheel and a key zoom in; F frames the floor again.
+  await drag(page, 120, 80)
+  await page.keyboard.down("d")
+  await page.waitForTimeout(300)
+  await page.keyboard.up("d")
+  await page.keyboard.press("ArrowUp")
+  await page.mouse.move(640, 430)
+  await page.mouse.wheel(0, -500)
+  await page.keyboard.press("+")
+  await page.waitForTimeout(200)
+  await page.screenshot({ path: `${screenshots}/zoomed-in.png` })
+  await page.keyboard.press("f")
+  await page.waitForTimeout(200)
+
+  // Ada stands behind the first bench; the pointer over her rings her, and a click opens her card.
+  await page.mouse.move(378, 290)
+  await page.waitForTimeout(200)
+  await page.screenshot({ path: `${screenshots}/hover.png` })
+  await page.mouse.click(378, 290)
+  const adaCard = page.getByRole("complementary", { name: "Card for Ada" })
+  await expect(adaCard).toContainText("implementer")
+  await expect(adaCard).toContainText("working")
+  await expect(adaCard).toContainText("Writing the parser")
+  await expect(adaCard).toContainText("t-37")
+  await page.screenshot({ path: `${screenshots}/agent-card.png` })
+
+  // t-37 on her bench: its card, and the camera follows it as it rides to Grace.
+  await page.mouse.click(378, 340)
+  const boxCard = page.getByRole("complementary", { name: "Card for t-37" })
+  await expect(boxCard).toContainText("on Ada's bench")
+  await expect(adaCard).toBeHidden()
+  await page.getByRole("button", { name: "Next handoff" }).click()
+  await expect(factory).toHaveAttribute("data-drawn", "2")
+  await expect(boxCard).toContainText("riding to Grace's bench")
+  await expect(boxCard).toContainText("Ada, implementer → Grace, reviewer")
+  await page.waitForTimeout(1200)
+  await page.screenshot({ path: `${screenshots}/following.png` })
+  // The card says so until the box lands.
+  await expect(boxCard).toContainText("on Grace's bench", { timeout: 15_000 })
+
+  // A drag ends the following; the HUD button frames the floor again; the card closes.
+  await drag(page, -100, 0)
+  await page.getByRole("button", { name: "Fit all" }).click()
+  await page.getByRole("button", { name: "Close" }).click()
+  await expect(boxCard).toBeHidden()
+})
+
+test("the handle focuses on an agent and follows a task without errors", async ({ page }) => {
+  const factory = await openFactory(page)
+  await page.getByRole("combobox", { name: "Speed" }).selectOption("0.5")
+
+  await page.getByRole("button", { name: "Follow t-37" }).click()
+  await page.getByRole("button", { name: "Next handoff" }).click()
+  await expect(factory).toHaveAttribute("data-drawn", "2")
+  await page.waitForTimeout(2000)
+  await page.screenshot({ path: `${screenshots}/handle-follow.png` })
+  await page.getByRole("button", { name: "Focus on Ada" }).click()
+  await page.waitForTimeout(200)
+  await page.screenshot({ path: `${screenshots}/handle-focus.png` })
 })
 
 test("the flat debug view is still there behind a toggle", async ({ page }) => {
