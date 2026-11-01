@@ -248,33 +248,54 @@ def belt_straight(name, mats, surface):
 
 
 def belt_corner(name, mats, surface, turn):
-    """A mitred turn: in along +x, out toward -z for a left turn, +z for a right one, the chevrons turning at the diagonal."""
+    """A quarter turn about the tile's inner corner: in along +x, curving to -z for a left turn, +z for a right one. The slab, the rims and the surface follow the curve, the chevrons fanning out across it."""
     s = 1 if turn == "left" else -1
     piece = Piece(name)
+    steps = 8
+    inner, outer = 0.05, 0.95
+    body_top, rim_top = BELT_H - 0.02, BELT_H
 
-    def p(x, y, z):
-        return (x, y, s * z)
+    def at(r, i, y):
+        """The point r from the inner corner, i steps into the turn, at height y."""
+        a = (math.pi / 2) * i / steps
+        return (-0.5 + r * math.sin(a), y, s * (-0.5 + r * math.cos(a)))
 
-    def quad(points, outward, material, uvs=None):
-        piece.face([p(*pt) for pt in points], (outward[0], outward[1], s * outward[2]), material, uvs)
+    def radial(i, sign):
+        """The direction out of the turn, or into it for -1, midway through step i."""
+        a = (math.pi / 2) * (i + 0.5) / steps
+        return (sign * math.sin(a), 0, s * sign * math.cos(a))
 
-    def box(x0, x1, y0, y1, z0, z1, material):
-        piece.box(x0, x1, y0, y1, min(s * z0, s * z1), max(s * z0, s * z1), material)
+    def ring(r0, r1, y, up, material, uv=None):
+        """A flat ring between two radii at one height, one quad a step, facing up or down."""
+        for i in range(steps):
+            points = [at(r0, i, y), at(r1, i, y), at(r1, i + 1, y), at(r0, i + 1, y)]
+            uvs = [uv(i, r0), uv(i, r1), uv(i + 1, r1), uv(i + 1, r0)] if uv else None
+            piece.face(points, (0, up, 0), material, uvs)
 
-    box(-0.5, 0.45, 0, BELT_H - 0.02, -0.5, 0.45, mats["dark-steel"])
-    # The outer rim runs along the in leg's outer side and up the out leg's outer side; the inner rim meets at the inner corner.
-    box(-0.5, 0.35, BELT_H - 0.02, BELT_H, 0.35, 0.45, mats["rim"])
-    box(0.35, 0.45, BELT_H - 0.02, BELT_H, -0.5, 0.45, mats["rim"])
-    box(-0.5, -0.35, BELT_H - 0.02, BELT_H, -0.45, -0.35, mats["rim"])
-    box(-0.45, -0.35, BELT_H - 0.02, BELT_H, -0.5, -0.45, mats["rim"])
-    y = BELT_H
-    # The in leg up to the mitre, the two halves of the mitred square, and the out leg from it. Along the belt's
-    # middle u runs 0 to 1 as on a straight: along +x on the in leg's half, along -z on the out leg's, so the
-    # chevrons fold at the diagonal, short along the inner edge and long along the outer.
-    quad([(-0.5, y, -0.35), (-0.35, y, -0.35), (-0.35, y, 0.35), (-0.5, y, 0.35)], (0, 1, 0), surface, [(0, 0), (0.15, 0), (0.15, 1), (0, 1)])
-    quad([(-0.35, y, -0.35), (-0.35, y, 0.35), (0.35, y, 0.35)], (0, 1, 0), surface, [(0.15, 0), (0.15, 1), (0.85, 1)])
-    quad([(-0.35, y, -0.35), (0.35, y, 0.35), (0.35, y, -0.35)], (0, 1, 0), surface, [(0.85, 0), (0.15, 1), (0.85, 1)])
-    quad([(-0.35, y, -0.35), (0.35, y, -0.35), (0.35, y, -0.5), (-0.35, y, -0.5)], (0, 1, 0), surface, [(0.85, 0), (0.85, 1), (1, 1), (1, 0)])
+    def wall(r, y0, y1, sign, material):
+        """A wall at one radius between two heights, facing out of the turn or into it."""
+        for i in range(steps):
+            piece.face([at(r, i, y0), at(r, i + 1, y0), at(r, i + 1, y1), at(r, i, y1)], radial(i, sign), material)
+
+    def ends(r0, r1, y0, y1, material):
+        """The two ends of a ring, in the tile's edges, where the next tiles meet it."""
+        piece.face([at(r0, 0, y0), at(r1, 0, y0), at(r1, 0, y1), at(r0, 0, y1)], (-1, 0, 0), material)
+        piece.face([at(r0, steps, y0), at(r1, steps, y0), at(r1, steps, y1), at(r0, steps, y1)], (0, 0, -s), material)
+
+    # The slab, from the inner corner out to where a straight's slab reaches.
+    ring(inner, outer, body_top, 1, mats["dark-steel"])
+    ring(inner, outer, 0, -1, mats["dark-steel"])
+    wall(outer, 0, body_top, 1, mats["dark-steel"])
+    wall(inner, 0, body_top, -1, mats["dark-steel"])
+    ends(inner, outer, 0, body_top, mats["dark-steel"])
+    # The rims along both sides, meeting a straight's at the tile's edges.
+    for r0, r1 in ((inner, 0.15), (0.85, outer)):
+        ring(r0, r1, rim_top, 1, mats["rim"])
+        wall(r1, body_top, rim_top, 1, mats["rim"])
+        wall(r0, body_top, rim_top, -1, mats["rim"])
+        ends(r0, r1, body_top, rim_top, mats["rim"])
+    # The surface between the rims: u runs 0 to 1 around the turn as it does along a straight, v across it from the inner side.
+    ring(0.15, 0.85, rim_top, 1, surface, lambda i, r: (i / steps, (r - 0.15) / 0.7))
     return piece
 
 

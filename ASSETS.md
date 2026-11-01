@@ -26,7 +26,7 @@ has the terms.
 | Piece | What it is | Term |
 | --- | --- | --- |
 | `belt-straight` | One straight tile of belt | Belt, Trunk, Feeder, Collector; with `-return`, Return Belt, Drop, Riser |
-| `belt-corner-left`, `belt-corner-right` | A tile of belt turning a quarter to its left or its right, the surface mitred at the diagonal | Turn |
+| `belt-corner-left`, `belt-corner-right` | A tile of belt curving a quarter to its left or its right about the tile's inner corner, the chevrons fanning across the turn | Turn |
 | `belt-split` | The arm of a junction that boxes leave the belt by, laid over a straight on the side they leave toward | Junction |
 | `belt-merge` | The arm of a junction that boxes join the belt by, laid over a straight on the side they come from | Junction, Crossing |
 | `floor-tile` | One tile of concrete floor; the floor wears its texture once a tile | Factory |
