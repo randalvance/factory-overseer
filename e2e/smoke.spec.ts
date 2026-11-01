@@ -163,6 +163,34 @@ test("implementers come and go without errors", async ({ page }) => {
   await page.screenshot({ path: `${screenshots}/annex.png` })
 })
 
+test("the overseer reorganizes a messy floor and everything slides to its new place without errors", async ({ page }) => {
+  const factory = await openFactory(page)
+  const add = page.getByRole("button", { name: "Add an implementer" })
+  const speed = page.getByRole("combobox", { name: "Speed" })
+  await speed.selectOption("4")
+
+  // Barbara and Dennis fill the bay; Dennis leaves and Edsger takes his lane; Frances and Hedy take lanes in an annex at the end of the line.
+  const grow = [add, add, page.getByRole("button", { name: "Remove an implementer" }), add, add, add]
+  for (const [i, button] of grow.entries()) {
+    await button.click()
+    await expect(factory).toHaveAttribute("data-drawn", String(i + 2))
+  }
+  // A role declared before qa joins late: its bay goes after the annex, out of order, and t-42 rides there.
+  await page.getByRole("button", { name: "Add a role" }).click()
+  await expect(factory).toHaveAttribute("data-drawn", "8")
+  await page.waitForTimeout(3000)
+  await page.screenshot({ path: `${screenshots}/messy.png` })
+
+  // Laid afresh: the annex beside its bay, the late role before qa, the vacant lane closed, and everything slides there in one pass.
+  await speed.selectOption("1")
+  await page.getByRole("button", { name: "Reorganize" }).click()
+  await expect(factory).toHaveAttribute("data-drawn", "9")
+  await page.waitForTimeout(600)
+  await page.screenshot({ path: `${screenshots}/reorganizing.png` })
+  await page.waitForTimeout(1500)
+  await page.screenshot({ path: `${screenshots}/reorganized.png` })
+})
+
 test("the flat debug view is still there behind a toggle", async ({ page }) => {
   await openFactory(page)
   const debugView = page.getByRole("img", { name: "Floor layout" })

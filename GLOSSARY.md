@@ -15,6 +15,13 @@ _Avoid_: Room, map, scene
 Where every bay, station, belt and end of the line sits on the floor.
 _Avoid_: Arrangement, graph, plan
 
+**Reorganize**:
+The overseer's request to lay the floor afresh: compact, in pipeline order,
+every annex beside its role's bay, no vacant lane but one a box still rests
+at, and the line wrapped anew within the floor width. Everything slides to
+its new place in one pass, and nothing moves at any other time.
+_Avoid_: Relayout, rearrange, refresh, tidy
+
 **Line**:
 The path of boxes through the factory: the intake, each bay in turn, the
 staging area and the shipping container, joined by the trunk.
@@ -91,9 +98,10 @@ number of them.
 _Avoid_: Group, column, pool, team
 
 **Annex**:
-A further bay for a role whose bay has no lane left, appended at the end of
-the line like any other bay. A handoff between a role's bay and its annex
-rides the line like one between roles.
+A further bay for a role whose bay has no lane left: appended at the end of
+the line like any other bay while the floor runs, and laid right after the
+role's bay on a floor laid afresh. A handoff between a role's bay and its
+annex rides the line like one between roles.
 _Avoid_: Overflow bay, second bay, extension
 
 **Station**:
@@ -141,7 +149,7 @@ _Avoid_: Screen, terminal, monitor
 
 **Vacant**:
 A station whose agent has left. It keeps its place until an agent of the same
-role takes it.
+role takes it, or the floor is laid afresh with no box left on its bench.
 _Avoid_: Empty, free, unassigned
 
 ## How agents look

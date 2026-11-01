@@ -11,9 +11,12 @@ scrolls sideways. Roles and agents can join and leave while the factory runs:
 a role new to the line gets a bay at its end, the belts grow to reach a
 newcomer without rearranging what is already there, a bench left behind stays
 vacant for the next one, and once a bay's lanes are taken the next agent of
-that role takes a lane in an annex, a further bay at the end of the line. A
-host with no human review switches the staging area off, and the last bay
-ships straight into the container.
+that role takes a lane in an annex, a further bay at the end of the line. When
+the floor has grown messy, the overseer's Reorganize lays it afresh, compact
+and in pipeline order, and every station, belt and box slides to its new place
+in one pass; nothing moves at any other time. A host with no human review
+switches the staging area off, and the last bay ships straight into the
+container.
 
 Early days: the floor is being laid. The vocabulary is in [GLOSSARY.md](GLOSSARY.md)
 and the decisions so far are in [docs/adr](docs/adr).

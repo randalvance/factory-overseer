@@ -1,11 +1,12 @@
 // A layout drawn as one group of placeholder pieces. Built whole for every
-// snapshot and thrown away on the next. Boxes, their count over the
-// container, agents and tablets are not here: they stay from one snapshot to
-// the next, so boxes can ride the belts between them and agents can change
-// status in place.
+// snapshot and thrown away on the next, except when the overseer reorganizes:
+// then every piece slides from where its namesake stood in the drawing
+// before. Boxes, their count over the container, agents and tablets are not
+// here: they stay from one snapshot to the next, so boxes can ride the belts
+// between them and agents can change status in place.
 
 import * as THREE from "three"
-import { carriesRework } from "~/floor/belts"
+import { beltName, carriesRework } from "~/floor/belts"
 import type { Layout } from "~/floor/types"
 import { beltSurface, beltTile, bench, containerWalls, door, floorSlab, hopper, pallet, patch } from "./pieces"
 
@@ -15,30 +16,40 @@ export interface BeltTextures {
   rework: THREE.Texture
 }
 
+/**
+ * Every piece is named for what it is of the layout: a belt tile for the
+ * belt it is on, by the name a belt keeps when the floor is laid afresh, and
+ * how far along it is; a bench for its station; a patch for its bay; and so
+ * on. The same name in the next drawing is the same piece, slid there.
+ */
 export function drawFactory(layout: Layout, textures: BeltTextures): THREE.Group {
   const group = new THREE.Group()
-  group.add(floorSlab(layout.bounds))
-  group.add(patch(layout.intake.rect, "intake"))
-  for (const bay of layout.bays) group.add(patch(bay.rect, "bay"))
-  if (layout.staging) group.add(patch(layout.staging.rect, "staging"))
+  const add = (name: string, piece: THREE.Object3D) => {
+    piece.name = name
+    group.add(piece)
+  }
+  add("floor", floorSlab(layout.bounds))
+  add("patch:intake", patch(layout.intake.rect, "intake"))
+  for (const bay of layout.bays) add(`patch:${bay.id}`, patch(bay.rect, "bay"))
+  if (layout.staging) add("patch:staging", patch(layout.staging.rect, "staging"))
 
   const forward = beltSurface(textures.forward)
   const rework = beltSurface(textures.rework)
   for (const belt of layout.belts) {
     const surface = carriesRework(belt) ? rework : forward
-    for (const tile of belt.tiles) group.add(beltTile(tile, surface))
+    belt.tiles.forEach((tile, i) => add(`belt:${beltName(belt)}:${i}`, beltTile(tile, surface)))
   }
 
-  for (const bay of layout.bays) for (const station of bay.stations) group.add(bench(station.bench, station.vacant))
+  for (const bay of layout.bays) for (const station of bay.stations) add(`bench:${station.id}`, bench(station.bench, station.vacant))
   if (layout.staging) {
-    group.add(bench(layout.staging.bench))
+    add("bench:staging", bench(layout.staging.bench))
     // The first staging spot is the bench itself; the rest are shelves beside the inspector.
-    for (const tile of layout.staging.pile.slice(1)) group.add(pallet(tile))
+    layout.staging.pile.slice(1).forEach((tile, i) => add(`pallet:staging:${i}`, pallet(tile)))
   }
-  group.add(door(layout.door))
-  for (const tile of layout.intake.pile) group.add(pallet(tile))
-  group.add(hopper(layout.intake))
-  group.add(containerWalls(layout.container))
+  add("door", door(layout.door))
+  layout.intake.pile.forEach((tile, i) => add(`pallet:intake:${i}`, pallet(tile)))
+  add("hopper", hopper(layout.intake))
+  add("container", containerWalls(layout.container))
   return group
 }
 

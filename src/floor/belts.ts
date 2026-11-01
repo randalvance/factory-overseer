@@ -2,6 +2,15 @@
 
 import type { Belt, BeltTile, Direction } from "./types"
 
+/**
+ * The name a belt keeps when the floor is laid afresh, so that the belt laid
+ * afresh can stand for the one before: a trunk's is the place it leaves,
+ * since where it leads next may change; every other belt's is its id.
+ */
+export function beltName(belt: Belt): string {
+  return belt.kind === "trunk" ? `trunk:${belt.from}` : belt.id
+}
+
 /** Whether a belt carries rework: the return belt itself, or a riser up to it or a drop down from it. */
 export function carriesRework(belt: Belt): boolean {
   return belt.kind === "return" || belt.kind === "riser" || belt.kind === "drop"

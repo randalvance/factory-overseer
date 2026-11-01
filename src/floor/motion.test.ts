@@ -391,10 +391,13 @@ describe("the line grows while it runs", () => {
     return layoutFloor(roles, { ...base, agents: [...base.agents, ...extra] }, before, wide)
   }
   const withAnnex = grownBy(pipeline, more(["imp-2", "imp-3", "imp-4"], "implementer"))
+  /** The floor grown to a fourth implementer: three laid first, then the fourth's annex appended after the qa bay. */
+  const annexAppended = (tasks: Record<string, TaskLocation>): Layout =>
+    withAnnex(tasks, grownBy(pipeline, more(["imp-2", "imp-3"], "implementer"))(tasks))
   const withSecurity = grownBy({ roles: ["implementer", "reviewer", "security", "qa"] }, more(["sec-1"], "security"))
 
   it("rides from the intake along the trunk past every bay to a bench in the implementers' annex", () => {
-    const before = withAnnex({ "t-1": "intake" })
+    const before = annexAppended({ "t-1": "intake" })
     const after = withAnnex({ "t-1": { agent: "imp-4" } }, before)
 
     const motions = motionsFor(after, restingTiles(before))
@@ -407,7 +410,7 @@ describe("the line grows while it runs", () => {
   })
 
   it("rides a handoff on to the reviewer from the annex behind it along the line: up the annex's riser, along the return belt and down into the reviewer's bay", () => {
-    const before = withAnnex({ "t-1": { agent: "imp-4" } })
+    const before = annexAppended({ "t-1": { agent: "imp-4" } })
     const after = withAnnex({ "t-1": { agent: "rev-1" } }, before)
 
     const motions = motionsFor(after, restingTiles(before))

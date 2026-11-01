@@ -33,14 +33,16 @@ export const opening: DemoScript = {
 }
 
 /**
- * A new role joins the pipeline with one agent, and t-42 goes on to it: from
- * the intake to the first role to join, then from each of them to the next.
+ * A new role joins the pipeline with one agent, declared before the last
+ * role, so its bay is appended at the end of the line out of order until the
+ * overseer reorganizes. t-42 goes on to it: from the intake to the first role
+ * to join, then from each of them to the next.
  */
 export function withAnotherRole({ pipeline, snapshot }: DemoScript): DemoScript {
   const role = `role-${pipeline.roles.length + 1}`
   const agent: Agent = { id: `${role}-1`, name: role, role, status: "idle" }
   const joined: DemoScript = {
-    pipeline: { roles: [...pipeline.roles, role] },
+    pipeline: { roles: [...pipeline.roles.slice(0, -1), role, ...pipeline.roles.slice(-1)] },
     snapshot: { ...snapshot, agents: [...snapshot.agents, agent] },
   }
   return withHandoffs(joined, [{ id: "t-42", to: { agent: agent.id } }])

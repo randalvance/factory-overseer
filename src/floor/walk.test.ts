@@ -50,18 +50,15 @@ describe("the way in", () => {
     ])
   })
 
-  // Thirty-two tiles wide, a fourth implementer's annex stands after the qa
-  // bay at x = 19: its aisle is column 18, its one agent tile (20, 2).
-  it("takes an agent of an annex along the back wall past every bay, down the annex's aisle and in", () => {
+  // Thirty-two tiles wide, a fourth implementer's annex stands right after
+  // the implementer bay at x = 9: its aisle is column 8, its one agent tile (10, 2).
+  it("takes an agent of an annex along the back wall, down the annex's own aisle and in", () => {
     const fourImplementersAndQa = [...twoImplementers.agents, agent("imp-3", "implementer"), agent("imp-4", "implementer"), agent("qa-1", "qa")]
     const withAnnex = layoutFloor(pipeline, { ...twoImplementers, agents: fourImplementersAndQa }, undefined, { width: 32 })
-    const annexed = withAnnex.bays[3]!.stations[0]!
+    const annexed = withAnnex.bays[1]!.stations[0]!
 
     expect(annexed).toMatchObject({ bay: "bay:implementer:1", agentId: "imp-4" })
-    expect(wayIn(withAnnex, annexed)).toEqual([
-      ...[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].map((x) => ({ x, y: 0 })),
-      ...tiles([18, 1], [18, 2], [19, 2], [20, 2]),
-    ])
+    expect(wayIn(withAnnex, annexed)).toEqual([...[2, 3, 4, 5, 6, 7, 8].map((x) => ({ x, y: 0 })), ...tiles([8, 1], [8, 2], [9, 2], [10, 2])])
   })
 })
 

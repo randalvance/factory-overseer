@@ -451,8 +451,9 @@ describe("lanes", () => {
 })
 
 // A bay holds three lanes. Thirty-two tiles wide, the line runs along one
-// band: the implementer bay at x = 4, the reviewer's at 9, the qa's at 14,
-// then an annex for the implementers at 19 and the ends past it.
+// band. Laid afresh with four implementers, their annex stands right after
+// their bay: the bay at x = 4, the annex at 9, the reviewer's at 14, the qa's
+// at 19. Appended while the floor runs, an annex goes at the end of the line.
 
 describe("annexes", () => {
   const wide = { width: 32 }
@@ -460,24 +461,24 @@ describe("annexes", () => {
   const crew = (n: number): Snapshot => ({ agents: [...implementers(n), agent("rev-1", "reviewer"), agent("qa-1", "qa")], tasks: [] })
   const crewWithout = (n: number, id: string): Snapshot => ({ ...crew(n), agents: crew(n).agents.filter((a) => a.id !== id) })
 
-  it("puts the fourth agent of a role in an annex at the end of the line, a further bay of the role before the ends", () => {
+  it("puts the fourth agent of a role in an annex beside the role's bay on a floor laid afresh", () => {
     const layout = layoutFloor(pipeline, crew(4), undefined, wide)
 
     expect(layout.bays.map((b) => [b.id, b.role, b.annex, b.rect.x, b.stations.length])).toEqual([
       ["bay:implementer", "implementer", 0, 4, 3],
-      ["bay:reviewer", "reviewer", 0, 9, 1],
-      ["bay:qa", "qa", 0, 14, 1],
-      ["bay:implementer:1", "implementer", 1, 19, 1],
+      ["bay:implementer:1", "implementer", 1, 9, 1],
+      ["bay:reviewer", "reviewer", 0, 14, 1],
+      ["bay:qa", "qa", 0, 19, 1],
     ])
-    expect(layout.bays[3]!.stations[0]).toEqual({
+    expect(layout.bays[1]!.stations[0]).toEqual({
       id: "station:implementer:3",
       role: "implementer",
       bay: "bay:implementer:1",
       lane: 0,
       agentId: "imp-4",
       vacant: false,
-      bench: { x: 20, y: 3 },
-      agentTile: { x: 20, y: 2 },
+      bench: { x: 10, y: 3 },
+      agentTile: { x: 10, y: 2 },
     })
     expect(layout.bays[0]!.stations.map((s) => [s.id, s.bay])).toEqual([
       ["station:implementer:0", "bay:implementer"],
@@ -506,8 +507,8 @@ describe("annexes", () => {
     const seven = layoutFloor(pipeline, crewWithout(8, "imp-2"), replaced, wide)
 
     expect(replaced.bays[0]!.stations.map((s) => s.agentId)).toEqual(["imp-1", "imp-5", "imp-3"])
-    expect(replaced.bays[3]!.stations.map((s) => s.agentId)).toEqual(["imp-4"])
-    expect(seven.bays[3]!.stations.map((s) => [s.lane, s.agentId])).toEqual([
+    expect(replaced.bays[1]!.stations.map((s) => s.agentId)).toEqual(["imp-4"])
+    expect(seven.bays[1]!.stations.map((s) => [s.lane, s.agentId])).toEqual([
       [0, "imp-4"],
       [1, "imp-6"],
       [2, "imp-7"],
@@ -570,9 +571,9 @@ describe("annexes", () => {
     expect(layout.bands).toHaveLength(1)
   })
 
-  // Twenty tiles wide, the qa bay already starts a second band, which has room
-  // for the annex after it but not for the ends: they go to a third.
-  it("extends the floor's bounds to cover an annex in a band below, and the ends in the band after it", () => {
+  // Twenty tiles wide, the implementers' bay and annex fill the first band;
+  // the reviewer's and the qa's bays take a second, and the ends a third.
+  it("extends the floor's bounds to cover every band the bays and the ends take", () => {
     const layout = layoutFloor(pipeline, crew(4), undefined, { width: 20 })
     const inside = (rect: Rect) => rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= layout.bounds.w && rect.y + rect.h <= layout.bounds.h
 
@@ -581,7 +582,12 @@ describe("annexes", () => {
       { dir: "w", returnRow: 11, trunkRow: 13 },
       { dir: "e", returnRow: 21, trunkRow: 23 },
     ])
-    expect(layout.bays[3]).toMatchObject({ id: "bay:implementer:1", band: 1, rect: { x: 8, y: 12, w: 3, h: 2 } })
+    expect(layout.bays.map((b) => [b.id, b.band, b.rect.x])).toEqual([
+      ["bay:implementer", 0, 4],
+      ["bay:implementer:1", 0, 9],
+      ["bay:reviewer", 1, 13],
+      ["bay:qa", 1, 8],
+    ])
     expect(layout.staging).toMatchObject({ band: 2, rect: { x: 4 } })
     expect(layout.container).toMatchObject({ band: 2, rect: { x: 9 } })
     expect(layout.bounds).toEqual({ x: 0, y: 0, w: 20, h: 25 })
@@ -595,9 +601,9 @@ describe("annexes", () => {
     expect(twoLanes.lanesPerBay).toBe(2)
     expect(twoLanes.bays.map((b) => [b.id, b.stations.length])).toEqual([
       ["bay:implementer", 2],
+      ["bay:implementer:1", 1],
       ["bay:reviewer", 1],
       ["bay:qa", 1],
-      ["bay:implementer:1", 1],
     ])
     expect(twoLanes.bands).toEqual([
       { dir: "e", returnRow: 1, trunkRow: 3 },

@@ -75,8 +75,9 @@ export interface Station {
 }
 
 /**
- * A role's bay, or one of its annexes: a further bay for the role, appended
- * at the end of the line once the bay has no lane left (ADR 0007).
+ * A role's bay, or one of its annexes: a further bay for the role once the
+ * bay has no lane left, appended at the end of the line while the floor runs
+ * and laid right after the bay on a floor laid afresh (ADR 0007).
  */
 export interface Bay {
   /** bay:<role> for the role's own bay; bay:<role>:1, bay:<role>:2 and so on for its annexes, numbered from one. */

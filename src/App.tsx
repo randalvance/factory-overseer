@@ -11,7 +11,7 @@ import {
   withNextStatus,
   withoutAnImplementer,
 } from "~/demo/scripted"
-import { Factory } from "~/factory/Factory"
+import { Factory, type FactoryHandle } from "~/factory/Factory"
 import { PX_PER_TILE } from "~/factory/camera"
 import type { Motions } from "~/floor/motion"
 import type { Layout } from "~/floor/types"
@@ -32,6 +32,8 @@ export function App() {
   /** What the factory last drew, for the debug view and the note. */
   const [drawn, setDrawn] = useState<{ layout: Layout; motions: Motions }>()
   const [view, setView] = useState<"factory" | "debug">("factory")
+  /** The factory's handle, once it is ready. */
+  const [factory, setFactory] = useState<FactoryHandle>()
 
   const over = tripOver(demo)
   useEffect(() => {
@@ -82,6 +84,9 @@ export function App() {
           <button type="button" onClick={() => setDemo((d) => ({ ...d, script: withAnotherTask(d.script) }))}>
             Add a task
           </button>
+          <button type="button" onClick={() => factory?.reorganize()} disabled={!factory}>
+            Reorganize
+          </button>
           <button type="button" onClick={() => setStaging((on) => !on)}>
             {staging ? "Staging off" : "Staging on"}
           </button>
@@ -100,6 +105,7 @@ export function App() {
           staging={staging}
           width={floorWidth}
           onLayout={(layout, motions) => setDrawn({ layout, motions })}
+          onReady={setFactory}
         />
       </section>
       <section className="demo-floor" hidden={view !== "debug"}>

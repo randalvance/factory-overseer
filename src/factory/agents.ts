@@ -3,9 +3,11 @@
 // figure as a new pose, icon, bubble and tablet face, and a check shown once
 // stays brief. An agent that arrives walks in from the door; one that has
 // left fades where it stands. The inspector stands at the staging area for
-// as long as there is one and stamps each box that lands on the bench.
-// Nothing here is laid out: every agent stands where the layout puts its
-// station, and the floor core says who comes and goes.
+// as long as there is one and stamps each box that lands on the bench. When
+// the overseer reorganizes, every figure and tablet glides to where its
+// station now is, in step with the floor. Nothing here is laid out: every
+// agent stands where the layout puts its station, and the floor core says
+// who comes and goes.
 
 import * as THREE from "three"
 import { stationed } from "~/floor/layout"
@@ -16,6 +18,7 @@ import { type AgentStatus, type StatusIcon, type StatusStyle, bubbleText } from 
 import type { Agent, Snapshot, Task } from "~/model/types"
 import type { Landing } from "./boxes"
 import { disposeMeshes } from "./drawing"
+import { type Glide, glide, startGlide } from "./slide"
 import {
   AGENT_H,
   BENCH_H,
@@ -33,6 +36,8 @@ import { type Facing, INSPECTOR_SHEET, sheetFrame } from "./sprites"
 import { type TabletLook, tabletTexture } from "./tablets"
 
 export type StatusStyles = Readonly<Record<AgentStatus, StatusStyle>>
+/** How the figures and tablets already on the floor get to their stations: standing there at once, or gliding there while the floor slides. */
+export type Settling = "stand" | "glide"
 /** The icon textures, loaded, by the name the style table uses. */
 export type Icons = Readonly<Record<Exclude<StatusIcon, "none">, THREE.Texture>>
 
@@ -48,7 +53,9 @@ export interface Agents {
    * looking as its status says, and give every bench a tablet. Those who
    * arrive walk in from the door along their way in; those who have left,
    * and any other figure without a station or a sheet, fade. The tablets of
-   * benches no longer laid out go.
+   * benches no longer laid out go. While the floor slides, as the overseer's
+   * Reorganize has it, every figure and tablet already there glides to its
+   * station instead of standing there at once.
    */
   update(
     layout: Layout,
@@ -56,6 +63,7 @@ export interface Agents {
     sheets: ReadonlyMap<string, THREE.Texture>,
     looks: StatusLooks,
     traffic: ComingsAndGoings,
+    settling?: Settling,
   ): void
   /**
    * Carry every walk, fade, pose, jump, spark and tablet dt seconds on; the
@@ -144,6 +152,8 @@ interface Figure {
   fading?: number
   /** Seconds into the inspector's stamp, while one is under way. */
   stamping?: number
+  /** Its way to its station while the floor slides. */
+  glide?: Glide
 }
 
 /** Where a figure stands and how it looks for one snapshot. */
@@ -157,11 +167,13 @@ interface Posting {
   hasBox?: boolean
   /** Its way in from the door when it is new to the floor. */
   wayIn?: Tile[]
+  /** How it gets to its station when it is already on the floor. */
+  settling?: Settling
 }
 
 export function createAgents(parent: THREE.Object3D): Agents {
   const figures = new Map<string, Figure>()
-  const tablets = new Map<string, TabletPiece>()
+  const tablets = new Map<string, { piece: TabletPiece; glide?: Glide }>()
   const layer = new THREE.Group()
   parent.add(layer)
   /** Tablet faces the lines have scrolled by. */
@@ -173,6 +185,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
     sheets: ReadonlyMap<string, THREE.Texture>,
     looks: StatusLooks,
     traffic: ComingsAndGoings,
+    settling: Settling = "stand",
   ) {
     const wayInOf = new Map(traffic.arrivals.map((arrival) => [arrival.agentId, arrival.wayIn]))
     const taskById = new Map(snapshot.tasks.map((task) => [task.id, task]))
@@ -190,19 +203,20 @@ export function createAgents(parent: THREE.Object3D): Agents {
       const style = agent && (looks.styles[agent.status] ?? looks.styles.idle)
       if (agent && sheet && style) {
         const bubble = bubbleText(agent.status, agent.activity, looks.styles)
-        stand(agent, { station, sheet, style, bubble, hasBox: onBench.has(station.id), wayIn: wayInOf.get(agent.id) }, looks)
+        const posting = { station, sheet, style, bubble, hasBox: onBench.has(station.id), wayIn: wayInOf.get(agent.id), settling }
+        stand(agent, posting, looks)
         standing.add(agent.id)
       }
-      showTablet(station.id, station.bench, tabletLook(style, onBench.get(station.id), looks.icons))
+      showTablet(station.id, station.bench, tabletLook(style, onBench.get(station.id), looks.icons), settling)
       benches.add(station.id)
     }
     const inspectorSheet = sheets.get(INSPECTOR_ID)
     if (layout.staging && inspectorSheet) {
       const bench = layout.staging.bench
       const station = { agentTile: layout.staging.inspectorTile, bench }
-      stand(INSPECTOR, { station, sheet: inspectorSheet, style: INSPECTOR_STYLE, bubble: null }, looks)
+      stand(INSPECTOR, { station, sheet: inspectorSheet, style: INSPECTOR_STYLE, bubble: null, settling }, looks)
       standing.add(INSPECTOR_ID)
-      showTablet("staging", bench, { kind: "dim" })
+      showTablet("staging", bench, { kind: "dim" }, settling)
       benches.add("staging")
     }
 
@@ -214,9 +228,13 @@ export function createAgents(parent: THREE.Object3D): Agents {
     for (const id of tablets.keys()) if (!benches.has(id)) removeTablet(id)
   }
 
-  /** Put the agent at its station, or at the start of its way in when it has one and is new to the floor. */
+  /**
+   * Put the agent at its station, or at the start of its way in when it has
+   * one and is new to the floor; while the floor slides, one already there
+   * glides to its station, a walk under way given up.
+   */
   function stand(agent: Agent, posting: Posting, looks: StatusLooks) {
-    const { station, sheet, style, bubble: text, hasBox = false, wayIn } = posting
+    const { station, sheet, style, bubble: text, hasBox = false, wayIn, settling = "stand" } = posting
     let figure = figures.get(agent.id)
     // A new sheet means a new body, but not a new arrival.
     const redressed = figure !== undefined && figure.frame.source !== sheet.source
@@ -224,6 +242,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
       removeFigure(agent.id)
       figure = undefined
     }
+    const fresh = figure === undefined
     if (!figure) {
       const body = agentSprite(sheet)
       const icon = statusIcon(looks.icons.hand)
@@ -259,8 +278,15 @@ export function createAgents(parent: THREE.Object3D): Agents {
 
     const { x, z } = tileCenter(station.agentTile)
     figure.home.set(x, 0, z)
-    if (figure.walk) advance(figure, 0)
-    else figure.group.position.copy(figure.home)
+    if (settling === "glide" && !fresh && !figure.group.position.equals(figure.home)) {
+      figure.walk = undefined
+      figure.facing = "down"
+      figure.glide = startGlide(figure.group, figure.home)
+    } else {
+      figure.glide = undefined
+      if (figure.walk) advance(figure, 0)
+      else figure.group.position.copy(figure.home)
+    }
     figure.fading = undefined
     figure.agent = agent
     figure.bench = station.bench
@@ -329,19 +355,26 @@ export function createAgents(parent: THREE.Object3D): Agents {
     if (figure.bubble) figure.bubble.sprite.position.y = AGENT_H + (iconShown ? ICON_SIZE + 0.2 : 0.12)
   }
 
-  function showTablet(id: string, bench: Tile, look: TabletLook) {
-    let piece = tablets.get(id)
-    if (!piece) {
-      piece = tablet()
-      layer.add(piece.group)
-      tablets.set(id, piece)
-    }
+  /** Put the tablet at its bench, or glide it there from where it is while the floor slides. */
+  function showTablet(id: string, bench: Tile, look: TabletLook, settling: Settling) {
     const { x, z } = tileCenter(bench)
-    piece.group.position.set(x, 0, z)
+    const at = new THREE.Vector3(x, 0, z)
+    let shown = tablets.get(id)
+    if (!shown) {
+      shown = { piece: tablet() }
+      shown.piece.group.position.copy(at)
+      layer.add(shown.piece.group)
+      tablets.set(id, shown)
+    } else if (settling === "glide" && !shown.piece.group.position.equals(at)) {
+      shown.glide = startGlide(shown.piece.group, at)
+    } else {
+      shown.glide = undefined
+      shown.piece.group.position.copy(at)
+    }
     const texture = tabletTexture(look)
-    if (piece.face.map !== texture) {
-      piece.face.map = texture
-      piece.face.needsUpdate = true
+    if (shown.piece.face.map !== texture) {
+      shown.piece.face.map = texture
+      shown.piece.face.needsUpdate = true
     }
   }
 
@@ -361,10 +394,10 @@ export function createAgents(parent: THREE.Object3D): Agents {
   }
 
   function removeTablet(id: string) {
-    const piece = tablets.get(id)
-    if (!piece) return
-    layer.remove(piece.group)
-    disposeMeshes(piece.group)
+    const shown = tablets.get(id)
+    if (!shown) return
+    layer.remove(shown.piece.group)
+    disposeMeshes(shown.piece.group)
     tablets.delete(id)
   }
 
@@ -375,6 +408,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
       figure.clock += dt
       figure.inStatus += dt
       if (figure.walk) advance(figure, dt * WALK_SPEED * speed)
+      if (figure.glide && glide(figure.group, figure.glide, dt, speed)) figure.glide = undefined
       if (figure.stamping !== undefined) figure.stamping = figure.stamping + dt < STAMP_S ? figure.stamping + dt : undefined
       if (figure.fading !== undefined) {
         figure.fading += dt
@@ -385,8 +419,11 @@ export function createAgents(parent: THREE.Object3D): Agents {
         dim(figure, 1 - figure.fading / FADE_S)
       }
       pose(figure)
-      if (figure.sparking && !figure.walk && figure.fading === undefined) sparkle(figure, dt)
+      if (figure.sparking && !figure.walk && !figure.glide && figure.fading === undefined) sparkle(figure, dt)
       else for (const s of figure.sparks) burnOut(s)
+    }
+    for (const shown of tablets.values()) {
+      if (shown.glide && glide(shown.piece.group, shown.glide, dt, speed)) shown.glide = undefined
     }
     scrolled += dt * LINES_PER_S
     // Up the face, the way a log scrolls.

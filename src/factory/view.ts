@@ -10,11 +10,12 @@ import type { Layout, Rect } from "~/floor/types"
 import { type AgentStatus, STATUS_ICONS, type StatusStyle } from "~/model/status"
 import type { ComingsAndGoings } from "~/floor/walk"
 import type { Agent, Snapshot } from "~/model/types"
-import { INSPECTOR, type Icons, createAgents } from "./agents"
+import { INSPECTOR, type Icons, type Settling, type StatusLooks, createAgents } from "./agents"
 import { BELT_SPEED, createBoxes } from "./boxes"
 import { type CameraPose, PITCH, PX_PER_TILE, clampToFloor, fitFloor, panBy, zoomBy } from "./camera"
 import { attachControls } from "./controls"
 import { disposeMeshes, drawFactory } from "./drawing"
+import { type Slide, startSlide } from "./slide"
 import { type Wardrobes, sheetUrl } from "./sprites"
 import { beltTexture, blankTexture, loadTexture, returnBeltTexture } from "./textures"
 
@@ -27,6 +28,14 @@ export interface FactoryView {
    * has taken its place. The rides play on after that.
    */
   show(layout: Layout, snapshot: Snapshot, styling: Styling, traffic: ComingsAndGoings): Promise<Motions>
+  /**
+   * Draw the layout the overseer's Reorganize laid, every piece, agent,
+   * tablet and box sliding from where it is to its new place in one pass, in
+   * step with the belts; a box in transit rides on from the belt laid afresh
+   * once there. The camera keeps its pose, within the new floor. Resolves as
+   * show does.
+   */
+  reorganize(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Motions>
   /** Scale every belt. */
   setSpeed(speed: number): void
   dispose(): void
@@ -50,6 +59,14 @@ const BACKGROUND = 0x0b0d12
 const CAMERA_DISTANCE = 60
 /** The longest step the clock may take between frames, so a tab coming back does not leap. */
 const MAX_FRAME_S = 0.1
+/** What a drawing overtaken by a newer one plays. */
+const NONE: Motions = { toPlay: [], unrouted: [] }
+
+/** What a snapshot's figures wear and how they look, loaded. */
+interface Dressed {
+  sheets: Map<string, THREE.Texture>
+  looks: StatusLooks
+}
 
 export function createFactoryView(mount: HTMLElement, options: FactoryViewOptions = {}): FactoryView {
   const assetBase = options.assetBase ?? "/"
@@ -78,6 +95,8 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   const surfaces = { forward: beltTexture(), rework: returnBeltTexture() }
   let drawing = new THREE.Group()
   scene.add(drawing)
+  /** The pass from the drawing before to this one, while the floor slides. */
+  let slide: Slide | undefined
   const agents = createAgents(scene)
   const boxes = createBoxes(scene)
   let speed = 1
@@ -130,6 +149,14 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   renderer.setAnimationLoop((time) => {
     const dt = lastFrame === undefined ? 0 : Math.min((time - lastFrame) / 1000, MAX_FRAME_S)
     lastFrame = time
+    if (slide?.tick(dt, speed)) {
+      slide = undefined
+      // The floor has settled; the camera keeps its pose, within the floor as it now is.
+      if (pose && floor) {
+        pose = clampToFloor(pose, floor)
+        aimCamera()
+      }
+    }
     agents.tick(dt, speed, boxes.tick(dt, speed))
     beltTravel += dt * BELT_SPEED * speed
     for (const surface of Object.values(surfaces)) surface.offset.x = -beltTravel % 1
@@ -137,26 +164,58 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   })
 
   let generation = 0
+  /**
+   * Whether the floor has been laid afresh since the last drawing: Reorganize
+   * was asked for and is not drawn yet, so the next drawing slides, even a
+   * snapshot's that overtook it.
+   */
+  let laidAfresh = false
 
-  async function show(layout: Layout, snapshot: Snapshot, styling: Styling, traffic: ComingsAndGoings): Promise<Motions> {
+  /** The sheets and icons a snapshot needs, or nothing once a newer one has been asked for while they loaded. */
+  async function dressed(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Dressed | undefined> {
     const call = ++generation
     const [sheets, icons] = await Promise.all([
       sheetsOf(layout, snapshot.agents, assetBase, styling.wardrobes),
       iconsAt(assetBase),
     ])
-    // A newer snapshot arrived while the sheets loaded; it will be drawn instead.
-    if (call !== generation) return { toPlay: [], unrouted: [] }
+    return call === generation ? { sheets, looks: { styles: styling.styles, icons } } : undefined
+  }
 
+  async function show(layout: Layout, snapshot: Snapshot, styling: Styling, traffic: ComingsAndGoings): Promise<Motions> {
+    const ready = await dressed(layout, snapshot, styling)
+    // A newer snapshot arrived while the sheets loaded; it will be drawn instead.
+    if (!ready) return NONE
+    return draw(layout, snapshot, ready, traffic, laidAfresh ? "glide" : "stand")
+  }
+
+  async function reorganize(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Motions> {
+    laidAfresh = true
+    const ready = await dressed(layout, snapshot, styling)
+    if (!ready) return NONE
+    return draw(layout, snapshot, ready, { arrivals: [], departures: [] }, "glide")
+  }
+
+  /** Draw the layout in place of the one shown, everything standing where it now is at once, or gliding there as the drawing slides. */
+  function draw(layout: Layout, snapshot: Snapshot, ready: Dressed, traffic: ComingsAndGoings, settling: Settling): Motions {
     floor = layout.bounds
-    scene.remove(drawing)
-    disposeMeshes(drawing)
+    slide?.end()
+    const stood = drawing
     drawing = drawFactory(layout, surfaces)
     scene.add(drawing)
-    agents.update(layout, snapshot, sheets, { styles: styling.styles, icons }, traffic)
-    // Planned only now, after the wait, so rides still playing are picked up from where they are.
-    const motions = motionsFor(layout, boxes.tiles(), shown)
-    boxes.update(layout, snapshot.tasks, motions.toPlay)
+    if (settling === "glide") {
+      slide = startSlide(stood, drawing)
+    } else {
+      slide = undefined
+      scene.remove(stood)
+      disposeMeshes(stood)
+    }
+    agents.update(layout, snapshot, ready.sheets, ready.looks, traffic, settling)
+    // Derived only now, after the wait, so rides still playing are picked up from where they are, or from where the slide leaves them.
+    const slid = settling === "glide" && shown ? boxes.tilesAfterSlide(shown, layout) : undefined
+    const motions = motionsFor(layout, slid ?? boxes.tiles(), shown)
+    boxes.update(layout, snapshot.tasks, motions.toPlay, slid)
     shown = layout
+    laidAfresh = false
     aimCamera()
     if (visible) renderer.render(scene, camera)
     return motions
@@ -167,6 +226,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     renderer.setAnimationLoop(null)
     observer.disconnect()
     detachControls()
+    slide?.end()
     disposeMeshes(drawing)
     agents.dispose()
     boxes.dispose()
@@ -176,6 +236,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
 
   return {
     show,
+    reorganize,
     setSpeed: (next) => {
       speed = next
     },

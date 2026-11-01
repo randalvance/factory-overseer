@@ -4,17 +4,18 @@
 // additively on the last, so the floor never rearranges itself under the
 // overseer (ADR 0002); the boxes whose place changed ride the belts there
 // from wherever they are, and the agents who came and went since the last
-// snapshot walk in and fade.
+// snapshot walk in and fade. Only the overseer's Reorganize, asked for on the
+// handle the host gets once the factory is ready, lays the floor afresh.
 
 import { useEffect, useRef, useState } from "react"
-import { layoutFloor } from "~/floor/layout"
+import { layoutFloor, reorganizedFloor } from "~/floor/layout"
 import type { Motions } from "~/floor/motion"
 import type { Layout } from "~/floor/types"
 import { comingsAndGoings } from "~/floor/walk"
 import { type StatusStyleOverrides, resolveStatusStyles } from "~/model/status"
 import type { Agent, Pipeline, Task } from "~/model/types"
 import type { Wardrobes } from "./sprites"
-import { type FactoryView, createFactoryView } from "./view"
+import { type FactoryView, type Styling, createFactoryView } from "./view"
 
 export interface FactoryProps {
   pipeline: Pipeline
@@ -38,18 +39,35 @@ export interface FactoryProps {
   wardrobes?: Wardrobes
   /** Called with each layout once drawn, and the motions played for it, for anything that shows the same floor another way. */
   onLayout?: (layout: Layout, motions: Motions) => void
+  /** Called once with the handle when the first snapshot is drawn and the factory is ready. */
+  onReady?: (handle: FactoryHandle) => void
 }
 
-export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout }: FactoryProps) {
+/** What the host asks of the factory once it is ready, beyond what the props say. */
+export interface FactoryHandle {
+  /**
+   * Lay the floor afresh as the overseer asks: compact, in pipeline order,
+   * every annex beside its role's bay, no vacant lane but one a box still
+   * rests at, the line wrapped anew within the floor width; and slide every
+   * station, belt and box to its new place in one pass. Nothing moves at any
+   * other time (ADR 0002).
+   */
+  reorganize(): void
+}
+
+export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout, onReady }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
-  const latestOnLayout = useRef(onLayout)
+  /** The props as last rendered, for the handle, which is called between renders. */
+  const latest = useRef({ pipeline, agents, tasks, staging, statusStyles, wardrobes, onLayout, onReady })
+  /** How many drawings have been asked of the view; only the latest counts once drawn. */
+  const asked = useRef(0)
   /** How many snapshots the view has drawn; the first makes the factory ready. */
   const [drawn, setDrawn] = useState(0)
 
   useEffect(() => {
-    latestOnLayout.current = onLayout
+    latest.current = { pipeline, agents, tasks, staging, statusStyles, wardrobes, onLayout, onReady }
   })
 
   useEffect(() => {
@@ -59,8 +77,21 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, wi
     return () => {
       created.dispose()
       view.current = null
+      asked.current++
     }
   }, [])
+
+  /** Report the layout once the view has drawn it, unless a later one has been asked for since. */
+  function drawnBy(drawing: Promise<Motions>, layout: Layout, failure: string) {
+    const call = ++asked.current
+    drawing
+      .then((motions) => {
+        if (call !== asked.current) return
+        latest.current.onLayout?.(layout, motions)
+        setDrawn((n) => n + 1)
+      })
+      .catch((error: unknown) => console.error(failure, error))
+  }
 
   useEffect(() => {
     view.current?.setSpeed(speed)
@@ -71,19 +102,27 @@ export function Factory({ pipeline, agents, tasks, speed = 1, staging = true, wi
     const layout = layoutFloor(pipeline, { agents, tasks }, previous.current, { staging, width, lanes })
     const traffic = comingsAndGoings(previous.current, layout)
     previous.current = layout
-    let stale = false
-    view.current
-      .show(layout, { agents, tasks }, { styles: resolveStatusStyles(statusStyles), wardrobes: wardrobes ?? {} }, traffic)
-      .then((motions) => {
-        if (stale) return
-        latestOnLayout.current?.(layout, motions)
-        setDrawn((n) => n + 1)
-      })
-      .catch((error: unknown) => console.error("The factory could not be drawn", error))
-    return () => {
-      stale = true
-    }
+    drawnBy(view.current.show(layout, { agents, tasks }, styling(statusStyles, wardrobes), traffic), layout, "The factory could not be drawn")
   }, [pipeline, agents, tasks, staging, width, lanes, statusStyles, wardrobes])
 
+  const handle = useRef<FactoryHandle>({
+    reorganize() {
+      const { pipeline, agents, tasks, staging, statusStyles, wardrobes } = latest.current
+      if (!view.current || !previous.current) return
+      const layout = reorganizedFloor(pipeline, { agents, tasks }, previous.current, { staging })
+      previous.current = layout
+      drawnBy(view.current.reorganize(layout, { agents, tasks }, styling(statusStyles, wardrobes)), layout, "The factory could not be reorganized")
+    },
+  })
+
+  useEffect(() => {
+    if (drawn === 1) latest.current.onReady?.(handle.current)
+  }, [drawn])
+
   return <div ref={mount} className="factory" role="img" aria-label="Factory floor" data-drawn={drawn} />
+}
+
+/** How the view is to show the agents, from the host's overrides. */
+function styling(statusStyles: StatusStyleOverrides | undefined, wardrobes: Wardrobes | undefined): Styling {
+  return { styles: resolveStatusStyles(statusStyles), wardrobes: wardrobes ?? {} }
 }

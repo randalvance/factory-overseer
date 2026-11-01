@@ -5,14 +5,15 @@ are paths of straight, corner and junction tiles. Layout is additive: placing
 something reserves tiles, and nothing already placed moves when agents or
 roles are added or removed. A role that appears later is appended to the end
 of the line even when it logically sits mid-pipeline, and the belts loop to
-reach it; only an explicit request from the overseer recomputes a compact
-layout. The one exception is the two ends of the line: when a bay is
+reach it; only an explicit request from the overseer, Reorganize, recomputes
+a compact layout in pipeline order and slides everything to its new place in
+one pass. The one exception is the two ends of the line: when a bay is
 appended, the staging area, the container and the belts that run into and
 out of them, the staging area's stretch of the return belt included, are laid
 out again further along the line to make room, because a bay cannot otherwise
 be appended between the last bay and the ends. Where the line goes when it
-runs out of width is ADR 0006. Bays, stations and the belts between bays never
-move.
+runs out of width is ADR 0006. Bays, stations and the belts between bays move
+only when the overseer reorganizes.
 
 A junction is shaped once for everything that may ever join or leave it: a
 bay's split junction has an exit toward a lane not yet built and an entry for

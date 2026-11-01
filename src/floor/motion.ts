@@ -10,8 +10,11 @@
 // never against a belt. A box already in the container is there for good:
 // when its resting place there changes, the container itself has moved, and
 // the box appears where the container now is rather than riding after it.
+// Where a box in transit is once the floor has been laid afresh and slid, as
+// the overseer's Reorganize has it, is derived here too: the belt laid afresh
+// that stands for the one it was riding.
 
-import { entries, exits, travelDirection } from "./belts"
+import { beltName, entries, exits, travelDirection } from "./belts"
 import { inContainer } from "./layout"
 import { DIRECTIONS, directionBetween, opposite, sameTile, step, tileKey } from "./tiles"
 import type { BeltTile, Direction, Layout, Rect, Tile } from "./types"
@@ -36,6 +39,24 @@ export interface Motion {
 export interface Motions {
   toPlay: Motion[]
   unrouted: string[]
+}
+
+/**
+ * Where a tile of the previous layout's belts is once the floor has slid to
+ * the next layout, as the overseer's Reorganize has it: the tile the same
+ * number of tiles along the belt that stands for it there, by name, or that
+ * belt's last tile when it is now shorter. None when no belt stands for it,
+ * or the tile was on no belt.
+ */
+export function tileAfterSlide(previous: Layout, next: Layout, tile: Tile): Tile | undefined {
+  for (const belt of previous.belts) {
+    const index = belt.tiles.findIndex((t) => sameTile(t, tile))
+    if (index < 0) continue
+    const after = next.belts.find((b) => beltName(b) === beltName(belt))
+    const there = after?.tiles[Math.min(index, after.tiles.length - 1)]
+    if (there) return { x: there.x, y: there.y }
+  }
+  return undefined
 }
 
 /** Where every box rests in a layout: the state of the floor's boxes when nothing is in transit. */
