@@ -29,3 +29,54 @@ it("falls back per invalid field and rejects assets outside the fixed furniture 
   expect(theme.assets.decoration?.url).toBe("/safe.glb")
   expect(resolveRoomTheme({ theme: "toString" }).id).toBe("factory")
 })
+
+it("resolves the lab pilot furnishing while retaining its paper floor and station", () => {
+  const theme = resolveRoomTheme({ theme: "research-lab" })
+  expect(theme).toMatchObject({ floor: "blue-grid", station: "lab", decoration: "shelves" })
+  expect(theme.assets.decoration).toEqual({
+    url: "/assets/models/room-themes/lab-specimen-cabinet.glb",
+    footprint: { width: 1.1, depth: .74, height: 1.24 },
+  })
+})
+
+it("inherits a preset furnishing alongside a host accessory without sharing mutable footprints", () => {
+  const registry: RoomThemeRegistry = { studio: { extends: "research-lab", assets: {
+    station: { url: "/host/instrument.glb", footprint: { width: .4, depth: .2, height: .3 } },
+  } } }
+  const original = JSON.stringify(registry)
+  const theme = resolveRoomTheme({ theme: "studio", themeOverrides: { accent: "#123456" } }, registry)
+  expect(theme.assets.decoration?.url).toBe("/assets/models/room-themes/lab-specimen-cabinet.glb")
+  expect(theme.assets.station?.url).toBe("/host/instrument.glb")
+  theme.assets.decoration!.footprint.width = .5
+  theme.assets.station!.footprint.height = .1
+  expect(JSON.stringify(registry)).toBe(original)
+  expect(resolveRoomTheme({ theme: "research-lab" }).assets.decoration?.footprint.width).toBe(1.1)
+})
+
+it("lets registry and room asset overrides replace the bundled furnishing without mutating their inputs", () => {
+  const registry: RoomThemeRegistry = { "research-lab": { assets: {
+    decoration: { url: "/host/cabinet.glb", footprint: { width: 1, depth: .7, height: 1.2 } },
+  } } }
+  const room = { theme: "research-lab", themeOverrides: { assets: {
+    decoration: { url: " /room/shelf.glb ", footprint: { width: .9, depth: .6, height: 1 } },
+  } } }
+  const originals = JSON.stringify({ registry, room })
+  expect(resolveRoomTheme({ theme: "research-lab" }, registry).assets.decoration?.url).toBe("/host/cabinet.glb")
+  expect(resolveRoomTheme(room, registry).assets.decoration).toEqual({
+    url: "/room/shelf.glb", footprint: { width: .9, depth: .6, height: 1 },
+  })
+  expect(JSON.stringify({ registry, room })).toBe(originals)
+  expect(resolveRoomTheme({ theme: "research-lab" }).assets.decoration?.url).toBe("/assets/models/room-themes/lab-specimen-cabinet.glb")
+})
+
+it.each([
+  undefined,
+  { url: "", footprint: { width: 1, depth: .7, height: 1.2 } },
+  { url: "/too-wide.glb", footprint: { width: 2, depth: .7, height: 1.2 } },
+])("uses procedural furniture when a host explicitly clears or supplies an invalid furnishing: %j", (decoration) => {
+  const theme = resolveRoomTheme({ theme: "research-lab", themeOverrides: { assets: { decoration } } })
+  expect(theme.assets.decoration).toBeUndefined()
+  expect(theme.decoration).toBe("shelves")
+  expect(theme.floor).toBe("blue-grid")
+  expect(resolveRoomTheme({ theme: "research-lab" }).assets.decoration).toBeDefined()
+})

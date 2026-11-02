@@ -1,0 +1,48 @@
+{
+  "2": {
+    "_meta": {
+      "title": "Save Image (Advanced)"
+    },
+    "class_type": "SaveImageAdvanced",
+    "inputs": {
+      "filename_prefix": "factory_overseer/room_themes/lab_specimen_cabinet_concept",
+      "format": "png",
+      "format.bit_depth": "8-bit",
+      "format.input_color_space": "sRGB",
+      "images": [
+        "8",
+        0
+      ]
+    }
+  },
+  "3": {
+    "_meta": {
+      "title": "Load Image"
+    },
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "8e8c155f21fea4dc3d2bb81ab297f821b3011c6b0195c263d35e7a5e0a17b599.png"
+    }
+  },
+  "8": {
+    "_meta": {
+      "title": "ByteDance Seedream 4.5 & 5.0"
+    },
+    "class_type": "ByteDanceSeedreamNodeV3",
+    "inputs": {
+      "model": "seedream 5.0 pro",
+      "model.height": 1024,
+      "model.images.image_1": [
+        "3",
+        0
+      ],
+      "model.prompt_optimization": "standard",
+      "model.seed": 260026,
+      "model.size_preset": "(1K) 1024x1024 (1:1)",
+      "model.thinking": true,
+      "model.watermark": false,
+      "model.width": 1024,
+      "prompt": "Use the attached factory diorama ONLY as a reference for its folded-paper materials, muted blue/cream palette, and simple handmade construction. Create a NEW isolated hero prop for the blue research-lab room: ONE small upright specimen cabinet, approximately 1.1 units wide, 0.74 deep and 1.24 tall. It has a thick warm-cream folded-cardstock frame, a muted dusty-blue (#618fae) back panel, two clearly separated open horizontal shelf levels, and exactly three large opaque paper specimen blocks in cream, kraft and muted blue. Broad planar faces, visible cream cut edges, folded tabs and restrained paper fibers. The frame itself is cream (#f4e6c9), not brown wood. Strong clean rectangular silhouette, both open cubbies clearly readable. Show the entire standalone cabinet in a front three-quarter view, only 15 degrees of horizontal yaw, camera elevation about 30 degrees so its front and shelf openings dominate. Centered, fills 75% of a square image, on a completely plain light-gray background. Flat diffuse neutral studio illumination, almost no cast shadow, no baked dark shadow stains; color regions should remain clean for conversion to a low-poly 3D game prop. No room, floor, pedestal, ground plane, plants, desk, pets, people, conveyors, title, labels, letters, numbers, logos, arrows or billboards. No glass, transparent materials, shiny metal, plastic, photographs, tiny knobs, wiring or dense machinery. Only the cabinet and its three broad folded specimen blocks. Preserve the convincing thickness and folds of papercraft from the reference, with matte surfaces and economical geometry."
+    }
+  }
+}

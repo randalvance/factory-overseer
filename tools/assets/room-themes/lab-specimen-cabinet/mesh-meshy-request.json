@@ -1,0 +1,26 @@
+{
+  "name": "api_meshy7_image_to_model",
+  "confirm": true,
+  "input_overrides": {
+    "8": {
+      "image": "f5106eb4248419f8c5964863b2583586d0c162339f62b53cfafefefe1e1e8f5a.png"
+    },
+    "13": {
+      "model": "meshy-7.1",
+      "should_remesh": "true",
+      "should_remesh.topology": "triangle",
+      "should_remesh.target_polycount": 6000,
+      "symmetry_mode": "off",
+      "should_texture": "true",
+      "should_texture.enable_pbr": false,
+      "should_texture.texture_resolution": "2k",
+      "should_texture.texture_prompt": "A handmade folded-cardstock cabinet, warm cream frame and paper cut edges, muted dusty blue interior back panel, three solid paper specimen cubes in cream, kraft tan and muted blue. Clean broad matte color regions, fine subtle paper fibers. No wood grain, metal, plastic, glass, lettering, labels, dirt or dramatic baked shadows. Keep the open shelf cavities and distinct blocks readable.",
+      "pose_mode": "",
+      "seed": 260026,
+      "ultra_mode": false
+    },
+    "15": {
+      "filename_prefix": "factory_overseer/room_themes/lab_specimen_cabinet_meshy"
+    }
+  }
+}

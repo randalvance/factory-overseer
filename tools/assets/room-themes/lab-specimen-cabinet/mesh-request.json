@@ -1,0 +1,27 @@
+{
+  "name": "api_tripo_p2_image_to_model",
+  "confirm": true,
+  "input_overrides": {
+    "14": {
+      "filename_prefix": "factory_overseer/room_themes/lab_specimen_cabinet"
+    },
+    "15": {
+      "model": "P2",
+      "model.quad": false,
+      "model.face_limit": 4000,
+      "model.texture": "standard",
+      "model.pbr": false,
+      "model.model_seed": 260026,
+      "model.texture_alignment": "original_image",
+      "model.orientation": "default",
+      "model.enable_image_autofix": false,
+      "model.texture_seed": 260026,
+      "model.auto_size": false,
+      "model.export_uv": true,
+      "model.compress_geometry": false
+    },
+    "16": {
+      "image": "f5106eb4248419f8c5964863b2583586d0c162339f62b53cfafefefe1e1e8f5a.png"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "fallback": {
+    "frameMs": 98.33000000000006,
+    "calls": 587,
+    "triangles": 42342,
+    "geometries": 108,
+    "textures": 31,
+    "estimatedTextureBytes": 14870491
+  },
+  "opening": {
+    "frameMs": 101.1066666666667,
+    "calls": 586,
+    "triangles": 44098,
+    "geometries": 108,
+    "textures": 31,
+    "estimatedTextureBytes": 14870491
+  },
+  "expandedFallback": {
+    "frameMs": 126.6600000000001,
+    "calls": 835,
+    "triangles": 57382,
+    "geometries": 129,
+    "textures": 33,
+    "estimatedTextureBytes": 14906075
+  },
+  "expanded": {
+    "frameMs": 123.88333333333334,
+    "calls": 834,
+    "triangles": 59138,
+    "geometries": 129,
+    "textures": 33,
+    "estimatedTextureBytes": 14906075
+  },
+  "replacementDelta": 1756
+}

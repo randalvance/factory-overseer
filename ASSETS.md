@@ -99,3 +99,48 @@ Each file is self-contained and served from `/assets/billboards/<filename>`.
 The 256 px graphics use smooth edges; the pixel example has a fixed 32 px
 intrinsic size and uses integer-aligned shapes. Host-provided billboard
 images retain their own license terms.
+
+## Generated room-theme pilot — #26
+
+The first research-lab specimen cabinet is generated art awaiting the user's
+visual review. It is **excluded from the code's MIT license**. The other
+three presets retain authored furnishings until the pilot is accepted.
+
+| Files | Source and applicable terms |
+| --- | --- |
+| `tools/assets/room-themes/lab-specimen-cabinet/source/concept.png` | Seedream 5.0 Pro (`seedream-5-0-pro-260628`) through paid Comfy Cloud; [Comfy terms](https://comfy.org/terms-of-service/) and [BytePlus AI terms](https://docs.byteplus.com/zh-CN/docs/legal/AI-Services-terms). Uses `docs/design/paper-diorama-concept.png` as the style reference. |
+| `tools/assets/room-themes/lab-specimen-cabinet/source/model.glb`, `rejected-tripo/` | Rejected Tripo P2 image-to-model attempt through paid Comfy Cloud, using the retained concept. [Comfy terms](https://comfy.org/terms-of-service/) and [Tripo terms](https://www.tripo3d.ai/terms) apply. |
+| `tools/assets/room-themes/lab-specimen-cabinet/source/meshy-model.glb` | Replacement Meshy 7.1 model through paid Comfy Cloud. [Comfy terms](https://comfy.org/terms-of-service/) and [Meshy terms](https://www.meshy.ai/terms-of-use) apply. |
+| `public/assets/models/room-themes/lab-specimen-cabinet.glb` | Script-cleaned derivative of that Meshy output; same generated-art terms. Prepared by `tools/blender/prepare_room_theme.py`, with immutable inputs in `export-settings.json` and measurements/hashes in `export-report.json` beside the source records. |
+
+[Comfy documents commercial use](https://comfy.org/cloud). Meshy and Tripo terms
+distinguish paid and free users; no public document checked for this pilot
+explicitly maps a paid Comfy call to either provider's paid-user category. This project
+therefore does not grant an unrestricted redistribution license for these
+raw/generated GLBs. Confirm applicable distribution terms before publishing
+a general-purpose asset pack. Local application preview does not assert an
+MIT sublicense to generated artwork.
+
+The [manifest](tools/assets/room-theme-manifest.json) records prompts,
+references, workflows, output identifiers, source hashes and cleanup details.
+The concept job is `653822aa-634e-47ab-9e89-518c76633f4d`; the replacement candidate mesh job is
+`fae97b33-bce6-42f0-8507-0d1eabef4830`. Tripo job
+`0a18c6ff-20be-4ba9-ac93-ff49b5e6be59` was retained but rejected for holes in
+the back panel and fused lower specimens. An earlier template job failed input
+validation before execution and was not billed. Comfy's post-run activity
+reports 9.5 + 232.1 + 362.08 = **603.68 credits** including the rejected
+attempt, against the authorized
+**1,500-credit total batch cap**. These are Comfy's reported credit-usage
+values, not a per-job dollar invoice. No other theme has been generated.
+
+The raw files preserve all supplied metadata. The Meshy source contains a
+`pygltflib` generator field and no AI-specific extras. The generated-art
+identification, provider/model and job IDs remain in this notice and the
+manifest alongside the cleanup output; they must travel with these assets.
+
+The runtime pilot uses explicit cream/blue/kraft vertex colors and the scene's
+paper shading. Its generated albedo was removed during cleanup after small UV
+islands produced visible seams at the 512 px budget. The generated geometry
+and unmodified textured source are retained. Final export: 1,960 triangles,
+one material, no model textures and 224,484 bytes. [Browser evidence](docs/screenshots/theme-assets/README.md)
+shows the isolated cabinet and normal/expanded room placement.

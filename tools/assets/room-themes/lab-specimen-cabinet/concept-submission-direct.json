@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Workflow submitted. prompt_id: 653822aa-634e-47ab-9e89-518c76633f4d\nAdvisory (non-blocking) - the following input value(s) are valid but INERT: a sibling preset gates them, so the run will ignore them unless that gate is set to \"Custom\". Set the gate and resubmit, or drop the value:\nNode #8: `model.height`, `model.width` take effect only when `model.size_preset` is \"Custom\" — current value \"(1K) 1024x1024 (1:1)\" means the run will use the preset size and ignore them. Set `model.size_preset` to \"Custom\" to honour them, or drop them.\nNote - This workflow includes paid partner-API node(s): Node #8: ByteDanceSeedreamNodeV3 — running it will incur partner-API charges on the user's account.\nNote - Dynamic-combo sub-field values are applied per the selected option's schema — fetch the output (get_output) and compare the width/height it reports (or measure the downloaded file) against the requested size before reporting it as honoured.\nJob queued — poll wait_for_job (or get_job_status) with this prompt_id, then get_output. Read the warnings above first: they mean the queued run differs from what you asked for (a node was pruned, or an override did not land). Fix and resubmit only if that difference matters — cancel_job this prompt_id if you do."
+    }
+  ],
+  "structuredContent": {
+    "result": {
+      "prompt_id": "653822aa-634e-47ab-9e89-518c76633f4d",
+      "lifted_from_save": false,
+      "lifecycle": "\nJob queued — poll wait_for_job (or get_job_status) with this prompt_id, then get_output. Read the warnings above first: they mean the queued run differs from what you asked for (a node was pruned, or an override did not land). Fix and resubmit only if that difference matters — cancel_job this prompt_id if you do.",
+      "status": "succeeded_with_warnings",
+      "warnings": [
+        {
+          "code": "paid_api_nodes",
+          "detail": "This workflow includes paid partner-API node(s): Node #8: ByteDanceSeedreamNodeV3 — running it will incur partner-API charges on the user's account."
+        },
+        {
+          "code": "dynamic_combo_subfield_gated",
+          "detail": "`model.height`, `model.width` take effect only when `model.size_preset` is \"Custom\" — current value \"(1K) 1024x1024 (1:1)\" means the run will use the preset size and ignore them. Set `model.size_preset` to \"Custom\" to honour them, or drop them.",
+          "node_id": "8",
+          "confidence": "observed"
+        },
+        {
+          "code": "dynamic_combo_subfield_advisory",
+          "detail": "Dynamic-combo sub-field values are applied per the selected option's schema — fetch the output (get_output) and compare the width/height it reports (or measure the downloaded file) against the requested size before reporting it as honoured."
+        }
+      ]
+    }
+  }
+}

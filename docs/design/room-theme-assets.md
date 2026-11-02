@@ -1,9 +1,10 @@
 # Paper room theme assets — #26
 
 This is the production brief for four sparse generated rear furnishings.
-Generation has not started. Workflow/model IDs, prices, costs, source outputs
-and redistribution terms remain unknown until recorded from the actual
-provider. The machine-readable record is
+The lab pilot is integrated and passes browser checks; user visual review is pending.
+The remaining three props wait for the user's pilot review. Actual model IDs,
+source outputs, credit usage and terms are recorded alongside the retained
+files; the earlier readiness notes below describe the initial preparation. The machine-readable record is
 [`room-theme-manifest.json`](../../tools/assets/room-theme-manifest.json).
 
 ## Shared art direction
@@ -105,93 +106,71 @@ redistribution rights in the manifest and `ASSETS.md`. Generated art does
 not inherit the code's MIT license. Unknown terms remain unknown rather than
 being inferred from the provider's ability to return a file.
 
-## Generation readiness — 2026-11-02
+## Pilot checkpoint — 2026-11-02
 
-The existing `comfy-cloud` connection points to `https://cloud.comfy.org/mcp`.
-At this check it was signed out; no authenticated template or node schema has
-been inspected and no generation has been submitted. The local asset audit
-found no generated #14 source or GLB suitable for reuse; `pieces.glb` is the
-original authored geometry, not a prior generated prop pack.
+The user authorized **1,500 Comfy credits for all four props**, including
+retries, with a visual review of the lab cabinet before the other three.
+Comfy OAuth, live node schemas and current price estimates were verified
+before submitting paid generation. No suitable generated #14 asset was
+available for reuse.
 
-The proposed pilot uses one **Seedream 5.0 Pro 1K** concept image
-(`seedream-5-0-pro-260628`) followed by **Tripo P2 Image to Model**, standard
-texture. [Comfy's published partner pricing](https://docs.comfy.org/tutorials/partner-nodes/pricing)
-lists 9.50 credits per concept and approximately 232.1 per textured mesh:
-**241.6 credits for one pilot**, or **966.4 for four first attempts**. These
-estimates exclude retries, extra reference-image fees and any GPU runtime
-charges. A **300-credit pilot cap** has been proposed, not authorized. At the
-[published conversion of 211 credits per USD](https://support.comfy.org/articles/1982697177-partner-nodes-pricing),
-that cap is approximately **$1.42**, with a first-attempt estimate of **$1.15**.
-Workflow identifiers and effective options must be confirmed through the live
-MCP catalog before submission; a public price table does not prove current
-account availability. Actual costs stay separate from estimates.
+| Stage | Actual provider/model | Comfy-reported credits | Result |
+| --- | --- | ---: | --- |
+| Initial concept template | Seedream 5.0 Pro | 0 | Input validation failed before execution; not billed |
+| Concept with direct reference input | `seedream-5-0-pro-260628` | 9.50 | Retained 1024 px concept |
+| First mesh | Tripo P2 | 232.10 | Rejected: holes in back panel and fused lower blocks |
+| Replacement mesh | `meshy-7.1` | 362.08 | Retained source for pilot |
+| **Total / remaining allowance** | | **603.68 / 896.32** | Remaining three props await review |
 
-The account sign-in attempt timed out before the OAuth callback. Reconnect
-Comfy Cloud to continue. Generation waits for authentication
-and the fresh allowance required by
-[issue #26](https://github.com/randalvance/factory-overseer/issues/26):
-“Establish the spend allowance for this new batch before paid generation.”
-The first prop still requires an in-browser visual check before the remaining
-three are generated.
+These are post-run Comfy credit-usage values, not a per-job dollar invoice.
+Complete prompts, actual executed workflows, job/output identifiers, source
+files and hashes are retained under
+`tools/assets/room-themes/lab-specimen-cabinet/` and indexed by the manifest.
+The original 241.6-credit estimate covered one concept and one Tripo attempt;
+the rejected attempt and Meshy replacement explain the higher pilot spend.
 
-### Candidate provider terms
+The host Blender exporter keeps the Meshy geometry and fits it uniformly to
+the rear furnishing slot. Repacking/resizing the generated texture to 512 px
+caused seams at narrow UV islands. The pilot therefore uses the brief's
+solid-color option: each face is explicitly recolored cream, blue or kraft,
+with the factory's shared paper shading providing grain. This is a deliberate
+cleanup transformation, not lossless texture preservation. Some kraft facets
+remain visible at close range and are part of the visual review.
 
-[Comfy Cloud](https://comfy.org/cloud) supports commercial use of its models;
-[Comfy's terms §2](https://comfy.org/terms-of-service/) retain customer output
-rights while also applying partner-provider terms. [Tripo's terms §5.2](https://www.tripo3d.ai/terms)
-distinguish paid and free users and describe paid users' distribution rights.
-No public source checked here explicitly maps a Comfy-credit call to that
-paid-user category. This does not prevent a local pilot preview, but the raw
-asset pack must not be advertised as unrestricted or MIT without establishing
-its applicable redistribution terms.
+The final export has **1,960 triangles, one vertex-color material, no model
+textures and 224,484 bytes**. Its immutable export settings, exact Blender
+5.1.2 command, script/source/output hashes and measured bounds are in
+`export-settings.json` and `export-report.json` beside the source files.
+The exporter verifies vertex colors for this path and UVs for textured
+exports. Missing/mismatched color attributes are rejected; the original
+textured synthetic fixture still passes the atlas path.
 
-[BytePlus AI terms §2.1](https://docs.byteplus.com/zh-CN/docs/legal/AI-Services-terms)
-address output ownership; its
-[acceptable-use policy](https://docs.byteplus.com/en/docs/legal/docs-acceptable-use-policy)
-places restrictions on competing-model development and removing generated
-content identifiers. Ordinary concept-image input to a mesh generator is not
-expressly prohibited in those sources; this is an interpretation, not an
-explicit cross-provider license. Retain any supplied provenance metadata in
-the raw source. Actual per-asset license fields remain unset until generation
-and the relevant terms are recorded.
+The research-lab registry now supplies this cabinet by default. Host overrides
+can replace it or explicitly select the authored fallback. Other themes keep
+their authored furnishings until the pilot is approved. The unit suite passes
+507 tests across 47 files; typecheck, production build and the two focused
+browser tests pass. The build retains its existing bundle-size advisory.
 
-## Preparation checkpoint
+[Browser evidence](../screenshots/theme-assets/README.md) includes the isolated
+38° gallery, a normal four-room scene and a seven-agent expanded room. The
+cabinet remains one per room and stays clear of functional paths, signs and
+pets. This checkpoint does not complete #26: the remaining three generated
+props, their preset integrations and the final four-prop gallery follow user
+review of this pilot.
 
-The [host Blender exporter](../../tools/blender/prepare_room_theme.py) and its
-[usage notes](../../tools/blender/prepare_room_theme.md) prepare a retained
-static source GLB. A synthetic textured test model passed the actual browser
-`createRoomThemeAssets` loader with 1,960 triangles, one Lambert material,
-a 512 × 512 base-color atlas and a 248,408-byte file, with no page errors.
-This verifies the pipeline, not the appearance of future generated props.
-No synthetic model is published as room art. Generation, visual review,
-preset integration and final gallery evidence are still pending.
+## Provider terms and attribution
 
-### Standards review
+[Comfy Cloud](https://comfy.org/cloud) documents commercial use;
+[Comfy terms §2](https://comfy.org/terms-of-service/) also apply partner terms.
+[BytePlus AI terms](https://docs.byteplus.com/zh-CN/docs/legal/AI-Services-terms)
+and its [acceptable-use policy](https://docs.byteplus.com/en/docs/legal/docs-acceptable-use-policy)
+apply to the concept. [Meshy terms](https://www.meshy.ai/terms-of-use) apply
+to the replacement model, and [Tripo terms](https://www.tripo3d.ai/terms) to
+the rejected source.
 
-No documented standards violations or baseline code smells were found. The
-host-only exporter follows ADR 0005, retains source inputs, records rebuild
-provenance and enforces the room contract's model budgets.
-
-### Spec review
-
-One preparation defect was found and fixed: a materialless GLB inherited
-Blender's gray default rather than glTF's implicit white. The exporter now
-sets white explicitly; a fresh export verified the atlas color. Shared mesh
-instances also passed the transform/bounds check. No open preparation defects
-or unrequested scope remain from the review.
-
-The full issue remains incomplete: Comfy generation, an authorized allowance,
-retained generated outputs, pilot visual review, all four preset integrations,
-ASSETS.md provenance and final gallery/expanded-room evidence are pending.
-This checkpoint passed 501 unit tests across 47 files, typecheck, production
-build and the focused real-loader browser check. The build retains its
-existing large-bundle advisory.
-
-## Authorized batch allowance
-
-The user approved **1,500 Comfy credits for all four props**, with the lab
-cabinet reviewed before generating the other three. This is a total batch
-cap, including the pilot and any retries, not an additional per-prop budget.
-It supersedes the earlier proposed 300-credit pilot cap. Current recorded
-spend is zero. Generation still requires an authenticated Comfy connection
-and confirmation of live workflow options/pricing.
+Direct paid-plan output rights are documented by the mesh providers, but the
+public sources reviewed do not explicitly map Comfy-credit calls to those
+plan entitlements. Generated art is excluded from the code's MIT license;
+no unrestricted raw-asset redistribution grant is asserted. The original
+files preserve supplied metadata, and provider/model/job attribution travels
+with the cleanup output in [ASSETS.md](../../ASSETS.md) and the manifest.

@@ -1,0 +1,66 @@
+{
+  "result": {
+    "status": "succeeded",
+    "warnings": [],
+    "job_status": "completed",
+    "raw_status": "completed"
+  },
+  "workflow_note": "This job's stored API-format graph (3 nodes) is returned as `workflow` — pass it to submit_workflow to rerun it, verbatim or edited.",
+  "workflow_id": "a6bbab40-b34c-40b2-bd77-cd8869b91cc9",
+  "workflow_node_count": 3,
+  "workflow_class_types": [
+    "LoadImage",
+    "MeshyImageToModelNode",
+    "SaveGLB"
+  ],
+  "workflow": {
+    "8": {
+      "_meta": {
+        "title": "Load Image"
+      },
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "f5106eb4248419f8c5964863b2583586d0c162339f62b53cfafefefe1e1e8f5a.png"
+      }
+    },
+    "13": {
+      "_meta": {
+        "title": "Meshy: Image to Model"
+      },
+      "class_type": "MeshyImageToModelNode",
+      "inputs": {
+        "image": [
+          "8",
+          0
+        ],
+        "model": "meshy-7.1",
+        "pose_mode": "",
+        "seed": 260026,
+        "should_remesh": "true",
+        "should_remesh.target_polycount": 6000,
+        "should_remesh.topology": "triangle",
+        "should_texture": "true",
+        "should_texture.enable_pbr": false,
+        "should_texture.texture_prompt": "A handmade folded-cardstock cabinet, warm cream frame and paper cut edges, muted dusty blue interior back panel, three solid paper specimen cubes in cream, kraft tan and muted blue. Clean broad matte color regions, fine subtle paper fibers. No wood grain, metal, plastic, glass, lettering, labels, dirt or dramatic baked shadows. Keep the open shelf cavities and distinct blocks readable.",
+        "should_texture.texture_resolution": "2k",
+        "symmetry_mode": "off",
+        "ultra_mode": false,
+        "ultra_resolution": "2k"
+      }
+    },
+    "15": {
+      "_meta": {
+        "title": "Save 3D Model"
+      },
+      "class_type": "SaveGLB",
+      "inputs": {
+        "filename_prefix": "factory_overseer/room_themes/lab_specimen_cabinet_meshy",
+        "image": "",
+        "mesh": [
+          "13",
+          2
+        ]
+      }
+    }
+  }
+}

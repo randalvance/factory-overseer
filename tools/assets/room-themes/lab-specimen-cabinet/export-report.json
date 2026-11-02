@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "assetId": "lab-specimen-cabinet",
+  "source": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/source/meshy-model.glb",
+    "sha256": "1fcc029050d578e6d56acf1a2d16943c54795623bbd75f0ef660d5a052e77357",
+    "triangles": 3443,
+    "materials": 1
+  },
+  "output": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/lab-specimen-cabinet.glb",
+    "sha256": "b0af64c58adf4a76e58678c0a13f9b963b27fd03d1dc5867ec65f8c32bb42f7f",
+    "triangles": 1960,
+    "materials": 1,
+    "textureDimensions": [],
+    "bytes": 224484,
+    "bounds": {
+      "minimum": [
+        -0.5497962832450867,
+        0.0,
+        -0.26872047781944275
+      ],
+      "maximum": [
+        0.5497963428497314,
+        1.2400001287460327,
+        0.26872047781944275
+      ],
+      "width": 1.0995926260948181,
+      "depth": 0.5374409556388855,
+      "height": 1.2400001287460327
+    }
+  },
+  "manifest": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/export-settings.json",
+    "sha256": "0e212545e2ab68fc189aaad58bccc5a1eb3b10a12889dcff4f7ad1054369686a"
+  },
+  "script": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+    "sha256": "e88e57132f07ea0cbc07245237f06a2eaae9838d30e5c4fda46cbb13ea04121a"
+  },
+  "blenderVersion": "5.1.2",
+  "command": [
+    "/Applications/Blender.app/Contents/MacOS/Blender",
+    "--background",
+    "--factory-startup",
+    "--python-exit-code",
+    "1",
+    "--python",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+    "--",
+    "--source",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/source/meshy-model.glb",
+    "--asset-id",
+    "lab-specimen-cabinet",
+    "--manifest",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/export-settings.json",
+    "--output",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/lab-specimen-cabinet.glb",
+    "--report",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/export-report.json",
+    "--yaw-degrees",
+    "0",
+    "--paper-palette"
+  ],
+  "arguments": {
+    "source": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/source/meshy-model.glb",
+    "assetId": "lab-specimen-cabinet",
+    "manifest": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/export-settings.json",
+    "output": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/lab-specimen-cabinet.glb",
+    "report": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/export-report.json",
+    "yawDegrees": 0,
+    "paperPalette": true
+  },
+  "processing": {
+    "color": "Explicit recoloring: source sRGB albedo classified by seven interior samples per triangle into manifest accent/cream/kraft; flat opaque vertex colors, no texture",
+    "paperPalette": {
+      "accent": "#618fae",
+      "cream": "#f4e6c9",
+      "kraft": "#c6b28f"
+    },
+    "paletteFaceCounts": {
+      "cream": 1265,
+      "kraft": 530,
+      "accent": 165
+    },
+    "discardedChannels": [
+      "metallic",
+      "roughness",
+      "normal",
+      "occlusion",
+      "emission"
+    ],
+    "shading": "flat",
+    "opaque": true,
+    "uniformScale": 0.6492833498356231,
+    "removedObjects": [],
+    "sourceExtensionsUsed": [],
+    "limitations": [
+      "Source-albedo shadows may classify as kraft facets; inspect the broad color regions visually.",
+      "Decimation and discrete color classification can change fine detail; browser review is required.",
+      "Rebuilds depend on the recorded Blender version; remote generation is not deterministic."
+    ]
+  }
+}
