@@ -1,0 +1,8 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"id\":\"api_meshy7_image_to_model\",\"slots\":[],\"note\":\"This template does not expose its inputs through a subgraph, so it has no slot_overrides addresses — `slots` is empty for that reason, not because the template is uneditable. Override it with run_template's `input_overrides` instead, keyed by the node ids in `nodes` below: {\\\"<id>\\\": {\\\"<input_name>\\\": value}}. `nodes` is the executed graph run_template submits, so these ids and input names are exactly the ones input_overrides resolves against. Inputs wired from another node are omitted — setting one would replace the link with a constant; use get_template + submit_workflow for that kind of structural edit.\",\"nodes\":[{\"id\":\"8\",\"class_type\":\"LoadImage\",\"inputs\":{\"image\":\"marble_robot_bust.png\"}},{\"id\":\"13\",\"class_type\":\"MeshyImageToModelNode\",\"inputs\":{\"model\":\"meshy-7.1\",\"should_remesh\":\"true\",\"should_remesh.topology\":\"triangle\",\"should_remesh.target_polycount\":300000,\"symmetry_mode\":\"auto\",\"should_texture\":\"true\",\"should_texture.enable_pbr\":false,\"should_texture.texture_prompt\":\"\",\"should_texture.texture_resolution\":\"2k\",\"pose_mode\":\"\",\"seed\":10793226,\"ultra_mode\":false,\"ultra_resolution\":\"2k\"}},{\"id\":\"15\",\"class_type\":\"SaveGLB\",\"inputs\":{\"filename_prefix\":\"3d/meshy_image2model\",\"image\":\"\"}}]}"
+    }
+  ]
+}

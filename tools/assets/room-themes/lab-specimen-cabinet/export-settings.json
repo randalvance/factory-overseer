@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "issue": 26,
+  "purpose": "Immutable cleanup inputs for the first lab cabinet pilot; complete provenance is in room-theme-manifest.json.",
+  "productionTargets": {
+    "maxTrianglesPerDecoration": 2000,
+    "maxMaterialsPerModel": 2,
+    "maxColorAtlasEdgePixels": 512,
+    "maxGlbBytesExclusive": 1000000,
+    "maxPackBytesExclusive": 8000000,
+    "maxDecorationsPerRoom": 1,
+    "decorationClearanceTiles": 0.1,
+    "slotMaximum": {
+      "width": 1.15,
+      "depth": 0.82,
+      "height": 1.3
+    },
+    "retainedStationAccessoryMaxTriangles": 500,
+    "retained100AgentAccessoryMaxTriangles": 50000
+  },
+  "assets": [
+    {
+      "id": "lab-specimen-cabinet",
+      "slot": "decoration",
+      "footprint": {
+        "width": 1.1,
+        "depth": 0.74,
+        "height": 1.24
+      },
+      "palette": {
+        "accent": "#618fae",
+        "cream": "#f4e6c9",
+        "kraft": "#c6b28f"
+      }
+    }
+  ]
+}

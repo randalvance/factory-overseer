@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "issue": 26,
-  "status": "planned",
+  "status": "pilot-awaiting-user-review",
   "brief": "docs/design/room-theme-assets.md",
   "trialAssetId": "lab-specimen-cabinet",
   "spendAllowance": {
@@ -11,8 +11,9 @@
     "authorization": "User: 1,500 credits for all four; review pilot first",
     "inheritedFromIssue14": false,
     "scope": "All four room theme props, including the pilot. User review of lab cabinet required before generating remaining three.",
-    "spent": 0,
-    "remaining": 1500
+    "spent": 603.68,
+    "remaining": 896.32,
+    "costBasis": "Comfy post-run api_usage_completed credits_used; display estimate, not an invoice"
   },
   "style": {
     "reference": {
@@ -54,7 +55,7 @@
       "id": "lab-specimen-cabinet",
       "theme": "research-lab",
       "name": "Folded paper specimen cabinet",
-      "status": "planned",
+      "status": "awaiting-user-review",
       "slot": "decoration",
       "retain": {
         "floor": "blue-grid",
@@ -77,11 +78,15 @@
       "description": "Cream folded upright cabinet frame, muted blue back and two open shelves. Three large opaque folded specimen blocks occupy the shelves; no glass and no labels. Broad upright rectangular silhouette with clearly separated shelves.",
       "generation": {
         "provider": "Comfy Cloud MCP",
-        "workflowId": null,
-        "modelIds": null,
-        "jobId": null,
-        "prompt": "A single isolated small folded-cardstock diorama furnishing, modeled with broad flat planar faces, visible warm cream cut edges, a few purposeful fold seams and a strong simple silhouette. Muted colors, matte opaque surfaces, clean untextured color regions suitable for a shared color atlas. Front details visible from a 38-degree elevated camera. +Y up, +Z front, bottom-center origin. No floor or surroundings. Cream folded upright cabinet frame, muted blue back and two open shelves. Three large opaque folded specimen blocks occupy the shelves; no glass and no labels. Broad upright rectangular silhouette with clearly separated shelves.",
-        "negativePrompt": "Photorealism, photographic textures, glossy plastic, shiny metal, transparent glass, PBR surface detail, dense greebles, wires, tiny knobs, text, lettering, numbers, logos, arrows, characters, pets, parcels, billboard, room, wall, ground plane, baked shadows, baked lighting, animation.",
+        "workflowId": "api_meshy7_image_to_model",
+        "modelIds": [
+          "seedream-5-0-pro-260628",
+          "P2",
+          "meshy-7.1"
+        ],
+        "jobId": "fae97b33-bce6-42f0-8507-0d1eabef4830",
+        "prompt": "Use the attached factory diorama ONLY as a reference for its folded-paper materials, muted blue/cream palette, and simple handmade construction. Create a NEW isolated hero prop for the blue research-lab room: ONE small upright specimen cabinet, approximately 1.1 units wide, 0.74 deep and 1.24 tall. It has a thick warm-cream folded-cardstock frame, a muted dusty-blue (#618fae) back panel, two clearly separated open horizontal shelf levels, and exactly three large opaque paper specimen blocks in cream, kraft and muted blue. Broad planar faces, visible cream cut edges, folded tabs and restrained paper fibers. The frame itself is cream (#f4e6c9), not brown wood. Strong clean rectangular silhouette, both open cubbies clearly readable. Show the entire standalone cabinet in a front three-quarter view, only 15 degrees of horizontal yaw, camera elevation about 30 degrees so its front and shelf openings dominate. Centered, fills 75% of a square image, on a completely plain light-gray background. Flat diffuse neutral studio illumination, almost no cast shadow, no baked dark shadow stains; color regions should remain clean for conversion to a low-poly 3D game prop. No room, floor, pedestal, ground plane, plants, desk, pets, people, conveyors, title, labels, letters, numbers, logos, arrows or billboards. No glass, transparent materials, shiny metal, plastic, photographs, tiny knobs, wiring or dense machinery. Only the cabinet and its three broad folded specimen blocks. Preserve the convincing thickness and folds of papercraft from the reference, with matte surfaces and economical geometry.",
+        "negativePrompt": null,
         "inputReferences": [
           {
             "path": "docs/design/paper-diorama-concept.png",
@@ -89,38 +94,176 @@
             "sha256": "10afa6ed2d709a7af1325a719c7adad7db5f7bf009c3af3061c2e736f8ed2f01"
           }
         ],
-        "requestPath": null,
-        "rawOutputs": [],
+        "requestPath": "tools/assets/room-themes/lab-specimen-cabinet/mesh-meshy-request.json",
+        "rawOutputs": [
+          {
+            "path": "tools/assets/room-themes/lab-specimen-cabinet/source/concept.png",
+            "sha256": "727208ce19dc2e0f3b692eda14e274a7c14592c378d3951ad13528e5e81dd608"
+          },
+          {
+            "path": "tools/assets/room-themes/lab-specimen-cabinet/rejected-tripo/source.glb",
+            "sha256": "3aad38740358517eb7d567b22ade9a99a5667cb6fa3fb2f43d38f16009b50e9a"
+          },
+          {
+            "path": "tools/assets/room-themes/lab-specimen-cabinet/source/meshy-model.glb",
+            "sha256": "1fcc029050d578e6d56acf1a2d16943c54795623bbd75f0ef660d5a052e77357"
+          }
+        ],
         "quotedCost": null,
-        "actualCost": null,
-        "currency": null,
-        "generatedAt": null
+        "actualCost": 603.68,
+        "currency": "Comfy credits",
+        "generatedAt": "2026-11-02T00:48:00.808563Z",
+        "stages": [
+          {
+            "stage": "concept-template",
+            "jobId": "144cffb6-acbc-4c7a-9bfa-c8bf2e571da4",
+            "status": "failed-before-execution",
+            "billed": false,
+            "creditsUsed": 0,
+            "note": "Image validation rejected template with empty Painter input; replaced Painter with direct image connection."
+          },
+          {
+            "stage": "concept-direct-reference",
+            "jobId": "653822aa-634e-47ab-9e89-518c76633f4d",
+            "status": "completed",
+            "model": "seedream-5-0-pro-260628",
+            "creditsUsed": 9.5,
+            "sourceNodeId": "2",
+            "outputFilename": "f5106eb4248419f8c5964863b2583586d0c162339f62b53cfafefefe1e1e8f5a.png",
+            "localPath": "tools/assets/room-themes/lab-specimen-cabinet/source/concept.png",
+            "sha256": "727208ce19dc2e0f3b692eda14e274a7c14592c378d3951ad13528e5e81dd608",
+            "width": 1024,
+            "height": 1024
+          },
+          {
+            "stage": "mesh",
+            "jobId": "0a18c6ff-20be-4ba9-ac93-ff49b5e6be59",
+            "status": "completed-rejected-visually",
+            "model": "P2",
+            "creditsUsed": 232.1,
+            "localPath": "tools/assets/room-themes/lab-specimen-cabinet/rejected-tripo/source.glb",
+            "reason": "Raw reconstruction has holes through upper back panel and fused lower specimens; browser technical checks pass but visual quality does not."
+          },
+          {
+            "stage": "replacement-mesh",
+            "jobId": "fae97b33-bce6-42f0-8507-0d1eabef4830",
+            "status": "completed",
+            "model": "meshy-7.1",
+            "creditsUsed": 362.08,
+            "estimatedCredits": 362.1,
+            "sourceNodeId": "15",
+            "outputFilename": "2f7faaf7f096937fdacd26ace124b3261128fdd4c41ce9f00f379aad3ffbca8c.glb",
+            "localPath": "tools/assets/room-themes/lab-specimen-cabinet/source/meshy-model.glb",
+            "sha256": "1fcc029050d578e6d56acf1a2d16943c54795623bbd75f0ef660d5a052e77357"
+          }
+        ],
+        "costBasis": "Comfy post-run api_usage_completed credits_used, including rejected Tripo attempt; display estimate rather than per-job invoice",
+        "negativeConstraints": "Included in concept prompt; no separate negative-prompt parameter was sent"
       },
       "provenance": {
-        "source": null,
-        "providerTermsUrl": null,
-        "modelTermsUrl": null,
-        "redistributionRights": null,
-        "license": null,
-        "recordedAt": null
+        "source": "Paid Comfy Cloud Meshy 7.1 output, using retained Seedream 5.0 Pro concept; rejected Tripo P2 attempt retained for audit.",
+        "providerTermsUrl": "https://comfy.org/terms-of-service/",
+        "modelTermsUrl": "https://www.meshy.ai/terms-of-use",
+        "redistributionRights": "Comfy documents commercial use. Direct Meshy paid-plan output ownership is documented, but Comfy-to-Meshy plan entitlement is not explicitly mapped in the public terms reviewed. No unrestricted/MIT raw-asset redistribution grant is asserted.",
+        "license": "Provider terms apply; excluded from repository MIT license.",
+        "recordedAt": "2026-11-02",
+        "rawSourceIdentifiers": "Original raw files retained. Meshy GLB has pygltflib generator metadata and no AI-specific extras/watermark fields."
       },
       "export": {
         "plannedRuntimePath": "public/assets/models/room-themes/lab-specimen-cabinet.glb",
-        "sourcePaths": [],
-        "script": null,
-        "command": null,
-        "blenderVersion": null,
-        "outputSha256": null,
-        "measuredTriangles": null,
-        "measuredMaterials": null,
-        "measuredTextureDimensions": null,
-        "measuredBytes": null,
-        "measuredBounds": null
+        "sourcePaths": [
+          "tools/assets/room-themes/lab-specimen-cabinet/source/meshy-model.glb"
+        ],
+        "script": "tools/blender/prepare_room_theme.py",
+        "command": [
+          "/Applications/Blender.app/Contents/MacOS/Blender",
+          "--background",
+          "--factory-startup",
+          "--python-exit-code",
+          "1",
+          "--python",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+          "--",
+          "--source",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/source/meshy-model.glb",
+          "--asset-id",
+          "lab-specimen-cabinet",
+          "--manifest",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/export-settings.json",
+          "--output",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/lab-specimen-cabinet.glb",
+          "--report",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/export-report.json",
+          "--yaw-degrees",
+          "0",
+          "--paper-palette"
+        ],
+        "blenderVersion": "5.1.2",
+        "outputSha256": "b0af64c58adf4a76e58678c0a13f9b963b27fd03d1dc5867ec65f8c32bb42f7f",
+        "measuredTriangles": 1960,
+        "measuredMaterials": 1,
+        "measuredTextureDimensions": [],
+        "measuredBytes": 224484,
+        "measuredBounds": {
+          "minimum": [
+            -0.5497962832450867,
+            0.0,
+            -0.26872047781944275
+          ],
+          "maximum": [
+            0.5497963428497314,
+            1.2400001287460327,
+            0.26872047781944275
+          ],
+          "width": 1.0995926260948181,
+          "depth": 0.5374409556388855,
+          "height": 1.2400001287460327
+        },
+        "reportPath": "tools/assets/room-themes/lab-specimen-cabinet/export-report.json",
+        "settingsPath": "tools/assets/room-themes/lab-specimen-cabinet/export-settings.json",
+        "processing": {
+          "color": "Explicit recoloring: source sRGB albedo classified by seven interior samples per triangle into manifest accent/cream/kraft; flat opaque vertex colors, no texture",
+          "paperPalette": {
+            "accent": "#618fae",
+            "cream": "#f4e6c9",
+            "kraft": "#c6b28f"
+          },
+          "paletteFaceCounts": {
+            "cream": 1265,
+            "kraft": 530,
+            "accent": 165
+          },
+          "discardedChannels": [
+            "metallic",
+            "roughness",
+            "normal",
+            "occlusion",
+            "emission"
+          ],
+          "shading": "flat",
+          "opaque": true,
+          "uniformScale": 0.6492833498356231,
+          "removedObjects": [],
+          "sourceExtensionsUsed": [],
+          "limitations": [
+            "Source-albedo shadows may classify as kraft facets; inspect the broad color regions visually.",
+            "Decimation and discrete color classification can change fine detail; browser review is required.",
+            "Rebuilds depend on the recorded Blender version; remote generation is not deterministic."
+          ]
+        }
       },
       "review": {
-        "browserStatus": "pending",
-        "screenshots": [],
-        "renderMetrics": null
+        "browserStatus": "passed; user visual review pending",
+        "screenshots": [
+          "docs/screenshots/theme-assets/lab-cabinet-gallery.png",
+          "docs/screenshots/theme-assets/lab-cabinet-in-room.png",
+          "docs/screenshots/theme-assets/lab-cabinet-expanded-seven.png"
+        ],
+        "renderMetrics": "docs/screenshots/theme-assets/lab-cabinet-room-metrics.json",
+        "measurements": "docs/screenshots/theme-assets/lab-cabinet-measurements.json",
+        "reviewPage": "http://localhost:3000/e2e/fixtures/theme-art.html",
+        "userApproved": false,
+        "notes": "One cabinet remains visible per room through seven-agent growth. Shared scene paper shading supplies surface fibers; generated albedo was explicitly recolored to three palette colors after 512px texture cleanup produced seams."
       }
     },
     {
@@ -345,9 +488,9 @@
   ],
   "generationPlan": {
     "checkedAt": "2026-11-02",
-    "status": "awaiting-authentication",
+    "status": "pilot-awaiting-user-review",
     "source": "https://docs.comfy.org/tutorials/partner-nodes/pricing",
-    "liveMcpCapabilitiesVerified": false,
+    "liveMcpCapabilitiesVerified": true,
     "concept": {
       "candidateModel": "seedream-5-0-pro-260628",
       "resolution": "1K",
@@ -368,27 +511,33 @@
       "any GPU runtime charges"
     ],
     "estimatedCostIsNotAnAllowance": true,
-    "workflowIds": null,
+    "workflowIds": [
+      "api_bytedance_seedream_5_0_pro_image_edit",
+      "api_tripo_p2_image_to_model",
+      "api_meshy7_image_to_model"
+    ],
     "requirementsBeforeSubmission": [
       "authenticate Comfy Cloud MCP",
       "confirm live template and node schemas and price",
       "record applicable provider output terms"
     ],
-    "submittedJobs": 0,
+    "submittedJobs": 4,
     "creditConversion": {
       "creditsPerUsd": 211,
       "source": "https://support.comfy.org/articles/1982697177-partner-nodes-pricing"
     },
     "termsReview": {
-      "status": "candidate-provider-terms-reviewed; actual-art-license-not-assigned",
+      "status": "actual-provider-terms-reviewed; generated art excluded from code license",
       "comfy": "https://comfy.org/terms-of-service/",
       "comfyCommercialUse": "https://comfy.org/cloud",
-      "meshProvider": "https://www.tripo3d.ai/terms",
+      "meshProvider": "https://www.meshy.ai/terms-of-use",
       "conceptProvider": "https://docs.byteplus.com/zh-CN/docs/legal/AI-Services-terms",
       "conceptAcceptableUse": "https://docs.byteplus.com/en/docs/legal/docs-acceptable-use-policy",
-      "note": "Commercial in-app use is supported by Comfy documentation. No public source found explicitly mapping Comfy Tripo calls to Tripo Paid User terms; do not assign MIT or promise unrestricted raw-GLB redistribution. Confirm actual provider terms before publishing the asset pack."
+      "note": "Commercial application use is supported by Comfy documentation. Direct Meshy paid-plan output ownership is documented, but public sources do not explicitly map Comfy credits to provider plan entitlements. No unrestricted/MIT raw-asset redistribution grant is asserted.",
+      "rejectedMeshProvider": "https://www.tripo3d.ai/terms"
     },
-    "authentication": "not-authenticated; interactive OAuth attempt timed out"
+    "authentication": "authenticated OAuth",
+    "actualPilotModel": "meshy-7.1"
   },
   "preparation": {
     "script": "tools/blender/prepare_room_theme.py",
@@ -419,6 +568,37 @@
       "build": "passed; existing large-bundle advisory",
       "materiallessSource": "implicit white verified after review fix",
       "sharedMeshInstances": "transform and combined bounds check passed"
+    }
+  },
+  "verification": {
+    "unitSuite": {
+      "files": 47,
+      "tests": 507,
+      "status": "passed"
+    },
+    "typecheck": "passed",
+    "build": "passed; existing large-bundle advisory",
+    "browser": {
+      "suite": "e2e/theme-art.spec.ts",
+      "tests": 2,
+      "status": "passed",
+      "nearBlackPixels": 0,
+      "canvasPixels": 491776,
+      "regressionTests": 6,
+      "regressionSuites": [
+        "e2e/themes.spec.ts",
+        "billboard artwork/filtering through growth and Reorganize"
+      ],
+      "uniqueTestsPassed": 8
+    },
+    "exporter": {
+      "paletteColorValidation": "passed; missing/mismatched COLOR_0 rejected",
+      "defaultTexturedExport": "passed on synthetic source",
+      "sourceUnchanged": true
+    },
+    "review": {
+      "standards": "No documented violations; one nonblocking suggestion to share accessor bounds calculations.",
+      "spec": "No pilot-scope defects; remaining three props intentionally pending user review."
     }
   }
 }

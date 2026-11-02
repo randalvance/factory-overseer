@@ -379,14 +379,16 @@ paper appearance; `appearance="legacy"` retains its original environment.
 
 | Preset | Floor | Station | Rear furnishing |
 | --- | --- | --- | --- |
-| `research-lab` | Cool blue graph paper | Blue lab workstation | Paper shelves |
+| `research-lab` | Cool blue graph paper | Blue lab workstation | Generated paper cabinet pilot; authored shelves while loading or on failure |
 | `foundry` | Honey paper planks | Ochre folded machinery | Small press |
 | `factory` | Sage checkerboard | Sage assembly bench | Parts storage |
 | `fabrication-plant` | Terracotta marked bays | Precision-cut worktable | Paper cutter |
 
 Add a theme by passing an immutable `roomThemes` registry to `RoomFactory`
 (or the underlying `Factory` with `roomState`). Definitions may extend one
-built-in preset; registry inheritance does not chain. Registry entries can
+built-in preset, including its bundled asset descriptors; registry inheritance
+does not chain. An explicit `assets: { decoration: undefined }` in the registry
+or per-room override selects authored furniture instead of the bundled cabinet. Registry entries can
 also override a built-in key. `themeOverrides.extends` is ignored: inheritance
 belongs to the registry definition, while per-room overrides patch fields.
 

@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Template \"api_bytedance_seedream_5_0_pro_image_edit\" converted and submitted. prompt_id: 144cffb6-acbc-4c7a-9bfa-c8bf2e571da4\nNodes: 5\nConversion warnings:\n`model.height`, `model.width` take effect only when `model.size_preset` is \"Custom\" — current value \"(1K) 1024x1024 (1:1)\" means the run will use the preset size and ignore them. Set `model.size_preset` to \"Custom\" to honour them, or drop them.\nOverride 8.model ran on the executed graph but could not be embedded in the reopenable UI workflow (input is connected, not a widget, or on a node layout the embedder can't place)\nNote - This workflow includes paid partner-API node(s): Node #8: ByteDanceSeedreamNodeV3 — running it will incur partner-API charges on the user's account.\nJob queued — poll wait_for_job (or get_job_status) with this prompt_id, then get_output. Read the warnings above first: they mean the queued run differs from what you asked for (a node was pruned, or an override did not land). Fix and resubmit only if that difference matters — cancel_job this prompt_id if you do."
+    }
+  ],
+  "structuredContent": {
+    "result": {
+      "prompt_id": "144cffb6-acbc-4c7a-9bfa-c8bf2e571da4",
+      "lifecycle": "\nJob queued — poll wait_for_job (or get_job_status) with this prompt_id, then get_output. Read the warnings above first: they mean the queued run differs from what you asked for (a node was pruned, or an override did not land). Fix and resubmit only if that difference matters — cancel_job this prompt_id if you do.",
+      "status": "succeeded_with_warnings",
+      "warnings": [
+        {
+          "code": "dynamic_combo_subfield_gated",
+          "detail": "`model.height`, `model.width` take effect only when `model.size_preset` is \"Custom\" — current value \"(1K) 1024x1024 (1:1)\" means the run will use the preset size and ignore them. Set `model.size_preset` to \"Custom\" to honour them, or drop them.",
+          "node_id": "8",
+          "confidence": "observed"
+        },
+        {
+          "code": "override_not_embedded",
+          "detail": "Override 8.model ran on the executed graph but could not be embedded in the reopenable UI workflow (input is connected, not a widget, or on a node layout the embedder can't place)",
+          "node_id": "8"
+        },
+        {
+          "code": "paid_api_nodes",
+          "detail": "This workflow includes paid partner-API node(s): Node #8: ByteDanceSeedreamNodeV3 — running it will incur partner-API charges on the user's account."
+        }
+      ]
+    }
+  }
+}

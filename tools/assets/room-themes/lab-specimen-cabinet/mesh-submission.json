@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Template \"api_tripo_p2_image_to_model\" converted and submitted. prompt_id: 0a18c6ff-20be-4ba9-ac93-ff49b5e6be59\nNodes: 3\nConversion warnings:\nOverride 15.model ran on the executed graph but could not be embedded in the reopenable UI workflow (input is connected, not a widget, or on a node layout the embedder can't place)\nNote - This workflow includes paid partner-API node(s): Node #15: TripoPSeriesImageToModelNode — running it will incur partner-API charges on the user's account.\nJob queued — poll wait_for_job (or get_job_status) with this prompt_id, then get_output. Conversion/slot warnings above are non-fatal; the job will run as submitted. Do not cancel or resubmit to address a warning. Same result with one thing changed? submit_workflow with this prompt_id as from_prompt_id + input_overrides — not a second run_template."
+    }
+  ],
+  "structuredContent": {
+    "result": {
+      "prompt_id": "0a18c6ff-20be-4ba9-ac93-ff49b5e6be59",
+      "lifecycle": "\nJob queued — poll wait_for_job (or get_job_status) with this prompt_id, then get_output. Conversion/slot warnings above are non-fatal; the job will run as submitted. Do not cancel or resubmit to address a warning. Same result with one thing changed? submit_workflow with this prompt_id as from_prompt_id + input_overrides — not a second run_template.",
+      "status": "succeeded_with_warnings",
+      "warnings": [
+        {
+          "code": "override_not_embedded",
+          "detail": "Override 15.model ran on the executed graph but could not be embedded in the reopenable UI workflow (input is connected, not a widget, or on a node layout the embedder can't place)",
+          "node_id": "15"
+        },
+        {
+          "code": "paid_api_nodes",
+          "detail": "This workflow includes paid partner-API node(s): Node #15: TripoPSeriesImageToModelNode — running it will incur partner-API charges on the user's account."
+        }
+      ]
+    }
+  }
+}

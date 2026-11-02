@@ -1,0 +1,8 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"id\":\"api_tripo_p2_image_to_model\",\"slots\":[],\"note\":\"This template does not expose its inputs through a subgraph, so it has no slot_overrides addresses — `slots` is empty for that reason, not because the template is uneditable. Override it with run_template's `input_overrides` instead, keyed by the node ids in `nodes` below: {\\\"<id>\\\": {\\\"<input_name>\\\": value}}. `nodes` is the executed graph run_template submits, so these ids and input names are exactly the ones input_overrides resolves against. Inputs wired from another node are omitted — setting one would replace the link with a constant; use get_template + submit_workflow for that kind of structural edit.\",\"nodes\":[{\"id\":\"14\",\"class_type\":\"Save3DAdvanced\",\"inputs\":{\"filename_prefix\":\"3d/Tripo_p2\",\"viewport_state\":\"\",\"width\":1024,\"height\":1024}},{\"id\":\"15\",\"class_type\":\"TripoPSeriesImageToModelNode\",\"inputs\":{\"model\":\"P2\",\"model.quad\":false,\"model.face_limit\":-1,\"model.texture\":\"standard\",\"model.pbr\":true,\"model.model_seed\":81426036,\"model.texture_alignment\":\"original_image\",\"model.orientation\":\"default\",\"model.enable_image_autofix\":false,\"model.texture_seed\":42,\"model.auto_size\":false,\"model.export_uv\":true,\"model.compress_geometry\":false}},{\"id\":\"16\",\"class_type\":\"LoadImage\",\"inputs\":{\"image\":\"designer_toy_3d.png\"}}]}"
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "assetId": "lab-specimen-cabinet",
+  "source": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/source/model.glb",
+    "sha256": "3aad38740358517eb7d567b22ade9a99a5667cb6fa3fb2f43d38f16009b50e9a",
+    "triangles": 4085,
+    "materials": 1
+  },
+  "output": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/lab-specimen-cabinet.glb",
+    "sha256": "c0b11a9be8763f5d9c91617ef08004949a06a26d124426ed721d8103226e21fb",
+    "triangles": 1959,
+    "materials": 1,
+    "textureDimensions": [
+      [
+        512,
+        512
+      ]
+    ],
+    "bytes": 378972,
+    "bounds": {
+      "minimum": [
+        -0.550000011920929,
+        0.0,
+        -0.27855706214904785
+      ],
+      "maximum": [
+        0.5499999523162842,
+        1.2296894788742065,
+        0.27855706214904785
+      ],
+      "width": 1.0999999642372131,
+      "depth": 0.5571141242980957,
+      "height": 1.2296894788742065
+    }
+  },
+  "manifest": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/export-settings.json",
+    "sha256": "a349d1b60145a54a94f4333180ccd5296c2735f3a5726a69b6e0106ec733f33f"
+  },
+  "script": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+    "sha256": "aae1def03be77ce4385e68fea81c4e5189050d4b93c7e1390fce15bbddb8ef97"
+  },
+  "blenderVersion": "5.1.2",
+  "command": [
+    "/Applications/Blender.app/Contents/MacOS/Blender",
+    "--background",
+    "--factory-startup",
+    "--python-exit-code",
+    "1",
+    "--python",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+    "--",
+    "--source",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/source/model.glb",
+    "--asset-id",
+    "lab-specimen-cabinet",
+    "--manifest",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/export-settings.json",
+    "--output",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/lab-specimen-cabinet.glb",
+    "--report",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/export-report.json",
+    "--yaw-degrees",
+    "-90.0"
+  ],
+  "arguments": {
+    "source": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/source/model.glb",
+    "assetId": "lab-specimen-cabinet",
+    "manifest": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/export-settings.json",
+    "output": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/lab-specimen-cabinet.glb",
+    "report": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/lab-specimen-cabinet/export-report.json",
+    "yawDegrees": -90.0
+  },
+  "processing": {
+    "color": "Imported base color baked after decimation into one sRGB atlas using source UVs; no lighting bake",
+    "discardedChannels": [
+      "metallic",
+      "roughness",
+      "normal",
+      "occlusion",
+      "emission"
+    ],
+    "shading": "flat",
+    "opaque": true,
+    "uniformScale": 1.2300738208993935,
+    "removedObjects": [],
+    "sourceExtensionsUsed": [],
+    "limitations": [
+      "Baked lighting already painted into a source base-color image remains; inspect visually.",
+      "Decimation and atlas resampling can change fine detail; browser review is required.",
+      "Rebuilds depend on the recorded Blender version; remote generation is not deterministic."
+    ]
+  }
+}

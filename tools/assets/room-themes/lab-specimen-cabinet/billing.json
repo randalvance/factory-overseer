@@ -1,0 +1,36 @@
+{
+  "events": [
+    {
+      "event_type": "api_usage_completed",
+      "event_id": "e18017a3-b693-42a5-8c16-965ff71c35dd",
+      "created_at": "2026-11-02T00:48:00.808563Z",
+      "params": {
+        "job_id": "fae97b33-bce6-42f0-8507-0d1eabef4830",
+        "model": "meshy-7.1",
+        "credits_used": 362.08
+      }
+    },
+    {
+      "event_type": "api_usage_completed",
+      "event_id": "c386e7ff-1f5a-490f-9d25-495ae685852e",
+      "created_at": "2026-11-02T00:32:25.688456Z",
+      "params": {
+        "job_id": "0a18c6ff-20be-4ba9-ac93-ff49b5e6be59",
+        "credits_used": 232.1
+      }
+    },
+    {
+      "event_type": "api_usage_completed",
+      "event_id": "e03ae486-f95b-45c3-9f8e-ecaa198c62ad",
+      "created_at": "2026-11-02T00:29:29.595015Z",
+      "params": {
+        "job_id": "653822aa-634e-47ab-9e89-518c76633f4d",
+        "model": "seedream-5-0-pro-260628",
+        "credits_used": 9.5
+      }
+    }
+  ],
+  "totalReportedCredits": 603.68,
+  "basis": "Post-run Comfy api_usage_completed credits_used values; display estimate, not per-job invoice",
+  "currency": "Comfy credits"
+}

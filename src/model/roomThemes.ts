@@ -49,7 +49,9 @@ export const ROOM_THEME_SLOTS = {
 } as const
 
 export const ROOM_THEMES: Readonly<Record<BuiltinRoomTheme, ResolvedRoomTheme>> = {
-  "research-lab": { id: "research-lab", label: "Research lab", wall: 0x82a8bd, accent: 0x618fae, floor: "blue-grid", station: "lab", decoration: "shelves", assets: {} },
+  "research-lab": { id: "research-lab", label: "Research lab", wall: 0x82a8bd, accent: 0x618fae, floor: "blue-grid", station: "lab", decoration: "shelves", assets: {
+    decoration: { url: "/assets/models/room-themes/lab-specimen-cabinet.glb", footprint: { width: 1.1, depth: .74, height: 1.24 } },
+  } },
   foundry: { id: "foundry", label: "Foundry", wall: 0xe2b45d, accent: 0xd5a145, floor: "honey-planks", station: "foundry", decoration: "press", assets: {} },
   factory: { id: "factory", label: "Factory", wall: 0x9db79b, accent: 0x719881, floor: "sage-checker", station: "assembly", decoration: "parts", assets: {} },
   "fabrication-plant": { id: "fabrication-plant", label: "Fabrication plant", wall: 0xc98366, accent: 0xb97055, floor: "terracotta-bays", station: "precision", decoration: "cutter", assets: {} },
@@ -60,7 +62,7 @@ export function resolveRoomTheme(room: { theme?: string; themeOverrides?: RoomTh
   const definition = Object.hasOwn(registry, key) ? registry[key] : undefined
   const baseKey = definition?.extends ?? key
   const preset = Object.hasOwn(ROOM_THEMES, baseKey) ? ROOM_THEMES[baseKey as BuiltinRoomTheme] : ROOM_THEMES.factory
-  let result: ResolvedRoomTheme = { ...preset, id: definition ? key : preset.id, assets: {} }
+  let result: ResolvedRoomTheme = { ...preset, id: definition ? key : preset.id, assets: { ...preset.assets } }
   for (const layer of [definition, room.themeOverrides]) {
     if (!layer) continue
     result = {
