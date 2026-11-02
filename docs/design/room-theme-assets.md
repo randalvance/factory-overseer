@@ -186,3 +186,12 @@ ASSETS.md provenance and final gallery/expanded-room evidence are pending.
 This checkpoint passed 501 unit tests across 47 files, typecheck, production
 build and the focused real-loader browser check. The build retains its
 existing large-bundle advisory.
+
+## Authorized batch allowance
+
+The user approved **1,500 Comfy credits for all four props**, with the lab
+cabinet reviewed before generating the other three. This is a total batch
+cap, including the pilot and any retries, not an additional per-prop budget.
+It supersedes the earlier proposed 300-credit pilot cap. Current recorded
+spend is zero. Generation still requires an authenticated Comfy connection
+and confirmation of live workflow options/pricing.
