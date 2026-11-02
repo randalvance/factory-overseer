@@ -5,11 +5,14 @@
   "brief": "docs/design/room-theme-assets.md",
   "trialAssetId": "lab-specimen-cabinet",
   "spendAllowance": {
-    "status": "not-established",
-    "limit": null,
-    "currency": null,
-    "authorization": null,
-    "inheritedFromIssue14": false
+    "status": "authorized",
+    "limit": 1500,
+    "currency": "Comfy credits",
+    "authorization": "User: 1,500 credits for all four; review pilot first",
+    "inheritedFromIssue14": false,
+    "scope": "All four room theme props, including the pilot. User review of lab cabinet required before generating remaining three.",
+    "spent": 0,
+    "remaining": 1500
   },
   "style": {
     "reference": {
@@ -342,7 +345,7 @@
   ],
   "generationPlan": {
     "checkedAt": "2026-11-02",
-    "status": "awaiting-authentication-and-spend-allowance",
+    "status": "awaiting-authentication",
     "source": "https://docs.comfy.org/tutorials/partner-nodes/pricing",
     "liveMcpCapabilitiesVerified": false,
     "concept": {
@@ -359,7 +362,6 @@
     },
     "estimatedPilotCredits": 241.6,
     "estimatedFourPropCredits": 966.4,
-    "proposedPilotCapCredits": 300,
     "estimateExcludes": [
       "retries",
       "additional reference-image charges",
@@ -370,7 +372,6 @@
     "requirementsBeforeSubmission": [
       "authenticate Comfy Cloud MCP",
       "confirm live template and node schemas and price",
-      "record explicit user allowance",
       "record applicable provider output terms"
     ],
     "submittedJobs": 0,
