@@ -1,0 +1,423 @@
+{
+  "schemaVersion": 1,
+  "issue": 26,
+  "status": "planned",
+  "brief": "docs/design/room-theme-assets.md",
+  "trialAssetId": "lab-specimen-cabinet",
+  "spendAllowance": {
+    "status": "not-established",
+    "limit": null,
+    "currency": null,
+    "authorization": null,
+    "inheritedFromIssue14": false
+  },
+  "style": {
+    "reference": {
+      "path": "docs/design/paper-diorama-concept.png",
+      "purpose": "approved paper style reference; not runtime art",
+      "sha256": "10afa6ed2d709a7af1325a719c7adad7db5f7bf009c3af3061c2e736f8ed2f01"
+    },
+    "cameraElevationDegrees": 38,
+    "coordinates": {
+      "up": "+Y",
+      "front": "+Z",
+      "origin": "bottom center"
+    },
+    "sharedPrompt": "A single isolated small folded-cardstock diorama furnishing, modeled with broad flat planar faces, visible warm cream cut edges, a few purposeful fold seams and a strong simple silhouette. Muted colors, matte opaque surfaces, clean untextured color regions suitable for a shared color atlas. Front details visible from a 38-degree elevated camera. +Y up, +Z front, bottom-center origin. No floor or surroundings.",
+    "negativePrompt": "Photorealism, photographic textures, glossy plastic, shiny metal, transparent glass, PBR surface detail, dense greebles, wires, tiny knobs, text, lettering, numbers, logos, arrows, characters, pets, parcels, billboard, room, wall, ground plane, baked shadows, baked lighting, animation."
+  },
+  "productionTargets": {
+    "maxTrianglesPerDecoration": 2000,
+    "maxMaterialsPerModel": 2,
+    "maxColorAtlasEdgePixels": 512,
+    "maxGlbBytesExclusive": 1000000,
+    "maxPackBytesExclusive": 8000000,
+    "maxDecorationsPerRoom": 1,
+    "decorationClearanceTiles": 0.1,
+    "slotMaximum": {
+      "width": 1.15,
+      "depth": 0.82,
+      "height": 1.3
+    },
+    "retainedStationAccessoryMaxTriangles": 500,
+    "retained100AgentAccessoryMaxTriangles": 50000
+  },
+  "loaderCompatibilityCeilings": {
+    "maxTrianglesPerModel": 10000,
+    "maxTextureEdgePixels": 1024
+  },
+  "assets": [
+    {
+      "id": "lab-specimen-cabinet",
+      "theme": "research-lab",
+      "name": "Folded paper specimen cabinet",
+      "status": "planned",
+      "slot": "decoration",
+      "retain": {
+        "floor": "blue-grid",
+        "floorDescription": "Cool blue graph paper",
+        "station": "lab",
+        "stationDescription": "Cream-topped blue drawer cabinets with two paper sample containers",
+        "authoredStationAccessory": true,
+        "proceduralDecorationFallback": "shelves"
+      },
+      "palette": {
+        "accent": "#618fae",
+        "cream": "#f4e6c9",
+        "kraft": "#c6b28f"
+      },
+      "footprint": {
+        "width": 1.1,
+        "depth": 0.74,
+        "height": 1.24
+      },
+      "description": "Cream folded upright cabinet frame, muted blue back and two open shelves. Three large opaque folded specimen blocks occupy the shelves; no glass and no labels. Broad upright rectangular silhouette with clearly separated shelves.",
+      "generation": {
+        "provider": "Comfy Cloud MCP",
+        "workflowId": null,
+        "modelIds": null,
+        "jobId": null,
+        "prompt": "A single isolated small folded-cardstock diorama furnishing, modeled with broad flat planar faces, visible warm cream cut edges, a few purposeful fold seams and a strong simple silhouette. Muted colors, matte opaque surfaces, clean untextured color regions suitable for a shared color atlas. Front details visible from a 38-degree elevated camera. +Y up, +Z front, bottom-center origin. No floor or surroundings. Cream folded upright cabinet frame, muted blue back and two open shelves. Three large opaque folded specimen blocks occupy the shelves; no glass and no labels. Broad upright rectangular silhouette with clearly separated shelves.",
+        "negativePrompt": "Photorealism, photographic textures, glossy plastic, shiny metal, transparent glass, PBR surface detail, dense greebles, wires, tiny knobs, text, lettering, numbers, logos, arrows, characters, pets, parcels, billboard, room, wall, ground plane, baked shadows, baked lighting, animation.",
+        "inputReferences": [
+          {
+            "path": "docs/design/paper-diorama-concept.png",
+            "purpose": "approved paper style reference; not runtime art",
+            "sha256": "10afa6ed2d709a7af1325a719c7adad7db5f7bf009c3af3061c2e736f8ed2f01"
+          }
+        ],
+        "requestPath": null,
+        "rawOutputs": [],
+        "quotedCost": null,
+        "actualCost": null,
+        "currency": null,
+        "generatedAt": null
+      },
+      "provenance": {
+        "source": null,
+        "providerTermsUrl": null,
+        "modelTermsUrl": null,
+        "redistributionRights": null,
+        "license": null,
+        "recordedAt": null
+      },
+      "export": {
+        "plannedRuntimePath": "public/assets/models/room-themes/lab-specimen-cabinet.glb",
+        "sourcePaths": [],
+        "script": null,
+        "command": null,
+        "blenderVersion": null,
+        "outputSha256": null,
+        "measuredTriangles": null,
+        "measuredMaterials": null,
+        "measuredTextureDimensions": null,
+        "measuredBytes": null,
+        "measuredBounds": null
+      },
+      "review": {
+        "browserStatus": "pending",
+        "screenshots": [],
+        "renderMetrics": null
+      }
+    },
+    {
+      "id": "foundry-press",
+      "theme": "foundry",
+      "name": "Folded paper press",
+      "status": "planned",
+      "slot": "decoration",
+      "retain": {
+        "floor": "honey-planks",
+        "floorDescription": "Honey paper planks",
+        "station": "foundry",
+        "stationDescription": "Ochre apron and braced workbench with small folded press accessory",
+        "authoredStationAccessory": true,
+        "proceduralDecorationFallback": "press"
+      },
+      "palette": {
+        "accent": "#d5a145",
+        "cream": "#f4e6c9",
+        "kraft": "#c6b28f"
+      },
+      "footprint": {
+        "width": 1.1,
+        "depth": 0.76,
+        "height": 1.24
+      },
+      "description": "Muted ochre inverted-U press frame, cream central ram and broad kraft bed. The large central opening defines its silhouette. Broad folded cardboard structural pieces; no metal, hoses, sparks or tiny controls.",
+      "generation": {
+        "provider": "Comfy Cloud MCP",
+        "workflowId": null,
+        "modelIds": null,
+        "jobId": null,
+        "prompt": "A single isolated small folded-cardstock diorama furnishing, modeled with broad flat planar faces, visible warm cream cut edges, a few purposeful fold seams and a strong simple silhouette. Muted colors, matte opaque surfaces, clean untextured color regions suitable for a shared color atlas. Front details visible from a 38-degree elevated camera. +Y up, +Z front, bottom-center origin. No floor or surroundings. Muted ochre inverted-U press frame, cream central ram and broad kraft bed. The large central opening defines its silhouette. Broad folded cardboard structural pieces; no metal, hoses, sparks or tiny controls.",
+        "negativePrompt": "Photorealism, photographic textures, glossy plastic, shiny metal, transparent glass, PBR surface detail, dense greebles, wires, tiny knobs, text, lettering, numbers, logos, arrows, characters, pets, parcels, billboard, room, wall, ground plane, baked shadows, baked lighting, animation.",
+        "inputReferences": [
+          {
+            "path": "docs/design/paper-diorama-concept.png",
+            "purpose": "approved paper style reference; not runtime art",
+            "sha256": "10afa6ed2d709a7af1325a719c7adad7db5f7bf009c3af3061c2e736f8ed2f01"
+          }
+        ],
+        "requestPath": null,
+        "rawOutputs": [],
+        "quotedCost": null,
+        "actualCost": null,
+        "currency": null,
+        "generatedAt": null
+      },
+      "provenance": {
+        "source": null,
+        "providerTermsUrl": null,
+        "modelTermsUrl": null,
+        "redistributionRights": null,
+        "license": null,
+        "recordedAt": null
+      },
+      "export": {
+        "plannedRuntimePath": "public/assets/models/room-themes/foundry-press.glb",
+        "sourcePaths": [],
+        "script": null,
+        "command": null,
+        "blenderVersion": null,
+        "outputSha256": null,
+        "measuredTriangles": null,
+        "measuredMaterials": null,
+        "measuredTextureDimensions": null,
+        "measuredBytes": null,
+        "measuredBounds": null
+      },
+      "review": {
+        "browserStatus": "pending",
+        "screenshots": [],
+        "renderMetrics": null
+      }
+    },
+    {
+      "id": "factory-parts-organizer",
+      "theme": "factory",
+      "name": "Folded paper parts organizer",
+      "status": "planned",
+      "slot": "decoration",
+      "retain": {
+        "floor": "sage-checker",
+        "floorDescription": "Sage checkerboard",
+        "station": "assembly",
+        "stationDescription": "Sage assembly bench with cream storage bins and paper parts tray",
+        "authoredStationAccessory": true,
+        "proceduralDecorationFallback": "parts"
+      },
+      "palette": {
+        "accent": "#719881",
+        "cream": "#f4e6c9",
+        "kraft": "#c6b28f"
+      },
+      "footprint": {
+        "width": 1.1,
+        "depth": 0.76,
+        "height": 1.18
+      },
+      "description": "Cream folded side panels, muted sage shelves and four wide open-front bins in two rows containing a few large paper blocks. Short rectangular storage silhouette. No labels and no loose scattered parts.",
+      "generation": {
+        "provider": "Comfy Cloud MCP",
+        "workflowId": null,
+        "modelIds": null,
+        "jobId": null,
+        "prompt": "A single isolated small folded-cardstock diorama furnishing, modeled with broad flat planar faces, visible warm cream cut edges, a few purposeful fold seams and a strong simple silhouette. Muted colors, matte opaque surfaces, clean untextured color regions suitable for a shared color atlas. Front details visible from a 38-degree elevated camera. +Y up, +Z front, bottom-center origin. No floor or surroundings. Cream folded side panels, muted sage shelves and four wide open-front bins in two rows containing a few large paper blocks. Short rectangular storage silhouette. No labels and no loose scattered parts.",
+        "negativePrompt": "Photorealism, photographic textures, glossy plastic, shiny metal, transparent glass, PBR surface detail, dense greebles, wires, tiny knobs, text, lettering, numbers, logos, arrows, characters, pets, parcels, billboard, room, wall, ground plane, baked shadows, baked lighting, animation.",
+        "inputReferences": [
+          {
+            "path": "docs/design/paper-diorama-concept.png",
+            "purpose": "approved paper style reference; not runtime art",
+            "sha256": "10afa6ed2d709a7af1325a719c7adad7db5f7bf009c3af3061c2e736f8ed2f01"
+          }
+        ],
+        "requestPath": null,
+        "rawOutputs": [],
+        "quotedCost": null,
+        "actualCost": null,
+        "currency": null,
+        "generatedAt": null
+      },
+      "provenance": {
+        "source": null,
+        "providerTermsUrl": null,
+        "modelTermsUrl": null,
+        "redistributionRights": null,
+        "license": null,
+        "recordedAt": null
+      },
+      "export": {
+        "plannedRuntimePath": "public/assets/models/room-themes/factory-parts-organizer.glb",
+        "sourcePaths": [],
+        "script": null,
+        "command": null,
+        "blenderVersion": null,
+        "outputSha256": null,
+        "measuredTriangles": null,
+        "measuredMaterials": null,
+        "measuredTextureDimensions": null,
+        "measuredBytes": null,
+        "measuredBounds": null
+      },
+      "review": {
+        "browserStatus": "pending",
+        "screenshots": [],
+        "renderMetrics": null
+      }
+    },
+    {
+      "id": "fabrication-paper-cutter",
+      "theme": "fabrication-plant",
+      "name": "Folded paper cutter",
+      "status": "planned",
+      "slot": "decoration",
+      "retain": {
+        "floor": "terracotta-bays",
+        "floorDescription": "Terracotta marked bays",
+        "station": "precision",
+        "stationDescription": "Cream trestle worktable with terracotta top, measuring strip and folded cutting accessory",
+        "authoredStationAccessory": true,
+        "proceduralDecorationFallback": "cutter"
+      },
+      "palette": {
+        "accent": "#b97055",
+        "cream": "#f4e6c9",
+        "kraft": "#c6b28f"
+      },
+      "footprint": {
+        "width": 1.1,
+        "depth": 0.76,
+        "height": 1.12
+      },
+      "description": "Low muted terracotta cutting table with cream paper stock stack and one raised broad folded lever. The asymmetric diagonal lever silhouette distinguishes it from an upright press. The lever is cardstock, with no metallic blade and no ruler lettering.",
+      "generation": {
+        "provider": "Comfy Cloud MCP",
+        "workflowId": null,
+        "modelIds": null,
+        "jobId": null,
+        "prompt": "A single isolated small folded-cardstock diorama furnishing, modeled with broad flat planar faces, visible warm cream cut edges, a few purposeful fold seams and a strong simple silhouette. Muted colors, matte opaque surfaces, clean untextured color regions suitable for a shared color atlas. Front details visible from a 38-degree elevated camera. +Y up, +Z front, bottom-center origin. No floor or surroundings. Low muted terracotta cutting table with cream paper stock stack and one raised broad folded lever. The asymmetric diagonal lever silhouette distinguishes it from an upright press. The lever is cardstock, with no metallic blade and no ruler lettering.",
+        "negativePrompt": "Photorealism, photographic textures, glossy plastic, shiny metal, transparent glass, PBR surface detail, dense greebles, wires, tiny knobs, text, lettering, numbers, logos, arrows, characters, pets, parcels, billboard, room, wall, ground plane, baked shadows, baked lighting, animation.",
+        "inputReferences": [
+          {
+            "path": "docs/design/paper-diorama-concept.png",
+            "purpose": "approved paper style reference; not runtime art",
+            "sha256": "10afa6ed2d709a7af1325a719c7adad7db5f7bf009c3af3061c2e736f8ed2f01"
+          }
+        ],
+        "requestPath": null,
+        "rawOutputs": [],
+        "quotedCost": null,
+        "actualCost": null,
+        "currency": null,
+        "generatedAt": null
+      },
+      "provenance": {
+        "source": null,
+        "providerTermsUrl": null,
+        "modelTermsUrl": null,
+        "redistributionRights": null,
+        "license": null,
+        "recordedAt": null
+      },
+      "export": {
+        "plannedRuntimePath": "public/assets/models/room-themes/fabrication-paper-cutter.glb",
+        "sourcePaths": [],
+        "script": null,
+        "command": null,
+        "blenderVersion": null,
+        "outputSha256": null,
+        "measuredTriangles": null,
+        "measuredMaterials": null,
+        "measuredTextureDimensions": null,
+        "measuredBytes": null,
+        "measuredBounds": null
+      },
+      "review": {
+        "browserStatus": "pending",
+        "screenshots": [],
+        "renderMetrics": null
+      }
+    }
+  ],
+  "generationPlan": {
+    "checkedAt": "2026-11-02",
+    "status": "awaiting-authentication-and-spend-allowance",
+    "source": "https://docs.comfy.org/tutorials/partner-nodes/pricing",
+    "liveMcpCapabilitiesVerified": false,
+    "concept": {
+      "candidateModel": "seedream-5-0-pro-260628",
+      "resolution": "1K",
+      "outputImages": 1,
+      "publishedCredits": 9.5
+    },
+    "mesh": {
+      "candidateModel": "Tripo P2",
+      "operation": "Image to Model",
+      "texture": "standard",
+      "publishedApproximateCredits": 232.1
+    },
+    "estimatedPilotCredits": 241.6,
+    "estimatedFourPropCredits": 966.4,
+    "proposedPilotCapCredits": 300,
+    "estimateExcludes": [
+      "retries",
+      "additional reference-image charges",
+      "any GPU runtime charges"
+    ],
+    "estimatedCostIsNotAnAllowance": true,
+    "workflowIds": null,
+    "requirementsBeforeSubmission": [
+      "authenticate Comfy Cloud MCP",
+      "confirm live template and node schemas and price",
+      "record explicit user allowance",
+      "record applicable provider output terms"
+    ],
+    "submittedJobs": 0,
+    "creditConversion": {
+      "creditsPerUsd": 211,
+      "source": "https://support.comfy.org/articles/1982697177-partner-nodes-pricing"
+    },
+    "termsReview": {
+      "status": "candidate-provider-terms-reviewed; actual-art-license-not-assigned",
+      "comfy": "https://comfy.org/terms-of-service/",
+      "comfyCommercialUse": "https://comfy.org/cloud",
+      "meshProvider": "https://www.tripo3d.ai/terms",
+      "conceptProvider": "https://docs.byteplus.com/zh-CN/docs/legal/AI-Services-terms",
+      "conceptAcceptableUse": "https://docs.byteplus.com/en/docs/legal/docs-acceptable-use-policy",
+      "note": "Commercial in-app use is supported by Comfy documentation. No public source found explicitly mapping Comfy Tripo calls to Tripo Paid User terms; do not assign MIT or promise unrestricted raw-GLB redistribution. Confirm actual provider terms before publishing the asset pack."
+    },
+    "authentication": "not-authenticated; interactive OAuth attempt timed out"
+  },
+  "preparation": {
+    "script": "tools/blender/prepare_room_theme.py",
+    "usage": "tools/blender/prepare_room_theme.md",
+    "verification": {
+      "kind": "synthetic source only; not Comfy-generated art",
+      "date": "2026-11-02",
+      "productionBrowserLoader": {
+        "accepted": true,
+        "triangles": 1960,
+        "materials": 1,
+        "materialType": "MeshLambertMaterial",
+        "textureDimensions": [
+          [
+            512,
+            512
+          ]
+        ],
+        "bytes": 248408,
+        "pageErrors": 0
+      },
+      "unitSuite": {
+        "files": 47,
+        "tests": 501,
+        "status": "passed"
+      },
+      "typecheck": "passed",
+      "build": "passed; existing large-bundle advisory",
+      "materiallessSource": "implicit white verified after review fix",
+      "sharedMeshInstances": "transform and combined bounds check passed"
+    }
+  }
+}
