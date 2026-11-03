@@ -1,0 +1,28 @@
+{
+  "name": "api_tripo_p2_image_to_model",
+  "input_overrides": {
+    "14": {
+      "filename_prefix": "factory_overseer/room_themes/foundry_press"
+    },
+    "15": {
+      "model": "P2",
+      "model.quad": false,
+      "model.face_limit": 6000,
+      "model.texture": "standard",
+      "model.pbr": false,
+      "model.model_seed": 260027,
+      "model.texture_alignment": "original_image",
+      "model.orientation": "default",
+      "model.enable_image_autofix": false,
+      "model.texture_seed": 260027,
+      "model.auto_size": false,
+      "model.export_uv": true,
+      "model.compress_geometry": false
+    },
+    "16": {
+      "image": "ae04d55ca4e39970e1a6b7280c6ddfaacb53864ef7a47f753d83645424a180f4.png"
+    }
+  },
+  "tool": "run_template",
+  "description": "foundry-press"
+}

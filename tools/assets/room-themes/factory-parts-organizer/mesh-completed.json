@@ -1,0 +1,81 @@
+{
+  "id": "factory-parts-organizer",
+  "completed": {
+    "result": {
+      "status": "succeeded",
+      "warnings": [],
+      "job_status": "completed",
+      "raw_status": "completed"
+    },
+    "workflow_note": "This job's stored API-format graph (3 nodes) is returned as `workflow` \u2014 pass it to submit_workflow to rerun it, verbatim or edited.",
+    "workflow_id": "e65fc6f8-e52c-4440-9bb8-bca99d6f29c9",
+    "workflow_node_count": 3,
+    "workflow_class_types": [
+      "LoadImage",
+      "Save3DAdvanced",
+      "TripoPSeriesImageToModelNode"
+    ],
+    "workflow": {
+      "14": {
+        "_meta": {
+          "title": "Save 3D (Advanced)"
+        },
+        "class_type": "Save3DAdvanced",
+        "inputs": {
+          "filename_prefix": "factory_overseer/room_themes/factory_parts_organizer",
+          "height": 1024,
+          "model_3d": [
+            "15",
+            1
+          ],
+          "viewport_state": "",
+          "width": 1024
+        }
+      },
+      "15": {
+        "_meta": {
+          "title": "Tripo P2: Image to Model"
+        },
+        "class_type": "TripoPSeriesImageToModelNode",
+        "inputs": {
+          "model": "P2",
+          "model.auto_size": false,
+          "model.compress_geometry": false,
+          "model.enable_image_autofix": false,
+          "model.export_uv": true,
+          "model.face_limit": 6000,
+          "model.image": [
+            "16",
+            0
+          ],
+          "model.model_seed": 260028,
+          "model.orientation": "default",
+          "model.pbr": false,
+          "model.quad": false,
+          "model.texture": "standard",
+          "model.texture_alignment": "original_image",
+          "model.texture_seed": 260028
+        }
+      },
+      "16": {
+        "_meta": {
+          "title": "Load Image"
+        },
+        "class_type": "LoadImage",
+        "inputs": {
+          "image": "013f9e598185bd2d7b79ed990dd74c784bb6fef2d6ff49e31e20f776fd18a80e.png"
+        }
+      }
+    }
+  },
+  "jobId": "f574c4ad-5bf2-406c-a3bd-209d966f141f",
+  "output": {
+    "job_id": "f574c4ad-5bf2-406c-a3bd-209d966f141f",
+    "source_node_id": "14",
+    "filename_prefix": "factory_overseer/room_themes/factory_parts_organizer",
+    "class_type": "Save3DAdvanced",
+    "filename": "f668ec37aee55539d30a55875affcd12a26750a7580f5b35a925bff824abc156.glb",
+    "suggested_save_path": "~/Downloads/ComfyUI/comfy_factory-parts-organizer-2.glb",
+    "saved_to_disk": false
+  }
+}

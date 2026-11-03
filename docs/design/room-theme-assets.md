@@ -1,10 +1,13 @@
 # Paper room theme assets — #26
 
 This is the production brief for four sparse generated rear furnishings.
-The lab pilot is integrated and passes browser checks; user visual review is pending.
-The remaining three props wait for the user's pilot review. Actual model IDs,
+The lab pilot was approved on 2026-11-03, and the user asked to continue.
+All four props have been generated, exported and integrated. All 14 asset,
+theme and billboard browser checks pass, including the gallery and
+seven-agent growth. Actual model IDs,
 source outputs, credit usage and terms are recorded alongside the retained
-files; the earlier readiness notes below describe the initial preparation. The machine-readable record is
+files; the earlier readiness notes below describe the initial preparation.
+The machine-readable record is
 [`room-theme-manifest.json`](../../tools/assets/room-theme-manifest.json).
 
 ## Shared art direction
@@ -106,7 +109,7 @@ redistribution rights in the manifest and `ASSETS.md`. Generated art does
 not inherit the code's MIT license. Unknown terms remain unknown rather than
 being inferred from the provider's ability to return a file.
 
-## Pilot checkpoint — 2026-11-02
+## Pilot checkpoint — 2026-11-02 (historical)
 
 The user authorized **1,500 Comfy credits for all four props**, including
 retries, with a visual review of the lab cabinet before the other three.
@@ -158,15 +161,86 @@ pets. This checkpoint does not complete #26: the remaining three generated
 props, their preset integrations and the final four-prop gallery follow user
 review of this pilot.
 
+## Batch continuation — 2026-11-03
+
+The user's “Continue” approved the pilot and authorized the remaining work
+within the existing 1,500-credit total allowance. Live Comfy Cloud OAuth,
+node schemas and estimates were checked again. Three textured Meshy 7.1
+models would exceed the remaining 896.32 credits; Tripo P2 was quoted at
+about 232 credits per model. The three new concepts use Seedream 5.0 Pro
+with the same approved paper-diorama reference and cost 9.50 credits each.
+The retained concepts have an open-frame press, four-bin organizer and
+raised-lever paper cutter. All three Tripo P2 mesh jobs completed successfully,
+and the unmodified GLBs are saved beside their source concepts.
+
+| Prop | Concept job | Tripo P2 mesh job |
+| --- | --- | --- |
+| Foundry press | `e6aa9c87-da34-4a6a-825b-3af850b41b1d` | `6c44256c-b029-415e-b711-86ec89e76bb5` |
+| Factory parts organizer | `a31a0fff-022d-4256-996f-3a59cd1e384a` | `f574c4ad-5bf2-406c-a3bd-209d966f141f` |
+| Fabrication paper cutter | `0272b82e-6408-4ae8-915e-39664d3138a9` | `2d941f37-5cd9-4f88-9792-6cc356ab7d2b` |
+
+Requests, completed workflows, unmodified sources and immutable export
+settings live under `tools/assets/room-themes/<asset-id>/`. Batch submission
+and pricing records are under `tools/assets/room-themes/batch-2026-11-03/`.
+Comfy's post-run activity reports:
+
+| Scope | Concept credits | Mesh credits | Total credits |
+| --- | ---: | ---: | ---: |
+| Foundry press | 9.50 | 232.10 | 241.60 |
+| Factory parts organizer | 9.50 | 232.10 | 241.60 |
+| Fabrication paper cutter | 9.50 | 232.10 | 241.60 |
+| **Continuation** | **28.50** | **696.30** | **724.80** |
+| **All four props, including rejected pilot attempt** | | | **1,328.48** |
+
+**171.52 credits remain** under the 1,500-credit allowance. Per-asset
+`billing.json` files retain the actual completion events without account
+identifiers. These are Comfy-reported credit usage values, not dollar invoices.
+The three continuation exports use the same host Blender 5.1.2 script with
+`--paper-palette` and inspected −90° yaw. Each is fit uniformly into its
+manifest footprint with a bottom-center origin and one opaque vertex-color
+material. Their source files remain unchanged.
+
+| Export | Triangles | Bytes | Model textures |
+| --- | ---: | ---: | ---: |
+| Lab specimen cabinet | 1,960 | 224,484 | 0 |
+| Foundry press | 1,960 | 224,288 | 0 |
+| Factory parts organizer | 1,959 | 224,432 | 0 |
+| Fabrication paper cutter | 1,958 | 223,164 | 0 |
+| **Four-prop pack** | **7,837** | **896,368** | **0** |
+
+The gallery uses the production loader and shared paper shading at the fixed
+38° camera angle. All four isolated checks and the complete-gallery check
+pass. Visual inspection confirms the open press frame, separate organizer
+bins and raised cutter lever, with no clipping or black texture wedges.
+Palette classification retains broad accent regions but converts some source
+shading and cream areas to kraft facets, especially on the cutter. This is
+explicit recoloring, not lossless preservation of generated colors. A Blender
+warning on the cutter was investigated by reimporting the raw and exported
+meshes; `mesh.validate()` required no corrections on either.
+
+The unit suite passes 510 tests across 47 files; typecheck and production
+build pass, retaining the existing bundle-size advisory. All six asset
+browser tests pass, including seven-agent growth and a handoff
+to the seventh agent. The complete four-prop replacement adds 7,285 triangles
+and removes four draw calls, with unchanged source texture count/bytes in
+both opening and expanded rooms. Each individual prop's replacement delta
+also remains constant through growth. Actual frame intervals, resource counts,
+gallery and mixed-room screenshots are retained in the
+[browser evidence](../screenshots/theme-assets/README.md). These software-WebGL
+observations do not establish hardware frame rates. All five existing theme
+tests and three billboard tests also pass, bringing
+the browser verification total to 14. The pilot measurements above remain
+historical.
+
 ## Provider terms and attribution
 
 [Comfy Cloud](https://comfy.org/cloud) documents commercial use;
 [Comfy terms §2](https://comfy.org/terms-of-service/) also apply partner terms.
 [BytePlus AI terms](https://docs.byteplus.com/zh-CN/docs/legal/AI-Services-terms)
 and its [acceptable-use policy](https://docs.byteplus.com/en/docs/legal/docs-acceptable-use-policy)
-apply to the concept. [Meshy terms](https://www.meshy.ai/terms-of-use) apply
+apply to all four concepts. [Meshy terms](https://www.meshy.ai/terms-of-use) apply
 to the replacement model, and [Tripo terms](https://www.tripo3d.ai/terms) to
-the rejected source.
+the rejected pilot source and the three continuation models.
 
 Direct paid-plan output rights are documented by the mesh providers, but the
 public sources reviewed do not explicitly map Comfy-credit calls to those

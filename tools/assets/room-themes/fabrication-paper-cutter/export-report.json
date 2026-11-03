@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "assetId": "fabrication-paper-cutter",
+  "source": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/fabrication-paper-cutter/source/model.glb",
+    "sha256": "03f75239ddc4e2c37324b43237d491985ab88657d07e320f5bdc7edaba9924c9",
+    "triangles": 6560,
+    "materials": 1
+  },
+  "output": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/fabrication-paper-cutter.glb",
+    "sha256": "2d3bed83970304a82ecb232491306d5a79e53b9be5c68256470aedc561442c4f",
+    "triangles": 1958,
+    "materials": 1,
+    "textureDimensions": [],
+    "bytes": 223164,
+    "bounds": {
+      "minimum": [
+        -0.5263763666152954,
+        0.0,
+        -0.37999996542930603
+      ],
+      "maximum": [
+        0.5263764262199402,
+        0.9154924154281616,
+        0.37999996542930603
+      ],
+      "width": 1.0527527928352356,
+      "depth": 0.7599999308586121,
+      "height": 0.9154924154281616
+    }
+  },
+  "manifest": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/fabrication-paper-cutter/export-settings.json",
+    "sha256": "ffc8f286ff354670f607c654fe24cdc976786c5c5ddcfad837a2e5dbad1b11b6"
+  },
+  "script": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+    "sha256": "e88e57132f07ea0cbc07245237f06a2eaae9838d30e5c4fda46cbb13ea04121a"
+  },
+  "blenderVersion": "5.1.2",
+  "command": [
+    "/Applications/Blender.app/Contents/MacOS/Blender",
+    "--background",
+    "--factory-startup",
+    "--python-exit-code",
+    "1",
+    "--python",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+    "--",
+    "--source",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/fabrication-paper-cutter/source/model.glb",
+    "--asset-id",
+    "fabrication-paper-cutter",
+    "--manifest",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/fabrication-paper-cutter/export-settings.json",
+    "--output",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/fabrication-paper-cutter.glb",
+    "--report",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/fabrication-paper-cutter/export-report.json",
+    "--yaw-degrees",
+    "-90.0",
+    "--paper-palette"
+  ],
+  "arguments": {
+    "source": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/fabrication-paper-cutter/source/model.glb",
+    "assetId": "fabrication-paper-cutter",
+    "manifest": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/fabrication-paper-cutter/export-settings.json",
+    "output": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/fabrication-paper-cutter.glb",
+    "report": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/fabrication-paper-cutter/export-report.json",
+    "yawDegrees": -90.0,
+    "paperPalette": true
+  },
+  "processing": {
+    "color": "Explicit recoloring: source sRGB albedo classified by seven interior samples per triangle into manifest accent/cream/kraft; flat opaque vertex colors, no texture",
+    "paperPalette": {
+      "accent": "#b97055",
+      "cream": "#f4e6c9",
+      "kraft": "#c6b28f"
+    },
+    "paletteFaceCounts": {
+      "accent": 618,
+      "kraft": 1326,
+      "cream": 16
+    },
+    "discardedChannels": [
+      "metallic",
+      "roughness",
+      "normal",
+      "occlusion",
+      "emission"
+    ],
+    "shading": "flat",
+    "opaque": true,
+    "uniformScale": 1.0529263096357149,
+    "removedObjects": [],
+    "sourceExtensionsUsed": [],
+    "limitations": [
+      "Source-albedo shadows may classify as kraft facets; inspect the broad color regions visually.",
+      "Decimation and discrete color classification can change fine detail; browser review is required.",
+      "Rebuilds depend on the recorded Blender version; remote generation is not deterministic."
+    ]
+  }
+}

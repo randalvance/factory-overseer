@@ -30,12 +30,17 @@ it("falls back per invalid field and rejects assets outside the fixed furniture 
   expect(resolveRoomTheme({ theme: "toString" }).id).toBe("factory")
 })
 
-it("resolves the lab pilot furnishing while retaining its paper floor and station", () => {
-  const theme = resolveRoomTheme({ theme: "research-lab" })
-  expect(theme).toMatchObject({ floor: "blue-grid", station: "lab", decoration: "shelves" })
+it.each([
+  ["research-lab", "blue-grid", "lab", "shelves", "lab-specimen-cabinet", .74, 1.24],
+  ["foundry", "honey-planks", "foundry", "press", "foundry-press", .76, 1.24],
+  ["factory", "sage-checker", "assembly", "parts", "factory-parts-organizer", .76, 1.18],
+  ["fabrication-plant", "terracotta-bays", "precision", "cutter", "fabrication-paper-cutter", .76, 1.12],
+] as const)("resolves the %s furnishing while retaining its paper floor and station", (preset, floor, station, decoration, asset, depth, height) => {
+  const theme = resolveRoomTheme({ theme: preset })
+  expect(theme).toMatchObject({ floor, station, decoration })
   expect(theme.assets.decoration).toEqual({
-    url: "/assets/models/room-themes/lab-specimen-cabinet.glb",
-    footprint: { width: 1.1, depth: .74, height: 1.24 },
+    url: `/assets/models/room-themes/${asset}.glb`,
+    footprint: { width: 1.1, depth, height },
   })
 })
 

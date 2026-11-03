@@ -1,0 +1,28 @@
+{
+  "name": "api_tripo_p2_image_to_model",
+  "input_overrides": {
+    "14": {
+      "filename_prefix": "factory_overseer/room_themes/fabrication_paper_cutter"
+    },
+    "15": {
+      "model": "P2",
+      "model.quad": false,
+      "model.face_limit": 6000,
+      "model.texture": "standard",
+      "model.pbr": false,
+      "model.model_seed": 260029,
+      "model.texture_alignment": "original_image",
+      "model.orientation": "default",
+      "model.enable_image_autofix": false,
+      "model.texture_seed": 260029,
+      "model.auto_size": false,
+      "model.export_uv": true,
+      "model.compress_geometry": false
+    },
+    "16": {
+      "image": "aa55b830f02e24dce139de25c10ad6d078c60b836ed3f7787f7d4e7894b048b7.png"
+    }
+  },
+  "tool": "run_template",
+  "description": "fabrication-paper-cutter"
+}

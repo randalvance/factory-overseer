@@ -1,0 +1,33 @@
+{
+  "triangles": 1960,
+  "materials": 1,
+  "vertexColoredMeshes": 1,
+  "textureDimensions": [],
+  "bounds": {
+    "min": [
+      -0.55,
+      0,
+      -0.2673992469578038
+    ],
+    "max": [
+      0.55,
+      1.2375962955335775,
+      0.26739924695780376
+    ],
+    "size": [
+      1.1,
+      1.2375962955335775,
+      0.5347984939156076
+    ]
+  },
+  "renderedTriangles": 1960,
+  "drawCalls": 1,
+  "surfacePixels": {
+    "blue": 29963,
+    "ochre": 13710,
+    "sage": 289,
+    "terracotta": 0,
+    "nearBlack": 0,
+    "total": 561408
+  }
+}

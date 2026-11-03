@@ -3,23 +3,29 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Research lab — paper cabinet pilot</title>
+  <title>Paper room furnishings</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; color: #3f4b52; background: #f6f0e6; font: 16px/1.5 system-ui, sans-serif; }
-    main { width: min(960px, 100%); margin: 0 auto; padding: 28px; }
+    main { width: min(1080px, 100%); margin: 0 auto; padding: 24px; }
     h1 { font-size: 28px; margin: 0; }
+    h2 { font-size: 18px; margin: 0; }
     p { margin: 4px 0 16px; }
-    canvas { display: block; width: 100%; height: min(68vh, 640px); }
-    output { display: block; margin-top: 12px; }
+    #gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; }
+    #gallery.single { grid-template-columns: 1fr; }
+    article { min-width: 0; border-bottom: 1px solid #d9ccb5; }
+    canvas { display: block; width: 100%; height: min(32vh, 300px); }
+    .single canvas { height: min(68vh, 640px); }
+    output { display: block; margin: 12px 0; }
     a { color: #386782; }
+    @media (max-width: 560px) { #gallery { grid-template-columns: 1fr; } canvas { height: 300px; } }
   </style>
 </head>
 <body><main>
-  <h1>Research lab</h1>
-  <p>Folded-paper specimen cabinet · first prop for review</p>
-  <canvas role="img" aria-label="Paper specimen cabinet at the factory camera angle" data-loaded="false"></canvas>
-  <output aria-live="polite">Loading cabinet…</output>
-  <p><a href="/">View the factory</a></p>
+  <h1>Paper room furnishings</h1>
+  <p>Four folded-paper props · select a theme for a closer look</p>
+  <section id="gallery" aria-label="Theme furnishing gallery"></section>
+  <output aria-live="polite">Loading furnishings…</output>
+  <p><a href="theme-art.html">All furnishings</a> · <a href="/">View the factory</a></p>
 </main><script type="module" src="./theme-art.tsx"></script></body>
 </html>

@@ -1,0 +1,21 @@
+[
+  {
+    "event_type": "api_usage_completed",
+    "event_id": "e80d64b6-c566-44fb-9f98-2e7a7c3cb2b5",
+    "created_at": "2026-11-03T15:32:00.482216Z",
+    "params": {
+      "job_id": "2d941f37-5cd9-4f88-9792-6cc356ab7d2b",
+      "credits_used": 232.1
+    }
+  },
+  {
+    "event_type": "api_usage_completed",
+    "event_id": "dc6c3b5d-ade5-48ec-9d86-5937fc7b925f",
+    "created_at": "2026-11-03T15:26:27.556283Z",
+    "params": {
+      "job_id": "0272b82e-6408-4ae8-915e-39664d3138a9",
+      "model": "seedream-5-0-pro-260628",
+      "credits_used": 9.5
+    }
+  }
+]

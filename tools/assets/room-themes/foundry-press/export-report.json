@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "assetId": "foundry-press",
+  "source": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/foundry-press/source/model.glb",
+    "sha256": "00ce0846037c61fbd3e6037478ac9544994b9b29954acf99adc30ee7f2ece5e7",
+    "triangles": 5645,
+    "materials": 1
+  },
+  "output": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/foundry-press.glb",
+    "sha256": "fb99653ac73096d9c4068a7b33ad3db86f326de6476ee5ac780cafb50e9fae53",
+    "triangles": 1960,
+    "materials": 1,
+    "textureDimensions": [],
+    "bytes": 224288,
+    "bounds": {
+      "minimum": [
+        -0.4403005540370941,
+        0.0,
+        -0.3800000250339508
+      ],
+      "maximum": [
+        0.4403005540370941,
+        1.0472536087036133,
+        0.3799999952316284
+      ],
+      "width": 0.8806011080741882,
+      "depth": 0.7600000202655792,
+      "height": 1.0472536087036133
+    }
+  },
+  "manifest": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/foundry-press/export-settings.json",
+    "sha256": "3144c86f7d394de911b6709612803b350c5ba9b5c502864869b1fce733e73e67"
+  },
+  "script": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+    "sha256": "e88e57132f07ea0cbc07245237f06a2eaae9838d30e5c4fda46cbb13ea04121a"
+  },
+  "blenderVersion": "5.1.2",
+  "command": [
+    "/Applications/Blender.app/Contents/MacOS/Blender",
+    "--background",
+    "--factory-startup",
+    "--python-exit-code",
+    "1",
+    "--python",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+    "--",
+    "--source",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/foundry-press/source/model.glb",
+    "--asset-id",
+    "foundry-press",
+    "--manifest",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/foundry-press/export-settings.json",
+    "--output",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/foundry-press.glb",
+    "--report",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/foundry-press/export-report.json",
+    "--yaw-degrees",
+    "-90.0",
+    "--paper-palette"
+  ],
+  "arguments": {
+    "source": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/foundry-press/source/model.glb",
+    "assetId": "foundry-press",
+    "manifest": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/foundry-press/export-settings.json",
+    "output": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/foundry-press.glb",
+    "report": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/foundry-press/export-report.json",
+    "yawDegrees": -90.0,
+    "paperPalette": true
+  },
+  "processing": {
+    "color": "Explicit recoloring: source sRGB albedo classified by seven interior samples per triangle into manifest accent/cream/kraft; flat opaque vertex colors, no texture",
+    "paperPalette": {
+      "accent": "#d5a145",
+      "cream": "#f4e6c9",
+      "kraft": "#c6b28f"
+    },
+    "paletteFaceCounts": {
+      "accent": 1302,
+      "cream": 558,
+      "kraft": 100
+    },
+    "discardedChannels": [
+      "metallic",
+      "roughness",
+      "normal",
+      "occlusion",
+      "emission"
+    ],
+    "shading": "flat",
+    "opaque": true,
+    "uniformScale": 1.0477652383360292,
+    "removedObjects": [],
+    "sourceExtensionsUsed": [],
+    "limitations": [
+      "Source-albedo shadows may classify as kraft facets; inspect the broad color regions visually.",
+      "Decimation and discrete color classification can change fine detail; browser review is required.",
+      "Rebuilds depend on the recorded Blender version; remote generation is not deterministic."
+    ]
+  }
+}
