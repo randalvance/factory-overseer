@@ -20,7 +20,7 @@ import { comingsAndGoings, type ComingsAndGoings } from "~/floor/walk"
 import type { Agent, Snapshot, Subject } from "~/model/types"
 import { INSPECTOR, type Dressed, type Icons, type Settling, createAgents } from "./agents"
 import { BELT_SPEED, createBoxes } from "./boxes"
-import { type CameraPose, PAPER_CAMERA_DISTANCE, PAPER_PITCH, PITCH, PX_PER_TILE, clampToFloor, fitDiorama, fitDioramaLayout, fitFloor, panBy, panDiorama, paperFieldOfView, pinchBy, zoomBy, zoomStep } from "./camera"
+import { type CameraPose, PAPER_CAMERA_DISTANCE, PAPER_PITCH, PITCH, PX_PER_TILE, ZOOM_MIN, cameraPoseForAppearance, clampToFloor, fitDiorama, fitDioramaLayout, fitFloor, panBy, panDiorama, paperFieldOfView, pinchBy, zoomBy, zoomStep } from "./camera"
 import { type Point, attachControls } from "./controls"
 import { batchPaperDrawing, unbatchPaperDrawing, disposeMeshes, drawFactory } from "./drawing"
 import { paperPieces } from "./paper"
@@ -139,6 +139,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   let visible = false
   let floor: Rect | undefined
   let pose: CameraPose | undefined
+  let fittedMinimumZoom = ZOOM_MIN
   /** The last layout drawn, so the next one's motions know where every box rested. */
   let shown: Layout | undefined
 
@@ -162,9 +163,16 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   scene.add(ring)
   const raycaster = new THREE.Raycaster()
 
+  /** Cache the fitted zoom only on initial framing and explicit Fit all. */
+  function fitPose() {
+    if (!floor || !visible) return
+    pose = paperAppearance && shown ? fitDioramaLayout(shown, viewport) : (paperAppearance ? fitDiorama : fitFloor)(floor, viewport)
+    fittedMinimumZoom = Math.min(ZOOM_MIN, pose.zoom)
+  }
+
   /** Frame the whole line once both the floor and the viewport are known; from then on keep the camera on its pose. */
   function aimCamera() {
-    if (!pose && floor && visible) pose = paperAppearance && shown ? fitDioramaLayout(shown, viewport) : (paperAppearance ? fitDiorama : fitFloor)(floor, viewport)
+    if (!pose) fitPose()
     if (!pose) return
     const halfW = viewport.width / PX_PER_TILE / 2
     const halfH = viewport.height / PX_PER_TILE / 2
@@ -208,7 +216,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
 
   function fitAll() {
     following = undefined
-    if (floor && visible) pose = paperAppearance && shown ? fitDioramaLayout(shown, viewport) : (paperAppearance ? fitDiorama : fitFloor)(floor, viewport)
+    fitPose()
     aimCamera()
   }
 
@@ -242,17 +250,17 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     },
     zoom(deltaY) {
       if (!pose) return
-      pose = zoomBy(pose, deltaY)
+      pose = zoomBy(pose, deltaY, paperAppearance ? fittedMinimumZoom : ZOOM_MIN)
       aimCamera()
     },
     pinch(from, to) {
       if (!pose) return
-      pose = pinchBy(pose, from, to)
+      pose = pinchBy(pose, from, to, paperAppearance ? fittedMinimumZoom : ZOOM_MIN)
       aimCamera()
     },
     zoomStep(direction) {
       if (!pose) return
-      pose = zoomStep(pose, direction)
+      pose = zoomStep(pose, direction, paperAppearance ? fittedMinimumZoom : ZOOM_MIN)
       aimCamera()
     },
     fitAll,
@@ -353,6 +361,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
       loadPieces(`${assetBase}assets/models/pieces.glb`),
     ])
     if (disposed || call !== generation) return undefined
+    if (pose && paperAppearance !== usePaper) pose = cameraPoseForAppearance(pose, usePaper ? "paper" : "legacy")
     paperAppearance = usePaper
     renderer.setClearColor(usePaper ? PAPER_GRASS_COLOR : BACKGROUND)
     ambient.color.setHex(usePaper ? 0xffffff : 0xe8eef7)

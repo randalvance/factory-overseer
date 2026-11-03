@@ -3,10 +3,25 @@ import { PerspectiveCamera, Vector3 } from "three"
 import type { Rect } from "~/floor/types"
 import { layoutConfiguredRooms } from "~/floor/configuredRooms"
 import { exampleRooms } from "~/model/roomExamples"
-import { type CameraPose, clampToFloor, dioramaModelPoints, fitDiorama, fitDioramaLayout, fitFloor, PAPER_CAMERA_DISTANCE, PAPER_PITCH, PX_PER_TILE, panBy, panDiorama, paperFieldOfView, projectDioramaPoint, pinchBy, zoomBy, zoomStep } from "./camera"
+import { type CameraPose, cameraPoseForAppearance, clampToFloor, dioramaModelPoints, fitDiorama, fitDioramaLayout, fitFloor, PAPER_CAMERA_DISTANCE, PAPER_PITCH, PX_PER_TILE, panBy, panDiorama, paperFieldOfView, projectDioramaPoint, pinchBy, zoomBy, zoomStep } from "./camera"
 
 const centred: CameraPose = { x: 10, z: 2.5, zoom: 1 }
 const floor: Rect = { x: 0, y: 0, w: 30, h: 5 }
+
+describe("switching camera appearance", () => {
+  it("restores legacy zoom after a narrow paper fit without moving the camera target", () => {
+    const paper = fitDiorama({ x: 4, y: 8, w: 28, h: 18 }, { width: 390, height: 500 })
+    expect(paper.zoom).toBeLessThan(.5)
+    const legacy = cameraPoseForAppearance(paper, "legacy")
+    expect(legacy).toEqual({ x: paper.x, z: paper.z, zoom: .5 })
+    expect(zoomBy(legacy, -100).zoom).toBeCloseTo(.5 * 2 ** .2, 6)
+    expect(zoomStep(legacy, 1).zoom).toBeCloseTo(.5 * Math.SQRT2, 6)
+    expect(pinchBy(legacy, 100, 120).zoom).toBeCloseTo(.6, 6)
+    expect(cameraPoseForAppearance(paper, "paper")).toBe(paper)
+    expect(cameraPoseForAppearance(legacy, "paper")).toBe(legacy)
+    expect(cameraPoseForAppearance(centred, "legacy")).toEqual(centred)
+  })
+})
 
 describe("wheel zoom", () => {
   // Five hundred pixels of wheel is one doubling, either way.
@@ -163,7 +178,7 @@ describe("framing the paper diorama", () => {
         expect(projected.y).toBeLessThan(viewport.height)
       }
     }
-    expect(pose.zoom).toBeGreaterThanOrEqual(.5)
+    expect(pose.zoom).toBeGreaterThan(0)
   })
 
   it("keeps the floor centered horizontally and starts deep maps at a pannable rear portion", () => {
@@ -232,6 +247,44 @@ describe("framing the paper rooms and deployment truck", () => {
     // The terminal extends beyond enclosed rooms and stays inside Fit all.
     expect(Math.max(...dioramaModelPoints(layout).map((point) => point.z))).toBeGreaterThan(
       Math.max(...layout.rooms!.map((room) => room.rect.y + room.rect.h)))
-    expect(pose.zoom).toBeGreaterThanOrEqual(.5)
+    expect(pose.zoom).toBeGreaterThan(0)
+  })
+})
+
+
+describe("Fit all in narrow and shallow paper canvases", () => {
+  it.each([
+    { width: 390, height: 500, implementers: 1, headerHeight: 96 },
+    { width: 1536, height: 677, implementers: 2, headerHeight: 48 },
+  ])("keeps the actual demo and truck inside $width×$height with $implementers implementers", ({ implementers, headerHeight, ...viewport }) => {
+    const configuration = structuredClone(exampleRooms)
+    const agents = configuration.rooms.filter((room) => room.kind !== "intake").map((room) => ({
+      id: room.id + "-agent", name: room.label, role: room.role, roomId: room.id, status: "working" as const,
+    }))
+    if (implementers === 2) agents.push({ id: "second-implementer", name: "Second implementer", role: "implementer", roomId: "implementation", status: "working" })
+    const layout = layoutConfiguredRooms({ configuration, snapshot: { agents, tasks: [], humanRequests: [] } }, undefined, 28)
+    const pose = fitDioramaLayout(layout, viewport)
+    for (const point of dioramaModelPoints(layout)) {
+      const projected = projectPaper(point, pose, viewport)
+      expect(projected.x).toBeGreaterThan(0)
+      expect(projected.x).toBeLessThan(viewport.width)
+      expect(projected.y).toBeGreaterThanOrEqual(headerHeight)
+      expect(projected.y).toBeLessThan(viewport.height)
+    }
+    expect(pose.zoom).toBeLessThan(.5)
+    // Every input can zoom in from Fit all and return to it without jumping
+    // to the legacy half-scale floor.
+    const wheeled = zoomBy(pose, -100, pose.zoom)
+    expect(wheeled.zoom).toBeCloseTo(pose.zoom * 2 ** .2, 6)
+    expect(zoomBy(wheeled, 100, pose.zoom).zoom).toBeCloseTo(pose.zoom, 6)
+    const stepped = zoomStep(pose, 1, pose.zoom)
+    expect(stepped.zoom).toBeCloseTo(pose.zoom * Math.SQRT2, 6)
+    expect(zoomStep(stepped, -1, pose.zoom).zoom).toBeCloseTo(pose.zoom, 6)
+    const pinched = pinchBy(pose, 100, 120, pose.zoom)
+    expect(pinched.zoom).toBeCloseTo(pose.zoom * 1.2, 6)
+    expect(pinchBy(pinched, 120, 100, pose.zoom).zoom).toBeCloseTo(pose.zoom, 6)
+    expect(zoomBy(pose, 500, pose.zoom).zoom).toBe(pose.zoom)
+    expect(zoomStep(pose, -1, pose.zoom).zoom).toBe(pose.zoom)
+    expect(pinchBy(pose, 100, 50, pose.zoom).zoom).toBe(pose.zoom)
   })
 })

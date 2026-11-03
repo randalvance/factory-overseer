@@ -7,7 +7,9 @@ import { counts } from "~/model/counts"
 import { type AgentStatus, type StatusStyle, bubbleText } from "~/model/status"
 import { tasksAt } from "~/model/tasks"
 import { type Trails, placeText, whereText } from "~/model/trails"
-import type { RoomFactoryState, RoomTask, Snapshot, Subject } from "~/model/types"
+import { recordRoomTrails, type RoomTrails, type RoomTrailStop } from "~/model/roomTrails"
+import { humanRequestAgentIds } from "~/model/roomRouting"
+import type { HumanAttentionRequest, RoomFactoryState, RoomTask, Snapshot, Subject } from "~/model/types"
 
 export interface HudProps {
   roomState?: RoomFactoryState
@@ -29,14 +31,10 @@ export interface HudProps {
 /** The header with the counts and the Fit all and Reorganize buttons, and the card for what the overseer clicked, if anything. */
 export function Hud({ snapshot, roomState, trails, riding, styles, picked, ready, onClose, onFitAll, onReorganize }: HudProps) {
   const tally = counts(snapshot)
-  const [roomTrails, setRoomTrails] = useState<Record<string, string[]>>({})
+  const [roomTrails, setRoomTrails] = useState<RoomTrails>({})
   useEffect(() => {
     if (!roomState) return
-    setRoomTrails((before) => Object.fromEntries(roomState.snapshot.tasks.map((task) => {
-      const label = roomPlace(task, roomState)
-      const trail = before[task.id] ?? []
-      return [task.id, trail.at(-1) === label ? trail : [...trail, label]]
-    })))
+    setRoomTrails((before) => recordRoomTrails(before, roomState))
   }, [roomState])
   return (
     <div className="factory-hud">
@@ -44,7 +42,8 @@ export function Hud({ snapshot, roomState, trails, riding, styles, picked, ready
         <span className="factory-hud-counts" aria-label="Counts">
           <span>{tally.agents} agents</span>
           <span>{tally.inFlight} in flight</span>
-          <span>{tally.awaitingReview} awaiting review</span>
+          {roomState ? <span>{roomState.snapshot.humanRequests.length} human {roomState.snapshot.humanRequests.length === 1 ? "request" : "requests"}</span> :
+            <span>{tally.awaitingReview} awaiting review</span>}
           <span>{tally.shipped} shipped</span>
         </span>
         <span className="factory-hud-actions">
@@ -56,7 +55,7 @@ export function Hud({ snapshot, roomState, trails, riding, styles, picked, ready
           </button>
         </span>
       </header>
-      {picked && "agent" in picked && <AgentCard id={picked.agent} snapshot={snapshot} styles={styles} onClose={onClose} />}
+      {picked && "agent" in picked && <AgentCard id={picked.agent} roomState={roomState} snapshot={snapshot} styles={styles} onClose={onClose} />}
       {picked && "task" in picked && (
         <BoxCard roomState={roomState} roomTrail={roomTrails[picked.task]} taskId={picked.task} snapshot={snapshot} trails={trails} riding={riding.has(picked.task)} onClose={onClose} />
       )}
@@ -67,28 +66,34 @@ export function Hud({ snapshot, roomState, trails, riding, styles, picked, ready
 /** An agent's name, role, status, activity and the task on its bench. Nothing once the agent has left. */
 function AgentCard({
   id,
+  roomState,
   snapshot,
   styles,
   onClose,
 }: {
   id: string
+  roomState?: RoomFactoryState
   snapshot: Snapshot
   styles: Readonly<Record<AgentStatus, StatusStyle>>
   onClose: () => void
 }) {
   const agent = snapshot.agents.find((a) => a.id === id)
   if (!agent) return null
+  const roomAgent = roomState?.snapshot.agents.find((agent) => agent.id === id)
+  const requests = roomState?.snapshot.humanRequests.filter((request) => humanRequestAgentIds(roomState.snapshot, request).includes(id)) ?? []
   const associated = snapshot.assignments
     ? snapshot.tasks.filter((task) => snapshot.assignments?.[task.id]?.agentIds.includes(id))
     : tasksAt(snapshot.tasks, id)
   return (
     <Card title={agent.name} onClose={onClose}>
+      {roomAgent && <><dt>Room</dt><dd>{roomState?.configuration.rooms.find((room) => room.id === roomAgent.roomId)?.label ?? roomAgent.roomId}</dd></>}
       <dt>Role</dt>
       <dd>{agent.role}</dd>
       <dt>Status</dt>
       <dd>{agent.status}</dd>
       <dt>Activity</dt>
       <dd>{bubbleText(agent.status, agent.activity, styles) ?? "none"}</dd>
+      <HumanRequestContext requests={requests} />
       <dt>Task</dt>
       <dd>{associated.map((task) => `${task.label}${snapshot.assignments?.[task.id]?.completedAgentIds.includes(id) ? " (complete)" : ""}`).join(", ") || "none"}</dd>
     </Card>
@@ -106,7 +111,7 @@ function BoxCard({
   onClose,
 }: {
   roomState?: RoomFactoryState
-  roomTrail?: string[]
+  roomTrail?: readonly RoomTrailStop[]
   taskId: string
   snapshot: Snapshot
   trails: Trails
@@ -117,6 +122,9 @@ function BoxCard({
   if (!task) return null
   const trail = trails[taskId] ?? [task.at]
   const roomTask = roomState?.snapshot.tasks.find((task) => task.id === taskId)
+  const requests = roomState?.snapshot.humanRequests.filter((request) => request.taskId === taskId ||
+    (!request.taskId && roomTask?.at.kind === "room" && request.roomId === roomTask.at.roomId && (!request.agentIds.length ||
+      roomTask.at.assignment?.agentIds.some((id) => request.agentIds.includes(id))))) ?? []
   return (
     <Card title={task.label} onClose={onClose}>
       <dt>Where</dt>
@@ -128,10 +136,18 @@ function BoxCard({
         </li>)}</ul></dd>
         <dt>Join</dt><dd>{roomTask.at.assignment.completedAgentIds.length}/{roomTask.at.assignment.agentIds.length} complete · host controls handoff</dd>
       </>}
+      <HumanRequestContext requests={requests} />
       <dt>Trail</dt>
-      <dd>{roomState ? roomTrail?.join(" → ") : trail.map((place) => placeText(place, snapshot.agents)).join(" → ")}</dd>
+      <dd>{roomState ? roomTrail?.map((stop) => stop.label).join(" → ") : trail.map((place) => placeText(place, snapshot.agents)).join(" → ")}</dd>
     </Card>
   )
+}
+
+function HumanRequestContext({ requests }: { requests: readonly HumanAttentionRequest[] }) {
+  if (!requests.length) return null
+  return <><dt>Human attention</dt><dd><ul aria-label="Active human requests">{requests.map((request) =>
+    <li key={request.id}><strong>{request.kind === "question" ? "Question" : request.kind === "approval" ? "Approval" : "Help"}:</strong> {request.message}</li>,
+  )}</ul></dd></>
 }
 
 function Card({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
@@ -147,8 +163,10 @@ function Card({ title, onClose, children }: { title: string; onClose: () => void
 }
 
 function roomPlace(task: RoomTask, state: RoomFactoryState): string {
-  const label = state.configuration.rooms.find((room) => room.id === task.at.roomId)?.label ?? task.at.roomId
+  const room = state.configuration.rooms.find((room) => room.id === task.at.roomId)
+  const label = room?.label ?? task.at.roomId
   if (task.at.kind === "shipped") return `Shipped from ${label}`
+  if (room?.kind === "intake") return label
   const members = task.at.assignment?.agentIds
   return members ? `${label} — ${members.map((id) => state.snapshot.agents.find((agent) => agent.id === id)?.name ?? id).join(" + ")}` : `${label} — waiting for assignment`
 }

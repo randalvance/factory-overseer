@@ -1,0 +1,140 @@
+[
+  {
+    "name": "mobile",
+    "width": 390,
+    "height": 844,
+    "interaction": "touch taps",
+    "expanded": {
+      "scrollWidth": 390,
+      "viewport": 390,
+      "canvasHeight": 506.390625
+    },
+    "final": {
+      "scrollWidth": 390,
+      "canvasHeight": 506.390625,
+      "card": {
+        "x": 9.59375,
+        "y": 607.1875,
+        "width": 370.796875,
+        "height": 178.328125,
+        "top": 607.1875,
+        "right": 380.390625,
+        "bottom": 785.515625,
+        "left": 9.59375
+      },
+      "attention": {
+        "x": 12,
+        "y": 807.109375,
+        "width": 366,
+        "height": 260.96875,
+        "top": 807.109375,
+        "right": 378,
+        "bottom": 1068.078125,
+        "left": 12
+      },
+      "hud": {
+        "x": 0,
+        "y": 288.71875,
+        "width": 390,
+        "height": 70.171875,
+        "top": 288.71875,
+        "right": 390,
+        "bottom": 358.890625,
+        "left": 0
+      }
+    },
+    "errors": []
+  },
+  {
+    "name": "tablet",
+    "width": 768,
+    "height": 1024,
+    "interaction": "touch taps",
+    "expanded": {
+      "scrollWidth": 768,
+      "viewport": 768,
+      "canvasHeight": 614.390625
+    },
+    "final": {
+      "scrollWidth": 768,
+      "canvasHeight": 614.390625,
+      "card": {
+        "x": 12.796875,
+        "y": 688.96875,
+        "width": 448,
+        "height": 148.328125,
+        "top": 688.96875,
+        "right": 460.796875,
+        "bottom": 837.296875,
+        "left": 12.796875
+      },
+      "attention": {
+        "x": 12,
+        "y": 862.09375,
+        "width": 744,
+        "height": 256.96875,
+        "top": 862.09375,
+        "right": 756,
+        "bottom": 1119.0625,
+        "left": 12
+      },
+      "hud": {
+        "x": 0,
+        "y": 235.703125,
+        "width": 768,
+        "height": 45.78125,
+        "top": 235.703125,
+        "right": 768,
+        "bottom": 281.484375,
+        "left": 0
+      }
+    },
+    "errors": []
+  },
+  {
+    "name": "desktop",
+    "width": 1440,
+    "height": 1000,
+    "interaction": "mouse clicks",
+    "expanded": {
+      "scrollWidth": 1440,
+      "viewport": 1440,
+      "canvasHeight": 773.28125
+    },
+    "final": {
+      "scrollWidth": 1440,
+      "canvasHeight": 773.28125,
+      "card": {
+        "x": 12.796875,
+        "y": 838.875,
+        "width": 448,
+        "height": 148.328125,
+        "top": 838.875,
+        "right": 460.796875,
+        "bottom": 987.203125,
+        "left": 12.796875
+      },
+      "attention": {
+        "x": 1040,
+        "y": 727.03125,
+        "width": 384,
+        "height": 256.96875,
+        "top": 727.03125,
+        "right": 1424,
+        "bottom": 984,
+        "left": 1040
+      },
+      "hud": {
+        "x": 0,
+        "y": 226.71875,
+        "width": 1440,
+        "height": 45.78125,
+        "top": 226.71875,
+        "right": 1440,
+        "bottom": 272.5,
+        "left": 0
+      }
+    },
+    "errors": []
+  }
+]

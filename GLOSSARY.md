@@ -156,13 +156,16 @@ _Avoid_: Empty, free, unassigned
 
 **Camera**:
 The overseer's point of view over the floor, at a fixed angle: it pans within
-the floor plus a margin and zooms from half, the whole floor, to four times,
-reading a tablet, and never turns.
+the floor plus a margin, zooms in to read the work, and never turns. Legacy
+zoom runs from half to four times; the paper view can zoom further out when
+needed to fit the factory.
 _Avoid_: Orbit, viewpoint, free camera
 
 **Fit All**:
-Framing the floor's width, and the whole floor when it fits, as the view
-opens. The F key and the HUD button ask for it, and so can the host.
+Framing the factory as the view opens, including raised signs and the
+deployment truck in the paper appearance, while leaving the HUD clear. The
+F key and the HUD button ask for it, and so can the host. Very deep floors
+remain pannable.
 _Avoid_: Zoom to fit, reset view, zoom extents
 
 **Follow**:
@@ -191,8 +194,9 @@ Reorganize buttons, and the card for what the overseer clicked. Nothing else.
 _Avoid_: Overlay, toolbar, panel, chrome
 
 **Counts**:
-The header's tally of the snapshot: agents, tasks in flight, tasks awaiting
-review and tasks shipped.
+The header's tally of the snapshot: agents, tasks in flight, active human
+requests and tasks shipped. Each shared task counts once. The legacy view
+counts tasks awaiting review in place of human requests.
 _Avoid_: Stats, metrics, KPIs
 
 **In Flight**:

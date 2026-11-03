@@ -1,49 +1,21 @@
 # Factory Overseer
 
-A 3D factory that shows an agentic system at work. Each agent is a pixel-art
-figure at a station. Each task is a box that rides conveyor belts from one
-agent to the next, through a staging area where a human reviews it, and into a
-shipping container when it is done; rework rides a return belt back along the
-line. The floor is as wide as the host says and no wider: when the line runs
-out of room, the trunk turns at the edge and goes on in a band below, running
-the other way, so the floor grows toward the camera and the overseer never
-scrolls sideways. Roles and agents can join and leave while the factory runs:
-a role new to the line gets a bay at its end, the belts grow to reach a
-newcomer without rearranging what is already there, a bench left behind stays
-vacant for the next one, and once a bay's lanes are taken the next agent of
-that role takes a lane in an annex, a further bay at the end of the line. When
-the floor has grown messy, the overseer's Reorganize lays it afresh, compact
-and in pipeline order, and every station, belt and box slides to its new place
-in one pass; nothing moves at any other time. A host with no human review
-switches the staging area off, and the last bay ships straight into the
-container.
+A live paper factory for an agentic system. Pets work at stations in separate
+rooms; each task is one box moving along conveyor belts. The host supplies
+snapshots, assignments, room transitions and human requests. The factory
+shows the work without deciding what happens next.
 
-The overseer can look anywhere and ask about anything. Drag the floor to pan,
-or hold WASD or the arrow keys with the pointer over it; turn the wheel,
-pinch, or press plus and minus to zoom, from half, the whole floor, to four
-times, reading a tablet; press F or the Fit all button to frame the floor
-again as it opened. The pointer rings whatever it rests on. Click an agent for
-its card: name, role, status, activity and the task on its bench. Click a box
-for its card, its label, where it is and the trail it has taken this session,
-and the camera follows the box until you pan or fit all. The header over the
-floor counts the agents, the tasks in flight, the tasks awaiting review and
-the tasks shipped.
+The default example has an outdoor intake hopper, planning, implementation,
+code review and deployment rooms, ending at a delivery truck. Rooms expand
+three stations across before adding rows. Signs, paper floors, furniture and
+pet artwork are configurable. The four bundled themes include generated
+paper furnishings with retained sources and reproducible Blender exports.
 
-The demo runs by itself on a runtime of its own, a stand-in for a host that
-moves tasks through the pipeline beat by beat, with occasional rework,
-waiting and errors, and reports snapshots the way a host would. Its control
-panel pushes the floor around by hand: pause the clock or beat it once, set
-the speed, add an agent of any role, or of a role the pipeline has not got,
-take one off the floor, force it to wait or into error, add a task, send one
-back as rework, and have the camera focus on an agent or follow a task.
+![The integrated paper factory](docs/screenshots/integrated-demo/full-flow.png)
 
-Early days: the floor is being laid. The vocabulary is in [GLOSSARY.md](GLOSSARY.md)
-and the decisions so far are in [docs/adr](docs/adr).
+## Run locally
 
-## Develop
-
-Everything runs inside the devcontainer. In VS Code, open the folder and
-choose **Reopen in Container**. From a terminal, with Docker running and the
+Every project command runs inside the devcontainer. With Docker and the
 [devcontainer CLI](https://github.com/devcontainers/cli) installed:
 
 ```bash
@@ -51,179 +23,144 @@ devcontainer up --workspace-folder .
 devcontainer exec --workspace-folder . bun run dev
 ```
 
-Then open <http://localhost:3000>.
+Open <http://localhost:3000>. In VS Code, **Reopen in Container** runs the same
+environment.
 
-| | |
+| Command inside the devcontainer | Purpose |
 | --- | --- |
-| `bun run dev` | the demo on :3000 |
-| `bun run build` | the demo, built |
-| `bun run test` | the unit tests, no WebGL needed |
-| `bun run smoke` | boots the demo in headless Chromium, fails on console errors, saves screenshots under `test-results` |
-| `bun run typecheck` | `tsc --noEmit` |
+| `bun run dev` | Demo on port 3000 |
+| `bun run build` | Production demo build |
+| `bun run test` | Pure unit tests; no WebGL |
+| `bun run typecheck` | TypeScript checks |
+| `bun run smoke` | Deterministic Chromium browser tests; evidence in `test-results` |
 
-The smoke test saves its screenshots under `SCREENSHOT_DIR` when that is set;
-the milestone screenshots under `docs/screenshots` are copies of those.
+The browser suite starts its own server on port 3100. It can run alongside
+the demo. See [integrated verification](docs/screenshots/integrated-demo/README.md)
+for the focused acceptance command, current screenshots and measured limits.
 
-The 3D pieces are built by a Blender script under `tools/blender`, run on the
-host rather than in the container, and committed as one GLB file under
-`public/assets/models`. From the repo root, with Blender 4 or later on the
-host (on macOS, `/Applications/Blender.app/Contents/MacOS/Blender` stands in
-for `blender`):
+## Try the complete flow
 
-```bash
-blender --background --python tools/blender/build_pieces.py
+1. Keep **Plan a new feature** selected and choose **Send to Planning**.
+   Answer both questions in **Human attention**. Answers leave the task in
+   planning; choose **Send to Implementation** to resume explicitly.
+2. Choose **Assign two implementers**. Complete one participant and inspect
+   the task: the box and task count stay singular, and review waits for both.
+   **Ask for help** and **Request approval** pause the task until you respond.
+3. Choose **Return to planning** to demonstrate rework, answer the
+   questions again, then send the task back. Complete both participants and send
+   it to **Code review**, **Deployment**, and finally **Ship task**.
+4. Select **Fix a typo directly** to take the intake bypass straight to
+   implementation. Enable **Include QA room** to insert a configurable step
+   between review and deployment. Select QA in **Room** and **Add agent** to
+   staff it.
+5. In **Rooms and appearance**, select Implementation and add agents.
+   Agents 1–3 fill the first row, 4–6 the second, and 7 starts the third.
+   Try **Theme**, **Room graphic**, **Unstaff planning** and **Remove bypass**.
+   Use **Fit all** after growth; **Reorganize** compacts vacant stations.
+
+On narrow screens, open **Rooms and appearance** or **View and assistance**
+for the extra controls. The task actions stay visible. Human attention appears
+below the factory, and long cards scroll within the view.
+
+Drag to pan, use the wheel/pinch or plus/minus to zoom, and press F to fit.
+With the pointer over the floor, WASD/arrow keys also pan. Click an agent or
+box for its card; following a box ends when you pan or fit the whole floor.
+The fixed paper camera uses a 38-degree perspective view and never rotates.
+Fit all can zoom below half scale on small screens; subsequent zoom controls
+can return to that fitted scale. Very deep maps remain pannable.
+
+All task decisions in this example are explicit host actions. There is no
+random timer that resolves a human wait, completes a shared assignment or
+ships a task. The earlier seeded, beat-driven demo remains at `?layout=legacy`;
+the earlier room-growth example is at `?layout=rooms`. Use `?art=legacy` on
+the configured demo for the earlier appearance.
+
+## Embed a room factory
+
+The current source integration uses these exported modules. Library packaging
+and a package-level entry point remain tracked separately in #16.
+
+```tsx
+import { RoomFactory } from "./src/factory/RoomFactory"
+import type { RoomFactoryState, OnHumanNeeded } from "./src/model/types"
+import { exampleRooms, planningFirst } from "./src/model/roomExamples"
+import { DEFAULT_PET_ASSETS } from "./src/factory/petAssets"
+import "./src/styles.css"
+
+const state: RoomFactoryState = {
+  configuration: exampleRooms,
+  snapshot: planningFirst,
+}
+const onHumanNeeded: OnHumanNeeded = (request) => {
+  // Open your host UI; publish a new snapshot when the request is resolved.
+  console.log(request.message)
+}
+
+export function Example() {
+  return <div style={{ position: "relative", height: 600 }}>
+    <RoomFactory state={state} width={28} appearance="paper"
+      petAssets={DEFAULT_PET_ASSETS} onHumanNeeded={onHumanNeeded}
+      onReady={(handle) => handle.fitAll()} />
+  </div>
+}
 ```
 
-Running it again with the same Blender reproduces the file byte for byte. Add
-`-- --render gallery.png` to render every piece in a gallery to look at. The
-pieces are listed in `ASSETS.md`. The status icons are drawn by a script under
-`tools/icons`, run in the container, and committed as PNG files there too.
+Publish immutable state values to move work. Room transitions can branch,
+cycle for rework, or include additional host-defined roles. Deployment is
+terminal. Multiple participants share one task box; the host reports the
+completed subset and chooses when to hand it onward. `onTaskLanded` reports
+visual arrival, not completion of agent work.
 
-## Licence
+The [room contract](docs/room-contract.md) is the single reference for public
+types, validation, attention hooks, assignments, themes, billboard images,
+pets, render metrics and migration from the legacy `Pipeline` API. The
+imperative `FactoryHandle` is exported by `src/factory/Factory.tsx`.
+Serve the contents of `public/assets` at the URLs used by the bundled presets;
+custom theme, billboard and pet URLs follow the contract's resolution rules.
 
-MIT for the code. The art has its own terms: see [ASSETS.md](ASSETS.md).
+## Art and performance
 
-## Configurable rooms
+The [four-prop gallery](http://localhost:3000/e2e/fixtures/theme-art.html)
+shows the lab cabinet, foundry press, parts organizer and paper cutter at the
+factory camera angle. Each uses one material, no model texture and at most
+2,000 triangles. The complete runtime pack is 896,368 bytes. Authored floors,
+walls, repeating belts and stations remain shared, compact meshes.
 
-The demo at localhost:3000 now shows an outdoor intake hopper connected to
-planning, implementation, code review and deployment rooms. Select a task and use
-**Send to …** to watch a handoff. One opening task needs planning; the other
-goes directly to implementation. Planning asks two questions through the
-optional `onHumanNeeded` hook; answer them in the host's attention panel,
-then explicitly send the task onward. **Ask for help** and **Request approval**
-work in other rooms too. **Return to planning** demonstrates rework.
-**Include QA room** adds an intermediate step through configuration, and
-**Unstaff planning** demonstrates a queue waiting for agents.
-New demo handoffs choose the available agent with the smallest assigned task
-queue, preferring idle or finished agents when loads tie, then using room
-membership order. Six implementers receive one direct task each before
-overflow queues. Offline, waiting and errored agents receive no new
-assignments. This is demo host policy; RoomFactory still follows the
-assignments supplied by its host.
+The [asset brief](docs/design/room-theme-assets.md),
+[manifest](tools/assets/room-theme-manifest.json) and
+[theme evidence](docs/screenshots/theme-assets/README.md) retain generation
+jobs, costs, source files, cleanup commands and measurements. The approved
+batch spent 1,328.48 of 1,500 Comfy credits. Generated artwork is excluded
+from the code's MIT license; provider terms and attribution are in
+[ASSETS.md](ASSETS.md).
 
-The embeddable `RoomFactory` accepts a `RoomFactoryState` as its `state`
-prop. See [the room contract](docs/room-contract.md) for the public types,
-validation, checked examples and migration, and
-[ADR 0011](docs/adr/0011-configured-room-conveyors.md) for physical routing.
+The view batches settled repeating desks/belts and caches a soft directional
+shadow map. Moving parcels do not update that static shadow map. The optional
+`onRenderMetrics` callback reports frame intervals, draw calls, triangles,
+resource counts and estimated source texture bytes. It does not measure total
+GPU allocation, shadow-map storage or framebuffer memory.
 
-The earlier room-growth demo remains at `?layout=rooms`, and the original
-bay demo at `?layout=legacy`.
+[Current normal/growth measurements](docs/screenshots/integrated-demo/README.md#performance)
+cover 20 agents/30 tasks and 100 agents/150 tasks at a fixed viewport. Large
+factories are pannable; these are visible-viewport measurements. Chromium
+software rendering is a repeatable regression reference, not hardware FPS.
+Earlier measurements remain in [paper evidence](docs/screenshots/paper/).
+To reproduce the current fixtures without overwriting that history:
 
-Use **Room graphic** to try the bundled example, a custom rocket, pixel art,
-the built-in default or an unavailable-image fallback on the selected room.
-Hosts configure `room.billboard.image`, optional `alt`, and `filter`
-(`linear` or `nearest`); see [the billboard contract](docs/room-contract.md#room-billboards).
+```bash
+devcontainer exec --workspace-folder . env \
+  PAPER_MEASURE_DIR=docs/screenshots/integrated-demo/performance \
+  node tools/measure-paper.mjs
+```
 
+The original base pieces can be rebuilt with host Blender through
+`tools/blender/build_pieces.py`; generated props use the recorded commands in
+`tools/assets/room-themes/*/export-report.json`. Blender stays on the host;
+all other project commands run in the devcontainer (ADR 0005).
 
-Select a room and use **Theme** to switch between Research lab, Foundry,
-Factory and Fabrication plant while tasks keep moving. Themes control paper
-floors, wall colors, station construction and sparse furnishings. Hosts can
-supply `roomThemes` and per-room `themeOverrides`; the [theme contract](docs/room-contract.md#room-themes)
-covers custom assets, safe placement, loading fallbacks and art budgets.
-[Theme verification](docs/screenshots/themes/README.md) includes screenshots, browser checks and render measurements.
+## Project references
 
-
-Shared-work demo: at [localhost:3000](http://localhost:3000), send a task to
-Implementation, then choose **Assign two implementers**. Complete one member,
-ask for help or fail the other, and return to planning for rework. Both members
-must complete before the demo enables the explicit review handoff. Unassign
-moves ownership to the remaining member, or queues the box when none remain.
-The factory still draws and counts one box for that task.
-
-## Paper diorama preview
-
-The default demo now uses compact paper rooms, thick card
-platforms, folded braces, illustrated signs mounted directly atop the back
-walls, theme-colored desks, small paper
-furnishings and illustrated standee agents. The paper camera uses a lower 38-degree fixed perspective
-view to expose desk fronts and conveyor supports, with nearer rooms appearing
-larger; legacy keeps its 50-degree orthographic view. Raised paper conveyors have folded legs and feet, and parcels ride at
-the deck height. Paper-mode Fit all frames both dimensions and leaves space for the HUD.
-Stations fill left-to-right, three pets per row. A room widens for its second
-and third stations, then adds depth for its fourth and seventh; full-size
-desks keep their spacing. Vacancies are reused before growth, and Reorganize
-compacts them. In the demo, choose Implementation and click **Add agent**
-successively to see the first, second and third rows form. **Fit all** frames
-the floor after it expands. Room growth and configured conveyor handoffs
-remain live. The main conveyor
-runs across the front desks and turns through the lower row. Bypasses and rework
-use exterior paths around room footprints; local return lanes and row
-distribution junctions stay inside each building.
-
-Use `appearance="legacy"` on Factory/RoomFactory for the old environment and
-characters; the demo exposes this at `/?art=legacy`. Explicit agent sprite
-URLs/indices and custom role wardrobes remain supported. Paper standees
-retain walking, work poses, status badges, shared task labels and human waits.
-
-Architecture and most furniture are authored meshes with shared geometry/materials;
-the standee cast and signage are authored canvas artwork. Four sparse Comfy Cloud
-furnishings now distinguish the presets: a research-lab specimen cabinet,
-foundry press, factory parts organizer and fabrication paper cutter. They
-use solid palette colors with shared paper shading. Source concepts, raw
-models, costs and reproducible cleanup records are retained under
-`tools/assets/room-themes/`; see
-[the asset brief](docs/design/room-theme-assets.md) and [art terms](ASSETS.md).
-Preview the [four-prop gallery](http://localhost:3000/e2e/fixtures/theme-art.html)
-and [asset verification](docs/screenshots/theme-assets/README.md).
-The design reference remains `docs/design/paper-diorama-concept.png`.
-
-Repeating belts and desks are instanced in four-tile spatial groups while
-settled and restored to named pieces for room glides. The paper view uses a
-single cached soft VSM directional shadow map, refreshed during layout changes and glides. Moving parcels do not cast into that static map. Source resources are released with
-the view; existing shared label caches remain page-scoped.
-
-With localhost:3000 running, reproduce the comparison using:
-`devcontainer exec --workspace-folder . node tools/measure-paper.mjs`.
-Fixtures contain 20 agents/30 tasks and 100 agents/150 tasks. Results and
-actual-browser screenshots are in `docs/screenshots/paper/`.
-
-The optional `onRenderMetrics` callback, supplied at mount, reports 30-frame
-average intervals, draw calls, triangles, geometry/texture counts and estimated
-source RGBA texture bytes. That byte estimate excludes shadow-map/framebuffer
-storage and is not measured GPU allocation. Large maps are pannable: metrics
-describe the current visible viewport, not all agents visible simultaneously.
-Software-rendered Chromium is a reproducible regression check, not a promise
-of hardware frame rates. The 60 fps normal target needs a hardware check.
-
-Earlier paper-preview baseline, before the raised conveyors and perspective correction,
-measured with Chromium 156/ANGLE SwiftShader (software rendering), 1280×800, DPR 1, after warmup:
-
-| Appearance | Agents / tasks | Mean frame interval | Draw calls (last sample) | Estimated source textures |
-| --- | --- | ---: | ---: | ---: |
-| legacy | 20 / 30 | 26.04 ms | 1054 | 3.3 MiB |
-| paper | 20 / 30 | 39.79 ms | 876 | 19.4 MiB |
-| legacy | 100 / 150 | 28.19 ms | 1142 | 10.9 MiB |
-| paper | 100 / 150 | 41.25 ms | 837 | 29.4 MiB |
-
-These results cover settled scenes. Room glides regenerate shadows and can be slower. Later props should stay within this measured envelope until hardware profiling establishes more headroom.
-
-
-The paper demo supplies a pet cast through `petAssets`: rabbit planning,
-cat implementation, owl review and fox deployment, with a corgi available
-for host-supplied intake agents. Intake is an outdoor hopper with one outgoing
-belt and a downstream splitter; it has no enclosure or dedicated worker. Pass
-per-agent, per-role or default image/sprite-sheet URLs to `RoomFactory` or
-`Factory`; see [the pet asset contract](docs/room-contract.md#pet-assets).
-The entire outdoor ground is paper grass, with folded-paper trees around
-the perimeter and a clear truck road. Each room has a distinct paper
-floor pattern. Pets work with alternating paw poses and wave when they need
-human attention. Active human requests select the animation without changing
-the host's status, and clearing the request restores its normal animation.
-A delivery truck waits in side view on a horizontal road continuing out of
-the scene. Its open rear connects to the conveyor exiting the left side of deployment;
-shipped boxes ride into its cargo bay. A paper counter on the truck shows how
-many tasks have arrived, including zero before the first shipment. It stays
-parked while the host controls shipping. Fit all includes the truck and loading conveyor without trying to
-frame the distant grass or road. Splitters and mergers mark conveyor junctions;
-all paper conveyor decks share the same sage color. Junctions are raised
-four-port paper housings, with conveyors entering connected side openings
-and fitted paper covers closing unused ports. Conveyors fade into dark
-interiors at connected openings. Conveyors enter and leave rooms only through
-the left and right walls. Rear walls stay solid. Actual side crossings have
-raised cream cardstock frames and shadowed splitter/merger housings,
-including straight-through belts. Inside, feeder and collector junctions
-serve each agent row. Deployment is physically last, with its right inlet
-upstream of its agents and its left truck exit downstream; incoming routes
-cannot join the loading belt before reaching a deployment workstation.
-Shared pulp grain, fibers and subtle surface relief give the walls, floors,
-furniture, conveyors, grass and truck a visible paper texture.
+- [GLOSSARY.md](GLOSSARY.md): domain vocabulary.
+- [Architecture decisions](docs/adr/): snapshots, layout, routing and rendering.
+- [ASSETS.md](ASSETS.md): art provenance and terms.
+- [MIT license](LICENSE): code license.

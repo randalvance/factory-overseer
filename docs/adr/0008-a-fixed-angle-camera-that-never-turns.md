@@ -33,5 +33,14 @@ sprites' projection. Paper standees are camera-facing illustrations, while
 explicit host sprites remain supported. Fit All accounts for the projected
 floor, raised decks and elevated signs, and keeps the HUD clear. Pointer
 panning in perspective anchors the ground under the drag so depth does not
-make the floor slip relative to the pointer. Zoom, focus, task following and
+make the floor slip relative to the pointer. Focus, task following and
 keyboard navigation keep their existing contracts.
+
+Paper Fit All may zoom below half scale to fit the complete model into a
+narrow or shallow canvas. Initial framing and each explicit Fit All remember
+that fitted scale as the lower zoom limit when it is below half; wheel,
+pinch and keyboard controls can return smoothly to it. The upper limit is
+still four times, and legacy zoom stays between half and four times. Resize
+and room growth preserve the current pose until the overseer asks to fit
+again. Narrow views reserve extra room for the wrapped HUD. Maps too deep
+for this perspective camera still open on a pannable portion of the floor.
