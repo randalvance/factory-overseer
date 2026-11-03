@@ -18,7 +18,7 @@ export interface CameraPose {
   zoom: number
 }
 
-/** Half shows the whole floor; four times reads a tablet. */
+/** Legacy manual zoom floor; the paper view can use its smaller fitted zoom. */
 export const ZOOM_MIN = 0.5
 export const ZOOM_MAX = 4
 /** Screen pixels across one tile at zoom 1. */
@@ -40,19 +40,24 @@ const FIT_MARGIN = 1
 /** Height of what stands on the floor, in tiles, so framing leaves room for it. */
 const HEADROOM = 2
 
-export function zoomBy(pose: CameraPose, deltaY: number): CameraPose {
-  return { ...pose, zoom: clamp(pose.zoom * 2 ** (-deltaY / WHEEL_PX_PER_DOUBLING), ZOOM_MIN, ZOOM_MAX) }
+/** Keep the target when changing appearance, restoring legacy zoom limits without reframing. */
+export function cameraPoseForAppearance(pose: CameraPose, appearance: "paper" | "legacy"): CameraPose {
+  return appearance === "paper" ? pose : { ...pose, zoom: clamp(pose.zoom, ZOOM_MIN, ZOOM_MAX) }
+}
+
+export function zoomBy(pose: CameraPose, deltaY: number, minimumZoom = ZOOM_MIN): CameraPose {
+  return { ...pose, zoom: clamp(pose.zoom * 2 ** (-deltaY / WHEEL_PX_PER_DOUBLING), minimumZoom, ZOOM_MAX) }
 }
 
 /** One press of a zoom key: in for 1, out for -1. */
-export function zoomStep(pose: CameraPose, direction: 1 | -1): CameraPose {
-  return { ...pose, zoom: clamp(pose.zoom * ZOOM_STEP ** direction, ZOOM_MIN, ZOOM_MAX) }
+export function zoomStep(pose: CameraPose, direction: 1 | -1, minimumZoom = ZOOM_MIN): CameraPose {
+  return { ...pose, zoom: clamp(pose.zoom * ZOOM_STEP ** direction, minimumZoom, ZOOM_MAX) }
 }
 
 /** A pinch: the distance between the fingers went from one length to another, in pixels, and the zoom scales with it. Fingers with no distance between them pinch nothing. */
-export function pinchBy(pose: CameraPose, from: number, to: number): CameraPose {
+export function pinchBy(pose: CameraPose, from: number, to: number, minimumZoom = ZOOM_MIN): CameraPose {
   if (from <= 0 || to <= 0) return pose
-  return { ...pose, zoom: clamp((pose.zoom * to) / from, ZOOM_MIN, ZOOM_MAX) }
+  return { ...pose, zoom: clamp((pose.zoom * to) / from, minimumZoom, ZOOM_MAX) }
 }
 
 /** Move the target so the floor follows a drag of dx, dy screen pixels. Depth is foreshortened by the pitch. */
@@ -179,10 +184,12 @@ export function fitDioramaLayout(layout: Layout, viewport: Viewport): CameraPose
 
 /** Frame the complete paper model in perspective, including raised rear belts,
  * sign tops and the cardstock base; keep the canvas HUD above the composition.
- * A map beyond the manual zoom range remains pannable.
+ * Fit may zoom below the legacy minimum; maps deeper than the perspective
+ * camera can contain still open on a pannable portion.
  */
 export function fitDiorama(floor: Rect, viewport: Viewport, pitch = PAPER_PITCH, modelPoints?: readonly PaperPoint[]): CameraPose {
-  const hudPixels = 48
+  // Narrow headers wrap counts and controls into additional lines.
+  const hudPixels = viewport.width <= 600 ? 96 : 48
   const x = floor.x + floor.w / 2
   // Very deep maps cannot fit at the minimum zoom. Start at the back, with
   // the visible portion in front of the camera rather than behind its eye.
@@ -209,9 +216,9 @@ export function fitDiorama(floor: Rect, viewport: Viewport, pitch = PAPER_PITCH,
     const right = Math.max(...projected.map((point) => point.x))
     const top = Math.min(...projected.map((point) => point.y))
     const bottom = Math.max(...projected.map((point) => point.y))
-    const widthZoom = viewport.width / (right - left + 2 * FIT_MARGIN * PX_PER_TILE)
+    const widthZoom = Math.max(1, viewport.width) / (right - left + 2 * FIT_MARGIN * PX_PER_TILE)
     const heightZoom = Math.max(1, viewport.height - hudPixels) / (bottom - top + 2 * FIT_MARGIN * PX_PER_TILE)
-    const zoom = clamp(Math.min(widthZoom, heightZoom), ZOOM_MIN, ZOOM_MAX)
+    const zoom = Math.min(widthZoom, heightZoom, ZOOM_MAX)
     const centerError = (top + bottom) / 2 - hudPixels / (2 * zoom)
     pose = { x: pose.x + (left + right) / (2 * PX_PER_TILE), z: pose.z + centerError / (PX_PER_TILE * Math.sin(pitch)), zoom }
   }

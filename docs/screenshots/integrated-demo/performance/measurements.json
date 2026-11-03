@@ -1,0 +1,302 @@
+[
+  {
+    "art": "legacy",
+    "agents": 20,
+    "tasks": 30,
+    "viewport": "1280x800",
+    "samples": [
+      {
+        "frameMs": 16.66333333333333,
+        "calls": 446,
+        "triangles": 6458,
+        "geometries": 108,
+        "textures": 23,
+        "estimatedTextureBytes": 8255573
+      },
+      {
+        "frameMs": 16.669999999999998,
+        "calls": 446,
+        "triangles": 6458,
+        "geometries": 108,
+        "textures": 23,
+        "estimatedTextureBytes": 8255573
+      },
+      {
+        "frameMs": 16.663333333333338,
+        "calls": 446,
+        "triangles": 6458,
+        "geometries": 108,
+        "textures": 23,
+        "estimatedTextureBytes": 8255573
+      },
+      {
+        "frameMs": 16.666666666666668,
+        "calls": 446,
+        "triangles": 6458,
+        "geometries": 108,
+        "textures": 23,
+        "estimatedTextureBytes": 8255573
+      },
+      {
+        "frameMs": 16.666666666666682,
+        "calls": 446,
+        "triangles": 6458,
+        "geometries": 108,
+        "textures": 23,
+        "estimatedTextureBytes": 8255573
+      },
+      {
+        "frameMs": 16.66333333333332,
+        "calls": 446,
+        "triangles": 6458,
+        "geometries": 108,
+        "textures": 23,
+        "estimatedTextureBytes": 8255573
+      },
+      {
+        "frameMs": 16.670000000000012,
+        "calls": 446,
+        "triangles": 6458,
+        "geometries": 108,
+        "textures": 23,
+        "estimatedTextureBytes": 8255573
+      },
+      {
+        "frameMs": 16.666666666666668,
+        "calls": 446,
+        "triangles": 6458,
+        "geometries": 108,
+        "textures": 23,
+        "estimatedTextureBytes": 8255573
+      }
+    ],
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "dpr": 1
+  },
+  {
+    "art": "paper",
+    "agents": 20,
+    "tasks": 30,
+    "viewport": "1280x800",
+    "samples": [
+      {
+        "frameMs": 66.11,
+        "calls": 529,
+        "triangles": 41438,
+        "geometries": 117,
+        "textures": 31,
+        "estimatedTextureBytes": 19361877
+      },
+      {
+        "frameMs": 61.66333333333332,
+        "calls": 529,
+        "triangles": 41438,
+        "geometries": 117,
+        "textures": 31,
+        "estimatedTextureBytes": 19361877
+      },
+      {
+        "frameMs": 66.11000000000004,
+        "calls": 529,
+        "triangles": 41438,
+        "geometries": 117,
+        "textures": 31,
+        "estimatedTextureBytes": 19361877
+      },
+      {
+        "frameMs": 63.88666666666662,
+        "calls": 529,
+        "triangles": 41438,
+        "geometries": 117,
+        "textures": 31,
+        "estimatedTextureBytes": 19361877
+      },
+      {
+        "frameMs": 61.663333333333384,
+        "calls": 529,
+        "triangles": 41438,
+        "geometries": 117,
+        "textures": 31,
+        "estimatedTextureBytes": 19361877
+      },
+      {
+        "frameMs": 62.22333333333336,
+        "calls": 529,
+        "triangles": 41438,
+        "geometries": 117,
+        "textures": 31,
+        "estimatedTextureBytes": 19361877
+      },
+      {
+        "frameMs": 62.773333333333234,
+        "calls": 529,
+        "triangles": 41438,
+        "geometries": 117,
+        "textures": 31,
+        "estimatedTextureBytes": 19361877
+      },
+      {
+        "frameMs": 61.663333333333384,
+        "calls": 529,
+        "triangles": 41438,
+        "geometries": 117,
+        "textures": 31,
+        "estimatedTextureBytes": 19361877
+      }
+    ],
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "dpr": 1
+  },
+  {
+    "art": "legacy",
+    "agents": 100,
+    "tasks": 150,
+    "viewport": "1280x800",
+    "samples": [
+      {
+        "frameMs": 17.220000000000006,
+        "calls": 464,
+        "triangles": 5702,
+        "geometries": 84,
+        "textures": 38,
+        "estimatedTextureBytes": 16267349
+      },
+      {
+        "frameMs": 16.666666666666668,
+        "calls": 464,
+        "triangles": 5702,
+        "geometries": 84,
+        "textures": 38,
+        "estimatedTextureBytes": 16267349
+      },
+      {
+        "frameMs": 17.223333333333326,
+        "calls": 464,
+        "triangles": 5702,
+        "geometries": 84,
+        "textures": 38,
+        "estimatedTextureBytes": 16267349
+      },
+      {
+        "frameMs": 17.219999999999995,
+        "calls": 464,
+        "triangles": 5702,
+        "geometries": 84,
+        "textures": 38,
+        "estimatedTextureBytes": 16267349
+      },
+      {
+        "frameMs": 17.219999999999995,
+        "calls": 464,
+        "triangles": 5702,
+        "geometries": 84,
+        "textures": 38,
+        "estimatedTextureBytes": 16267349
+      },
+      {
+        "frameMs": 16.666666666666668,
+        "calls": 464,
+        "triangles": 5702,
+        "geometries": 84,
+        "textures": 38,
+        "estimatedTextureBytes": 16267349
+      },
+      {
+        "frameMs": 17.223333333333326,
+        "calls": 464,
+        "triangles": 5702,
+        "geometries": 84,
+        "textures": 38,
+        "estimatedTextureBytes": 16267349
+      },
+      {
+        "frameMs": 17.220000000000013,
+        "calls": 464,
+        "triangles": 5702,
+        "geometries": 84,
+        "textures": 38,
+        "estimatedTextureBytes": 16267349
+      }
+    ],
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "dpr": 1
+  },
+  {
+    "art": "paper",
+    "agents": 100,
+    "tasks": 150,
+    "viewport": "1280x800",
+    "samples": [
+      {
+        "frameMs": 63.88333333333336,
+        "calls": 691,
+        "triangles": 50238,
+        "geometries": 124,
+        "textures": 37,
+        "estimatedTextureBytes": 29847637
+      },
+      {
+        "frameMs": 65.55333333333328,
+        "calls": 692,
+        "triangles": 50240,
+        "geometries": 124,
+        "textures": 37,
+        "estimatedTextureBytes": 29847637
+      },
+      {
+        "frameMs": 63.88666666666668,
+        "calls": 690,
+        "triangles": 50236,
+        "geometries": 124,
+        "textures": 37,
+        "estimatedTextureBytes": 29847637
+      },
+      {
+        "frameMs": 63.32999999999999,
+        "calls": 693,
+        "triangles": 50242,
+        "geometries": 124,
+        "textures": 37,
+        "estimatedTextureBytes": 29847637
+      },
+      {
+        "frameMs": 64.44333333333331,
+        "calls": 697,
+        "triangles": 50250,
+        "geometries": 124,
+        "textures": 37,
+        "estimatedTextureBytes": 29847637
+      },
+      {
+        "frameMs": 62.773333333333355,
+        "calls": 692,
+        "triangles": 50240,
+        "geometries": 124,
+        "textures": 37,
+        "estimatedTextureBytes": 29847637
+      },
+      {
+        "frameMs": 64.44333333333331,
+        "calls": 695,
+        "triangles": 50246,
+        "geometries": 124,
+        "textures": 37,
+        "estimatedTextureBytes": 29847637
+      },
+      {
+        "frameMs": 63.33000000000005,
+        "calls": 694,
+        "triangles": 50244,
+        "geometries": 124,
+        "textures": 37,
+        "estimatedTextureBytes": 29847637
+      }
+    ],
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "dpr": 1
+  }
+]

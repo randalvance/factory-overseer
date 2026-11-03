@@ -1,4 +1,4 @@
-import type { RoomConfiguration, RoomFactoryState, RoomTransition, Snapshot } from "./types"
+import type { HumanAttentionRequest, RoomConfiguration, RoomFactoryState, RoomSnapshot, RoomTransition, Snapshot } from "./types"
 import { validateRoomState, type RoomContractError } from "./roomValidation"
 
 /** Directed BFS; configuration order breaks ties. Cycles and merges are valid. */
@@ -38,15 +38,19 @@ export function validateRoomUpdate(previous: RoomFactoryState | undefined, candi
   return errors
 }
 
+/** Explicit agents take precedence, followed by task participants, then all room members. */
+export function humanRequestAgentIds(snapshot: RoomSnapshot, request: HumanAttentionRequest): readonly string[] {
+  if (request.agentIds.length) return request.agentIds
+  const task = snapshot.tasks.find((task) => task.id === request.taskId)
+  const assigned = task?.at.kind === "room" ? task.at.assignment?.agentIds : undefined
+  return assigned?.length ? assigned : snapshot.agents.filter((agent) => agent.roomId === request.roomId).map((agent) => agent.id)
+}
+
 /** One physical box at the first member; association metadata reaches every participant. */
 export function roomSnapshotForView(state: RoomFactoryState): Snapshot {
   const humanNeededAgentIds = new Set<string>()
   for (const request of state.snapshot.humanRequests) {
-    const task = state.snapshot.tasks.find((task) => task.id === request.taskId)
-    const assigned = task?.at.kind === "room" ? task.at.assignment?.agentIds : undefined
-    const targets = request.agentIds.length ? request.agentIds : assigned?.length ? assigned :
-      state.snapshot.agents.filter((agent) => agent.roomId === request.roomId).map((agent) => agent.id)
-    for (const id of targets) humanNeededAgentIds.add(id)
+    for (const id of humanRequestAgentIds(state.snapshot, request)) humanNeededAgentIds.add(id)
   }
   return {
     humanNeededAgentIds: [...humanNeededAgentIds],

@@ -28,6 +28,40 @@ update fails validation. The legacy Factory API remains available.
 onHumanNeeded is optional. It reports accepted active requests to your host;
 the factory never supplies an answer or decides when to resume work.
 
+## Source integration and demo acceptance
+
+The source entry points are `RoomFactory` / `RoomFactoryProps` in
+`src/factory/RoomFactory.tsx`, room state and `OnHumanNeeded` types in
+`src/model/types.ts`, and `FactoryHandle` in `src/factory/Factory.tsx`.
+Theme definitions are also re-exported from `src/model/types.ts`; pet asset
+types are exported from `src/factory/Factory.tsx`. Import the shared
+`src/styles.css` and give the component a positioned container with an
+explicit height. The README contains a complete source-integration example.
+Package-level distribution and its library build remain tracked in #16;
+these source exports and this contract remain the reference for that work.
+
+Room HUD counts show agents, in-flight tasks, active human requests and
+shipped tasks. Requests are counted independently of tasks: two requests
+may concern one task, while a task shared by several agents still counts
+once. Legacy mode retains its staging-area review count.
+
+Agent cards show their room and relevant active requests. Task cards show
+current room, participants, completed members and active requests. A room
+trail records actual changes of room or terminal shipping, keeping the label
+observed at each visit. Reassignment, completion and host renaming do not
+invent travel; earlier labels survive removal of a room from configuration.
+These trails describe this mounted session, not a persisted audit log.
+
+The default demo is a deterministic host driven by explicit control actions.
+Resolving a request leaves its task in place until the host sends it onward;
+completion of all shared members enables that action without taking it.
+The legacy demo retains ADR 0009's seeded beat runtime. No renderer clock
+chooses branches, answers questions or ships work.
+
+[Integrated verification](screenshots/integrated-demo/README.md) covers both
+intake branches, questions and answers, shared completion, rework, configured
+QA, growth, artwork changes and terminal shipping through the public UI.
+
 ## Configuration
 
 Each Room has a stable id, label, role and kind: intake, work or deployment.

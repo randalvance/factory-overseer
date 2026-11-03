@@ -44,6 +44,7 @@ export function RoutingDemo() {
   const [riding, setRiding] = useState<Set<string>>(new Set())
   const [unrouted, setUnrouted] = useState<string[]>([])
   const [follow, setFollow] = useState(true)
+  const [controlsInitiallyOpen] = useState(() => window.matchMedia("(min-width: 900px)").matches)
   const task = state.snapshot.tasks.find((task) => task.id === selected)!
   const room = state.configuration.rooms.find((room) => room.id === task.at.roomId)!
   const hasQA = state.configuration.rooms.some((room) => room.id === "qa")
@@ -193,20 +194,26 @@ export function RoutingDemo() {
   const assignment = task.at.kind === "room" ? task.at.assignment : undefined
   const joinBlocked = shared && !implementationReady(state, selected)
   return <main className={new URLSearchParams(location.search).get("art") === "legacy" ? "demo" : "demo paper-demo"}>
-    <header className="demo-header">
-      <h1>Factory Overseer</h1><span>Paper workshop</span>
+    <header className="demo-header routing-demo-header">
+      <div className="demo-brand"><h1>Factory Overseer</h1><span>Paper workshop</span></div>
       <div className="demo-controls">
-        <span className="demo-cluster">
-          <select aria-label="Task" value={selected} onChange={(event) => setSelected(event.target.value)}>
+        <section className="demo-control-group demo-task-controls" aria-label="Task controls">
+          <h2>Tasks</h2>
+          <div className="demo-cluster">
+          <label>Task <select aria-label="Task" value={selected} onChange={(event) => setSelected(event.target.value)}>
             {state.snapshot.tasks.map((task) => <option key={task.id} value={task.id}>{task.label}</option>)}
-          </select>
+          </select></label>
           <button onClick={() => addTask(true)}>Add planning task</button>
           <button onClick={() => addTask(false)}>Add direct task</button>
-          <button onClick={() => moveTo(task.at.roomId === "deployment" ? "shipped" : edge!.to)} disabled={!handle || joinBlocked || waitingForHuman || riding.has(selected) || task.at.kind === "shipped" || (!edge && task.at.roomId !== "deployment")}>{routeLabel}</button>
+          <button onClick={() => handle?.inspect({ task: selected })} disabled={!handle}>Inspect task</button>
+          <button className="demo-next-action" onClick={() => moveTo(task.at.roomId === "deployment" ? "shipped" : edge!.to)} disabled={!handle || joinBlocked || waitingForHuman || riding.has(selected) || task.at.kind === "shipped" || (!edge && task.at.roomId !== "deployment")}>{routeLabel}</button>
           <button onClick={() => moveTo("planning")} disabled={!handle || waitingForHuman || riding.has(selected) || task.at.roomId !== "implementation"}>Return to planning</button>
-        </span>
-        <span className="demo-cluster">
-          <select aria-label="Room" value={roomChoice} onChange={(event) => setRoomChoice(event.target.value)}>{choices}</select>
+          </div>
+        </section>
+        <details className="demo-control-group" open={controlsInitiallyOpen}>
+          <summary>Rooms and appearance</summary>
+          <div className="demo-cluster">
+          <label>Room <select aria-label="Room" value={roomChoice} onChange={(event) => setRoomChoice(event.target.value)}>{choices}</select></label>
           <label>Theme <select aria-label="Room theme" value={state.configuration.rooms.find((room) => room.id === roomChoice)?.theme ?? "factory"} onChange={(event) => setRoomTheme(event.target.value)}>
             {Object.entries(ROOM_THEMES).map(([id, theme]) => <option key={id} value={id}>{theme.label}</option>)}
             {Object.entries(DEMO_ROOM_THEMES).map(([id, theme]) => <option key={id} value={id}>{theme.label} (custom)</option>)}
@@ -224,20 +231,23 @@ export function RoutingDemo() {
           <button onClick={() => setState((before) => ({ ...before, configuration: { ...before.configuration, transitions: hasBypass ?
             before.configuration.transitions.filter((edge) => edge.id !== "skip-plan") :
             [...before.configuration.transitions, { id: "skip-plan", from: "intake", to: "implementation", outcome: "ready" }] } }))}>{hasBypass ? "Remove bypass" : "Restore bypass"}</button>
-        </span>
-        <span className="demo-cluster">
+          </div>
+        </details>
+        <details className="demo-control-group" open={controlsInitiallyOpen}>
+          <summary>View and assistance</summary>
+          <div className="demo-cluster">
           <label>Speed <input type="range" aria-label="Speed" min="0.5" max="8" step="0.5" value={speed} onChange={(event) => setSpeed(Number(event.target.value))} />{speed}×</label>
           <label><input type="checkbox" checked={follow} onChange={(event) => setFollow(event.target.checked)} />Follow handoffs</label>
           <button onClick={() => handle?.focus({ task: selected })}>Follow task</button>
           <button onClick={() => askForHuman(selected, "help", "What help or clarification does this task need?")} disabled={!handle || waitingForHuman || riding.has(selected) || task.at.kind === "shipped"}>Ask for help</button>
           <button onClick={() => askForHuman(selected, "approval", "May this task continue?")} disabled={!handle || waitingForHuman || riding.has(selected) || task.at.kind === "shipped"}>Request approval</button>
-        </span>
+          </div>
+        </details>
       </div>
       {task.at.kind === "room" && task.at.roomId === "implementation" && <section className="shared-work" aria-label="Shared implementation">
-        <button onClick={() => handle?.inspect({ task: selected })}>Inspect task</button>
         <button onClick={shareTask} disabled={!handle || waitingForHuman || riding.has(selected)}>Assign two implementers</button>
         {shared && <>
-          <span>{assignment?.completedAgentIds.length ?? 0}/{assignment?.agentIds.length ?? 0} complete · {joinBlocked ? "waiting for participants" : "ready for host handoff"}</span>
+          <span>{assignment?.completedAgentIds.length ?? 0}/{assignment?.agentIds.length ?? 0} complete · {joinBlocked ? "waiting for participants" : "ready to send onward"}</span>
           {assignment?.agentIds.map((id) => {
             const agent = state.snapshot.agents.find((agent) => agent.id === id)!
             const complete = assignment.completedAgentIds.includes(id)

@@ -1,8 +1,10 @@
 import { chromium } from "@playwright/test"
 import { mkdir, writeFile } from "node:fs/promises"
+import { join } from "node:path"
 const browser = await chromium.launch({ headless: true })
 const results = []
-await mkdir("docs/screenshots/paper", { recursive: true })
+const outputDir = process.env.PAPER_MEASURE_DIR ?? "docs/screenshots/paper"
+await mkdir(outputDir, { recursive: true })
 for (const large of [false, true]) for (const art of ["legacy", "paper"]) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 })
   await page.goto("http://127.0.0.1:3000/e2e/fixtures/paper.html?art=" + art + (large ? "&large" : ""))
@@ -23,13 +25,13 @@ const page = await browser.newPage({ viewport: { width: 1536, height: 1024 }, de
 await page.goto("http://127.0.0.1:3000")
 await page.waitForSelector('[data-drawn="1"]')
 await page.waitForTimeout(1500)
-await page.screenshot({ path: "docs/screenshots/paper/overview.png" })
+await page.screenshot({ path: join(outputDir, "overview.png") })
 await page.getByRole("combobox", { name: "Task", exact: true }).selectOption("task-2")
 await page.getByRole("button", { name: "Send to Implementation", exact: true }).click()
 await page.waitForFunction(() => document.querySelector('[role="status"]').textContent.includes("in Implementation"), undefined, { timeout: 60000 })
 await page.mouse.move(800, 650)
 await page.mouse.wheel(0, -300)
 await page.waitForTimeout(1500)
-await page.screenshot({ path: "docs/screenshots/paper/closeup.png" })
-await writeFile("docs/screenshots/paper/measurements.json", JSON.stringify(results, null, 2) + "\n")
+await page.screenshot({ path: join(outputDir, "closeup.png") })
+await writeFile(join(outputDir, "measurements.json"), JSON.stringify(results, null, 2) + "\n")
 await browser.close()
