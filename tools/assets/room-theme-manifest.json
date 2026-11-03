@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "issue": 26,
-  "status": "pilot-awaiting-user-review",
+  "status": "integrated-and-browser-verified",
   "brief": "docs/design/room-theme-assets.md",
   "trialAssetId": "lab-specimen-cabinet",
   "spendAllowance": {
@@ -11,8 +11,8 @@
     "authorization": "User: 1,500 credits for all four; review pilot first",
     "inheritedFromIssue14": false,
     "scope": "All four room theme props, including the pilot. User review of lab cabinet required before generating remaining three.",
-    "spent": 603.68,
-    "remaining": 896.32,
+    "spent": 1328.48,
+    "remaining": 171.52,
     "costBasis": "Comfy post-run api_usage_completed credits_used; display estimate, not an invoice"
   },
   "style": {
@@ -55,7 +55,7 @@
       "id": "lab-specimen-cabinet",
       "theme": "research-lab",
       "name": "Folded paper specimen cabinet",
-      "status": "awaiting-user-review",
+      "status": "integrated",
       "slot": "decoration",
       "retain": {
         "floor": "blue-grid",
@@ -253,24 +253,25 @@
         }
       },
       "review": {
-        "browserStatus": "passed; user visual review pending",
+        "browserStatus": "passed isolated, mixed room and seven-agent growth",
         "screenshots": [
-          "docs/screenshots/theme-assets/lab-cabinet-gallery.png",
-          "docs/screenshots/theme-assets/lab-cabinet-in-room.png",
-          "docs/screenshots/theme-assets/lab-cabinet-expanded-seven.png"
+          "docs/screenshots/theme-assets/four-prop-gallery.png",
+          "docs/screenshots/theme-assets/four-theme-in-room.png",
+          "docs/screenshots/theme-assets/four-theme-expanded-seven.png"
         ],
-        "renderMetrics": "docs/screenshots/theme-assets/lab-cabinet-room-metrics.json",
-        "measurements": "docs/screenshots/theme-assets/lab-cabinet-measurements.json",
-        "reviewPage": "http://localhost:3000/e2e/fixtures/theme-art.html",
-        "userApproved": false,
-        "notes": "One cabinet remains visible per room through seven-agent growth. Shared scene paper shading supplies surface fibers; generated albedo was explicitly recolored to three palette colors after 512px texture cleanup produced seams."
+        "renderMetrics": "docs/screenshots/theme-assets/four-theme-room-metrics.json",
+        "measurements": "docs/screenshots/theme-assets/lab-specimen-cabinet-measurements.json",
+        "reviewPage": "http://localhost:3000/e2e/fixtures/theme-art.html?theme=research-lab",
+        "userApproved": true,
+        "notes": "One cabinet remains visible per room through seven-agent growth. Shared scene paper shading supplies surface fibers; generated albedo was explicitly recolored to three palette colors after 512px texture cleanup produced seams.",
+        "approval": "2026-11-03: user said Continue after pilot review checkpoint"
       }
     },
     {
       "id": "foundry-press",
       "theme": "foundry",
       "name": "Folded paper press",
-      "status": "planned",
+      "status": "integrated",
       "slot": "decoration",
       "retain": {
         "floor": "honey-planks",
@@ -293,11 +294,14 @@
       "description": "Muted ochre inverted-U press frame, cream central ram and broad kraft bed. The large central opening defines its silhouette. Broad folded cardboard structural pieces; no metal, hoses, sparks or tiny controls.",
       "generation": {
         "provider": "Comfy Cloud MCP",
-        "workflowId": null,
-        "modelIds": null,
-        "jobId": null,
-        "prompt": "A single isolated small folded-cardstock diorama furnishing, modeled with broad flat planar faces, visible warm cream cut edges, a few purposeful fold seams and a strong simple silhouette. Muted colors, matte opaque surfaces, clean untextured color regions suitable for a shared color atlas. Front details visible from a 38-degree elevated camera. +Y up, +Z front, bottom-center origin. No floor or surroundings. Muted ochre inverted-U press frame, cream central ram and broad kraft bed. The large central opening defines its silhouette. Broad folded cardboard structural pieces; no metal, hoses, sparks or tiny controls.",
-        "negativePrompt": "Photorealism, photographic textures, glossy plastic, shiny metal, transparent glass, PBR surface detail, dense greebles, wires, tiny knobs, text, lettering, numbers, logos, arrows, characters, pets, parcels, billboard, room, wall, ground plane, baked shadows, baked lighting, animation.",
+        "workflowId": "api_tripo_p2_image_to_model",
+        "modelIds": [
+          "seedream-5-0-pro-260628",
+          "P2"
+        ],
+        "jobId": "6c44256c-b029-415e-b711-86ec89e76bb5",
+        "prompt": "Use the attached diorama ONLY as reference for the folded-paper materials, muted palette and handmade construction. Generate ONE isolated hero prop: Folded paper press. Muted ochre inverted-U press frame, cream central ram and broad kraft bed. The large central opening defines its silhouette. Broad folded cardboard structural pieces; no metal, hoses, sparks or tiny controls. The accent color is #d5a145, warm cream #f4e6c9, kraft edges #c6b28f. Broad flat cardstock faces, thick folded edges and a few clear folds; large structurally solid parts and clean openings. Approximately 1.1 wide, 0.76 deep, 1.24 tall. Full object, front three-quarter view with only 15 degrees yaw, 30 degrees camera elevation. Centered fills 75% of square on completely plain light-gray background. Flat diffuse neutral illumination with minimal cast shadow. Matte opaque solid color regions, subtle paper fibers. No room, floor, ground plane, pedestal, text, lettering, numbers, labels, logos, arrows, pets, people, belts, glass, metal, plastic, glossy detail, dense machinery or baked dark shadow stains. Only this single furnishing.",
+        "negativePrompt": null,
         "inputReferences": [
           {
             "path": "docs/design/paper-diorama-concept.png",
@@ -305,45 +309,159 @@
             "sha256": "10afa6ed2d709a7af1325a719c7adad7db5f7bf009c3af3061c2e736f8ed2f01"
           }
         ],
-        "requestPath": null,
-        "rawOutputs": [],
-        "quotedCost": null,
-        "actualCost": null,
-        "currency": null,
-        "generatedAt": null
+        "requestPath": "tools/assets/room-themes/foundry-press/mesh-request.json",
+        "rawOutputs": [
+          {
+            "path": "tools/assets/room-themes/foundry-press/source/concept.png",
+            "sha256": "a3d20efda94aceb40da5d15bf37940693e44c1372fbea9632a7d6075a74ee536"
+          },
+          {
+            "path": "tools/assets/room-themes/foundry-press/source/model.glb",
+            "sha256": "00ce0846037c61fbd3e6037478ac9544994b9b29954acf99adc30ee7f2ece5e7"
+          }
+        ],
+        "quotedCost": 241.6,
+        "actualCost": 241.6,
+        "currency": "Comfy credits",
+        "generatedAt": "2026-11-03T15:30:11.039428Z",
+        "conceptJobId": "e6aa9c87-da34-4a6a-825b-3af850b41b1d",
+        "costBasis": "Comfy post-run api_usage_completed credits_used; display estimate, not a per-job invoice",
+        "negativeConstraints": "Included in concept prompt; no separate negative-prompt parameter was sent",
+        "stages": [
+          {
+            "stage": "concept",
+            "jobId": "e6aa9c87-da34-4a6a-825b-3af850b41b1d",
+            "status": "completed",
+            "model": "seedream-5-0-pro-260628",
+            "creditsUsed": 9.5,
+            "sourceNodeId": "2",
+            "outputFilename": "ae04d55ca4e39970e1a6b7280c6ddfaacb53864ef7a47f753d83645424a180f4.png",
+            "localPath": "tools/assets/room-themes/foundry-press/source/concept.png",
+            "sha256": "a3d20efda94aceb40da5d15bf37940693e44c1372fbea9632a7d6075a74ee536"
+          },
+          {
+            "stage": "mesh",
+            "jobId": "6c44256c-b029-415e-b711-86ec89e76bb5",
+            "status": "completed",
+            "model": "P2",
+            "creditsUsed": 232.1,
+            "sourceNodeId": "14",
+            "outputFilename": "73339ede83a10ef0882cda1b413c5f3f879c9380a010c35b79c95c0bed0a4ee1.glb",
+            "localPath": "tools/assets/room-themes/foundry-press/source/model.glb",
+            "sha256": "00ce0846037c61fbd3e6037478ac9544994b9b29954acf99adc30ee7f2ece5e7"
+          }
+        ]
       },
       "provenance": {
-        "source": null,
-        "providerTermsUrl": null,
-        "modelTermsUrl": null,
-        "redistributionRights": null,
-        "license": null,
-        "recordedAt": null
+        "source": "Paid Comfy Cloud Tripo P2 output using retained Seedream 5.0 Pro concept.",
+        "providerTermsUrl": "https://comfy.org/terms-of-service/",
+        "modelTermsUrl": "https://www.tripo3d.ai/terms",
+        "redistributionRights": "Comfy documents commercial use. Public terms reviewed do not explicitly map paid Comfy calls to Tripo plan entitlements. No unrestricted/MIT raw-asset redistribution grant is asserted.",
+        "license": "Provider terms apply; excluded from repository MIT license.",
+        "recordedAt": "2026-11-03",
+        "rawSourceIdentifiers": "Unmodified provider GLBs and supplied metadata retained alongside requests, output filenames and job IDs."
       },
       "export": {
         "plannedRuntimePath": "public/assets/models/room-themes/foundry-press.glb",
-        "sourcePaths": [],
-        "script": null,
-        "command": null,
-        "blenderVersion": null,
-        "outputSha256": null,
-        "measuredTriangles": null,
-        "measuredMaterials": null,
-        "measuredTextureDimensions": null,
-        "measuredBytes": null,
-        "measuredBounds": null
+        "sourcePaths": [
+          "tools/assets/room-themes/foundry-press/source/model.glb"
+        ],
+        "script": "tools/blender/prepare_room_theme.py",
+        "command": [
+          "/Applications/Blender.app/Contents/MacOS/Blender",
+          "--background",
+          "--factory-startup",
+          "--python-exit-code",
+          "1",
+          "--python",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+          "--",
+          "--source",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/foundry-press/source/model.glb",
+          "--asset-id",
+          "foundry-press",
+          "--manifest",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/foundry-press/export-settings.json",
+          "--output",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/foundry-press.glb",
+          "--report",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/foundry-press/export-report.json",
+          "--yaw-degrees",
+          "-90.0",
+          "--paper-palette"
+        ],
+        "blenderVersion": "5.1.2",
+        "outputSha256": "fb99653ac73096d9c4068a7b33ad3db86f326de6476ee5ac780cafb50e9fae53",
+        "measuredTriangles": 1960,
+        "measuredMaterials": 1,
+        "measuredTextureDimensions": [],
+        "measuredBytes": 224288,
+        "measuredBounds": {
+          "minimum": [
+            -0.4403005540370941,
+            0.0,
+            -0.3800000250339508
+          ],
+          "maximum": [
+            0.4403005540370941,
+            1.0472536087036133,
+            0.3799999952316284
+          ],
+          "width": 0.8806011080741882,
+          "depth": 0.7600000202655792,
+          "height": 1.0472536087036133
+        },
+        "reportPath": "tools/assets/room-themes/foundry-press/export-report.json",
+        "settingsPath": "tools/assets/room-themes/foundry-press/export-settings.json",
+        "processing": {
+          "color": "Explicit recoloring: source sRGB albedo classified by seven interior samples per triangle into manifest accent/cream/kraft; flat opaque vertex colors, no texture",
+          "paperPalette": {
+            "accent": "#d5a145",
+            "cream": "#f4e6c9",
+            "kraft": "#c6b28f"
+          },
+          "paletteFaceCounts": {
+            "accent": 1302,
+            "cream": 558,
+            "kraft": 100
+          },
+          "discardedChannels": [
+            "metallic",
+            "roughness",
+            "normal",
+            "occlusion",
+            "emission"
+          ],
+          "shading": "flat",
+          "opaque": true,
+          "uniformScale": 1.0477652383360292,
+          "removedObjects": [],
+          "sourceExtensionsUsed": [],
+          "limitations": [
+            "Source-albedo shadows may classify as kraft facets; inspect the broad color regions visually.",
+            "Decimation and discrete color classification can change fine detail; browser review is required.",
+            "Rebuilds depend on the recorded Blender version; remote generation is not deterministic."
+          ]
+        }
       },
       "review": {
-        "browserStatus": "pending",
-        "screenshots": [],
-        "renderMetrics": null
+        "browserStatus": "passed isolated, mixed room and seven-agent growth",
+        "screenshots": [
+          "docs/screenshots/theme-assets/four-prop-gallery.png",
+          "docs/screenshots/theme-assets/four-theme-in-room.png",
+          "docs/screenshots/theme-assets/four-theme-expanded-seven.png"
+        ],
+        "renderMetrics": "docs/screenshots/theme-assets/four-theme-room-metrics.json",
+        "measurements": "docs/screenshots/theme-assets/foundry-press-measurements.json",
+        "reviewPage": "http://localhost:3000/e2e/fixtures/theme-art.html?theme=foundry",
+        "notes": "One furnishing remains visible per room through seven-agent growth. Explicit palette recoloring can classify source shadows and pale regions as kraft facets. Production-browser visual review confirmed readable silhouette and accent color without black wedges."
       }
     },
     {
       "id": "factory-parts-organizer",
       "theme": "factory",
       "name": "Folded paper parts organizer",
-      "status": "planned",
+      "status": "integrated",
       "slot": "decoration",
       "retain": {
         "floor": "sage-checker",
@@ -366,11 +484,14 @@
       "description": "Cream folded side panels, muted sage shelves and four wide open-front bins in two rows containing a few large paper blocks. Short rectangular storage silhouette. No labels and no loose scattered parts.",
       "generation": {
         "provider": "Comfy Cloud MCP",
-        "workflowId": null,
-        "modelIds": null,
-        "jobId": null,
-        "prompt": "A single isolated small folded-cardstock diorama furnishing, modeled with broad flat planar faces, visible warm cream cut edges, a few purposeful fold seams and a strong simple silhouette. Muted colors, matte opaque surfaces, clean untextured color regions suitable for a shared color atlas. Front details visible from a 38-degree elevated camera. +Y up, +Z front, bottom-center origin. No floor or surroundings. Cream folded side panels, muted sage shelves and four wide open-front bins in two rows containing a few large paper blocks. Short rectangular storage silhouette. No labels and no loose scattered parts.",
-        "negativePrompt": "Photorealism, photographic textures, glossy plastic, shiny metal, transparent glass, PBR surface detail, dense greebles, wires, tiny knobs, text, lettering, numbers, logos, arrows, characters, pets, parcels, billboard, room, wall, ground plane, baked shadows, baked lighting, animation.",
+        "workflowId": "api_tripo_p2_image_to_model",
+        "modelIds": [
+          "seedream-5-0-pro-260628",
+          "P2"
+        ],
+        "jobId": "f574c4ad-5bf2-406c-a3bd-209d966f141f",
+        "prompt": "Use the attached diorama ONLY as reference for the folded-paper materials, muted palette and handmade construction. Generate ONE isolated hero prop: Folded paper parts organizer. Cream folded side panels, muted sage shelves and four wide open-front bins in two rows containing a few large paper blocks. Short rectangular storage silhouette. No labels and no loose scattered parts. The accent color is #719881, warm cream #f4e6c9, kraft edges #c6b28f. Broad flat cardstock faces, thick folded edges and a few clear folds; large structurally solid parts and clean openings. Approximately 1.1 wide, 0.76 deep, 1.18 tall. Full object, front three-quarter view with only 15 degrees yaw, 30 degrees camera elevation. Centered fills 75% of square on completely plain light-gray background. Flat diffuse neutral illumination with minimal cast shadow. Matte opaque solid color regions, subtle paper fibers. No room, floor, ground plane, pedestal, text, lettering, numbers, labels, logos, arrows, pets, people, belts, glass, metal, plastic, glossy detail, dense machinery or baked dark shadow stains. Only this single furnishing.",
+        "negativePrompt": null,
         "inputReferences": [
           {
             "path": "docs/design/paper-diorama-concept.png",
@@ -378,45 +499,158 @@
             "sha256": "10afa6ed2d709a7af1325a719c7adad7db5f7bf009c3af3061c2e736f8ed2f01"
           }
         ],
-        "requestPath": null,
-        "rawOutputs": [],
-        "quotedCost": null,
-        "actualCost": null,
-        "currency": null,
-        "generatedAt": null
+        "requestPath": "tools/assets/room-themes/factory-parts-organizer/mesh-request.json",
+        "rawOutputs": [
+          {
+            "path": "tools/assets/room-themes/factory-parts-organizer/source/concept.png",
+            "sha256": "57a53edbc736c4b697e0d81e85ab9092b8efae8ba1cc3ea54f4ccba375009b11"
+          },
+          {
+            "path": "tools/assets/room-themes/factory-parts-organizer/source/model.glb",
+            "sha256": "fe4ad6d0e34c68dbac0377a113580479a08f4dc5a095e07b2399b52133cfaeb7"
+          }
+        ],
+        "quotedCost": 241.6,
+        "actualCost": 241.6,
+        "currency": "Comfy credits",
+        "generatedAt": "2026-11-03T15:33:43.315056Z",
+        "conceptJobId": "a31a0fff-022d-4256-996f-3a59cd1e384a",
+        "costBasis": "Comfy post-run api_usage_completed credits_used; display estimate, not a per-job invoice",
+        "negativeConstraints": "Included in concept prompt; no separate negative-prompt parameter was sent",
+        "stages": [
+          {
+            "stage": "concept",
+            "jobId": "a31a0fff-022d-4256-996f-3a59cd1e384a",
+            "status": "completed",
+            "model": "seedream-5-0-pro-260628",
+            "creditsUsed": 9.5,
+            "sourceNodeId": "2",
+            "outputFilename": "013f9e598185bd2d7b79ed990dd74c784bb6fef2d6ff49e31e20f776fd18a80e.png",
+            "localPath": "tools/assets/room-themes/factory-parts-organizer/source/concept.png",
+            "sha256": "57a53edbc736c4b697e0d81e85ab9092b8efae8ba1cc3ea54f4ccba375009b11"
+          },
+          {
+            "stage": "mesh",
+            "jobId": "f574c4ad-5bf2-406c-a3bd-209d966f141f",
+            "status": "completed",
+            "model": "P2",
+            "creditsUsed": 232.1,
+            "sourceNodeId": "14",
+            "outputFilename": "f668ec37aee55539d30a55875affcd12a26750a7580f5b35a925bff824abc156.glb",
+            "localPath": "tools/assets/room-themes/factory-parts-organizer/source/model.glb",
+            "sha256": "fe4ad6d0e34c68dbac0377a113580479a08f4dc5a095e07b2399b52133cfaeb7"
+          }
+        ]
       },
       "provenance": {
-        "source": null,
-        "providerTermsUrl": null,
-        "modelTermsUrl": null,
-        "redistributionRights": null,
-        "license": null,
-        "recordedAt": null
+        "source": "Paid Comfy Cloud Tripo P2 output using retained Seedream 5.0 Pro concept.",
+        "providerTermsUrl": "https://comfy.org/terms-of-service/",
+        "modelTermsUrl": "https://www.tripo3d.ai/terms",
+        "redistributionRights": "Comfy documents commercial use. Public terms reviewed do not explicitly map paid Comfy calls to Tripo plan entitlements. No unrestricted/MIT raw-asset redistribution grant is asserted.",
+        "license": "Provider terms apply; excluded from repository MIT license.",
+        "recordedAt": "2026-11-03",
+        "rawSourceIdentifiers": "Unmodified provider GLBs and supplied metadata retained alongside requests, output filenames and job IDs."
       },
       "export": {
         "plannedRuntimePath": "public/assets/models/room-themes/factory-parts-organizer.glb",
-        "sourcePaths": [],
-        "script": null,
-        "command": null,
-        "blenderVersion": null,
-        "outputSha256": null,
-        "measuredTriangles": null,
-        "measuredMaterials": null,
-        "measuredTextureDimensions": null,
-        "measuredBytes": null,
-        "measuredBounds": null
+        "sourcePaths": [
+          "tools/assets/room-themes/factory-parts-organizer/source/model.glb"
+        ],
+        "script": "tools/blender/prepare_room_theme.py",
+        "command": [
+          "/Applications/Blender.app/Contents/MacOS/Blender",
+          "--background",
+          "--factory-startup",
+          "--python-exit-code",
+          "1",
+          "--python",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+          "--",
+          "--source",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/factory-parts-organizer/source/model.glb",
+          "--asset-id",
+          "factory-parts-organizer",
+          "--manifest",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/factory-parts-organizer/export-settings.json",
+          "--output",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/factory-parts-organizer.glb",
+          "--report",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/factory-parts-organizer/export-report.json",
+          "--yaw-degrees",
+          "-90.0",
+          "--paper-palette"
+        ],
+        "blenderVersion": "5.1.2",
+        "outputSha256": "e98f3b3de8420d0cf60e3160f8583f0c4b64d3424917eec48963f46a284d2f98",
+        "measuredTriangles": 1959,
+        "measuredMaterials": 1,
+        "measuredTextureDimensions": [],
+        "measuredBytes": 224432,
+        "measuredBounds": {
+          "minimum": [
+            -0.5500000715255737,
+            0.0,
+            -0.30667755007743835
+          ],
+          "maximum": [
+            0.5500000715255737,
+            1.076339840888977,
+            0.30667755007743835
+          ],
+          "width": 1.1000001430511475,
+          "depth": 0.6133551001548767,
+          "height": 1.076339840888977
+        },
+        "reportPath": "tools/assets/room-themes/factory-parts-organizer/export-report.json",
+        "settingsPath": "tools/assets/room-themes/factory-parts-organizer/export-settings.json",
+        "processing": {
+          "color": "Explicit recoloring: source sRGB albedo classified by seven interior samples per triangle into manifest accent/cream/kraft; flat opaque vertex colors, no texture",
+          "paperPalette": {
+            "accent": "#719881",
+            "cream": "#f4e6c9",
+            "kraft": "#c6b28f"
+          },
+          "paletteFaceCounts": {
+            "accent": 1461,
+            "kraft": 498
+          },
+          "discardedChannels": [
+            "metallic",
+            "roughness",
+            "normal",
+            "occlusion",
+            "emission"
+          ],
+          "shading": "flat",
+          "opaque": true,
+          "uniformScale": 1.1025115402025178,
+          "removedObjects": [],
+          "sourceExtensionsUsed": [],
+          "limitations": [
+            "Source-albedo shadows may classify as kraft facets; inspect the broad color regions visually.",
+            "Decimation and discrete color classification can change fine detail; browser review is required.",
+            "Rebuilds depend on the recorded Blender version; remote generation is not deterministic."
+          ]
+        }
       },
       "review": {
-        "browserStatus": "pending",
-        "screenshots": [],
-        "renderMetrics": null
+        "browserStatus": "passed isolated, mixed room and seven-agent growth",
+        "screenshots": [
+          "docs/screenshots/theme-assets/four-prop-gallery.png",
+          "docs/screenshots/theme-assets/four-theme-in-room.png",
+          "docs/screenshots/theme-assets/four-theme-expanded-seven.png"
+        ],
+        "renderMetrics": "docs/screenshots/theme-assets/four-theme-room-metrics.json",
+        "measurements": "docs/screenshots/theme-assets/factory-parts-organizer-measurements.json",
+        "reviewPage": "http://localhost:3000/e2e/fixtures/theme-art.html?theme=factory",
+        "notes": "One furnishing remains visible per room through seven-agent growth. Explicit palette recoloring can classify source shadows and pale regions as kraft facets. Production-browser visual review confirmed readable silhouette and accent color without black wedges."
       }
     },
     {
       "id": "fabrication-paper-cutter",
       "theme": "fabrication-plant",
       "name": "Folded paper cutter",
-      "status": "planned",
+      "status": "integrated",
       "slot": "decoration",
       "retain": {
         "floor": "terracotta-bays",
@@ -439,11 +673,14 @@
       "description": "Low muted terracotta cutting table with cream paper stock stack and one raised broad folded lever. The asymmetric diagonal lever silhouette distinguishes it from an upright press. The lever is cardstock, with no metallic blade and no ruler lettering.",
       "generation": {
         "provider": "Comfy Cloud MCP",
-        "workflowId": null,
-        "modelIds": null,
-        "jobId": null,
-        "prompt": "A single isolated small folded-cardstock diorama furnishing, modeled with broad flat planar faces, visible warm cream cut edges, a few purposeful fold seams and a strong simple silhouette. Muted colors, matte opaque surfaces, clean untextured color regions suitable for a shared color atlas. Front details visible from a 38-degree elevated camera. +Y up, +Z front, bottom-center origin. No floor or surroundings. Low muted terracotta cutting table with cream paper stock stack and one raised broad folded lever. The asymmetric diagonal lever silhouette distinguishes it from an upright press. The lever is cardstock, with no metallic blade and no ruler lettering.",
-        "negativePrompt": "Photorealism, photographic textures, glossy plastic, shiny metal, transparent glass, PBR surface detail, dense greebles, wires, tiny knobs, text, lettering, numbers, logos, arrows, characters, pets, parcels, billboard, room, wall, ground plane, baked shadows, baked lighting, animation.",
+        "workflowId": "api_tripo_p2_image_to_model",
+        "modelIds": [
+          "seedream-5-0-pro-260628",
+          "P2"
+        ],
+        "jobId": "2d941f37-5cd9-4f88-9792-6cc356ab7d2b",
+        "prompt": "Use the attached diorama ONLY as reference for the folded-paper materials, muted palette and handmade construction. Generate ONE isolated hero prop: Folded paper cutter. Low muted terracotta cutting table with cream paper stock stack and one raised broad folded lever. The asymmetric diagonal lever silhouette distinguishes it from an upright press. The lever is cardstock, with no metallic blade and no ruler lettering. The accent color is #b97055, warm cream #f4e6c9, kraft edges #c6b28f. Broad flat cardstock faces, thick folded edges and a few clear folds; large structurally solid parts and clean openings. Approximately 1.1 wide, 0.76 deep, 1.12 tall. Full object, front three-quarter view with only 15 degrees yaw, 30 degrees camera elevation. Centered fills 75% of square on completely plain light-gray background. Flat diffuse neutral illumination with minimal cast shadow. Matte opaque solid color regions, subtle paper fibers. No room, floor, ground plane, pedestal, text, lettering, numbers, labels, logos, arrows, pets, people, belts, glass, metal, plastic, glossy detail, dense machinery or baked dark shadow stains. Only this single furnishing.",
+        "negativePrompt": null,
         "inputReferences": [
           {
             "path": "docs/design/paper-diorama-concept.png",
@@ -451,44 +688,158 @@
             "sha256": "10afa6ed2d709a7af1325a719c7adad7db5f7bf009c3af3061c2e736f8ed2f01"
           }
         ],
-        "requestPath": null,
-        "rawOutputs": [],
-        "quotedCost": null,
-        "actualCost": null,
-        "currency": null,
-        "generatedAt": null
+        "requestPath": "tools/assets/room-themes/fabrication-paper-cutter/mesh-request.json",
+        "rawOutputs": [
+          {
+            "path": "tools/assets/room-themes/fabrication-paper-cutter/source/concept.png",
+            "sha256": "c76985ba8915276458879f565278f2d824e825665fe62b8ea859766002f61b3a"
+          },
+          {
+            "path": "tools/assets/room-themes/fabrication-paper-cutter/source/model.glb",
+            "sha256": "03f75239ddc4e2c37324b43237d491985ab88657d07e320f5bdc7edaba9924c9"
+          }
+        ],
+        "quotedCost": 241.6,
+        "actualCost": 241.6,
+        "currency": "Comfy credits",
+        "generatedAt": "2026-11-03T15:32:00.482216Z",
+        "conceptJobId": "0272b82e-6408-4ae8-915e-39664d3138a9",
+        "costBasis": "Comfy post-run api_usage_completed credits_used; display estimate, not a per-job invoice",
+        "negativeConstraints": "Included in concept prompt; no separate negative-prompt parameter was sent",
+        "stages": [
+          {
+            "stage": "concept",
+            "jobId": "0272b82e-6408-4ae8-915e-39664d3138a9",
+            "status": "completed",
+            "model": "seedream-5-0-pro-260628",
+            "creditsUsed": 9.5,
+            "sourceNodeId": "2",
+            "outputFilename": "aa55b830f02e24dce139de25c10ad6d078c60b836ed3f7787f7d4e7894b048b7.png",
+            "localPath": "tools/assets/room-themes/fabrication-paper-cutter/source/concept.png",
+            "sha256": "c76985ba8915276458879f565278f2d824e825665fe62b8ea859766002f61b3a"
+          },
+          {
+            "stage": "mesh",
+            "jobId": "2d941f37-5cd9-4f88-9792-6cc356ab7d2b",
+            "status": "completed",
+            "model": "P2",
+            "creditsUsed": 232.1,
+            "sourceNodeId": "14",
+            "outputFilename": "bb0078db65ed6b42063f8431583bf8c59a563b49528813749e225151b2fed8a5.glb",
+            "localPath": "tools/assets/room-themes/fabrication-paper-cutter/source/model.glb",
+            "sha256": "03f75239ddc4e2c37324b43237d491985ab88657d07e320f5bdc7edaba9924c9"
+          }
+        ]
       },
       "provenance": {
-        "source": null,
-        "providerTermsUrl": null,
-        "modelTermsUrl": null,
-        "redistributionRights": null,
-        "license": null,
-        "recordedAt": null
+        "source": "Paid Comfy Cloud Tripo P2 output using retained Seedream 5.0 Pro concept.",
+        "providerTermsUrl": "https://comfy.org/terms-of-service/",
+        "modelTermsUrl": "https://www.tripo3d.ai/terms",
+        "redistributionRights": "Comfy documents commercial use. Public terms reviewed do not explicitly map paid Comfy calls to Tripo plan entitlements. No unrestricted/MIT raw-asset redistribution grant is asserted.",
+        "license": "Provider terms apply; excluded from repository MIT license.",
+        "recordedAt": "2026-11-03",
+        "rawSourceIdentifiers": "Unmodified provider GLBs and supplied metadata retained alongside requests, output filenames and job IDs."
       },
       "export": {
         "plannedRuntimePath": "public/assets/models/room-themes/fabrication-paper-cutter.glb",
-        "sourcePaths": [],
-        "script": null,
-        "command": null,
-        "blenderVersion": null,
-        "outputSha256": null,
-        "measuredTriangles": null,
-        "measuredMaterials": null,
-        "measuredTextureDimensions": null,
-        "measuredBytes": null,
-        "measuredBounds": null
+        "sourcePaths": [
+          "tools/assets/room-themes/fabrication-paper-cutter/source/model.glb"
+        ],
+        "script": "tools/blender/prepare_room_theme.py",
+        "command": [
+          "/Applications/Blender.app/Contents/MacOS/Blender",
+          "--background",
+          "--factory-startup",
+          "--python-exit-code",
+          "1",
+          "--python",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+          "--",
+          "--source",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/fabrication-paper-cutter/source/model.glb",
+          "--asset-id",
+          "fabrication-paper-cutter",
+          "--manifest",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/fabrication-paper-cutter/export-settings.json",
+          "--output",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/fabrication-paper-cutter.glb",
+          "--report",
+          "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/fabrication-paper-cutter/export-report.json",
+          "--yaw-degrees",
+          "-90.0",
+          "--paper-palette"
+        ],
+        "blenderVersion": "5.1.2",
+        "outputSha256": "2d3bed83970304a82ecb232491306d5a79e53b9be5c68256470aedc561442c4f",
+        "measuredTriangles": 1958,
+        "measuredMaterials": 1,
+        "measuredTextureDimensions": [],
+        "measuredBytes": 223164,
+        "measuredBounds": {
+          "minimum": [
+            -0.5263763666152954,
+            0.0,
+            -0.37999996542930603
+          ],
+          "maximum": [
+            0.5263764262199402,
+            0.9154924154281616,
+            0.37999996542930603
+          ],
+          "width": 1.0527527928352356,
+          "depth": 0.7599999308586121,
+          "height": 0.9154924154281616
+        },
+        "reportPath": "tools/assets/room-themes/fabrication-paper-cutter/export-report.json",
+        "settingsPath": "tools/assets/room-themes/fabrication-paper-cutter/export-settings.json",
+        "processing": {
+          "color": "Explicit recoloring: source sRGB albedo classified by seven interior samples per triangle into manifest accent/cream/kraft; flat opaque vertex colors, no texture",
+          "paperPalette": {
+            "accent": "#b97055",
+            "cream": "#f4e6c9",
+            "kraft": "#c6b28f"
+          },
+          "paletteFaceCounts": {
+            "accent": 618,
+            "kraft": 1326,
+            "cream": 16
+          },
+          "discardedChannels": [
+            "metallic",
+            "roughness",
+            "normal",
+            "occlusion",
+            "emission"
+          ],
+          "shading": "flat",
+          "opaque": true,
+          "uniformScale": 1.0529263096357149,
+          "removedObjects": [],
+          "sourceExtensionsUsed": [],
+          "limitations": [
+            "Source-albedo shadows may classify as kraft facets; inspect the broad color regions visually.",
+            "Decimation and discrete color classification can change fine detail; browser review is required.",
+            "Rebuilds depend on the recorded Blender version; remote generation is not deterministic."
+          ]
+        }
       },
       "review": {
-        "browserStatus": "pending",
-        "screenshots": [],
-        "renderMetrics": null
+        "browserStatus": "passed isolated, mixed room and seven-agent growth",
+        "screenshots": [
+          "docs/screenshots/theme-assets/four-prop-gallery.png",
+          "docs/screenshots/theme-assets/four-theme-in-room.png",
+          "docs/screenshots/theme-assets/four-theme-expanded-seven.png"
+        ],
+        "renderMetrics": "docs/screenshots/theme-assets/four-theme-room-metrics.json",
+        "measurements": "docs/screenshots/theme-assets/fabrication-paper-cutter-measurements.json",
+        "reviewPage": "http://localhost:3000/e2e/fixtures/theme-art.html?theme=fabrication-plant",
+        "notes": "One furnishing remains visible per room through seven-agent growth. Explicit palette recoloring can classify source shadows and pale regions as kraft facets. Production-browser visual review confirmed readable silhouette and accent color without black wedges."
       }
     }
   ],
   "generationPlan": {
-    "checkedAt": "2026-11-02",
-    "status": "pilot-awaiting-user-review",
+    "checkedAt": "2026-11-03",
+    "status": "generation-complete",
     "source": "https://docs.comfy.org/tutorials/partner-nodes/pricing",
     "liveMcpCapabilitiesVerified": true,
     "concept": {
@@ -521,7 +872,7 @@
       "confirm live template and node schemas and price",
       "record applicable provider output terms"
     ],
-    "submittedJobs": 4,
+    "submittedJobs": 10,
     "creditConversion": {
       "creditsPerUsd": 211,
       "source": "https://support.comfy.org/articles/1982697177-partner-nodes-pricing"
@@ -537,7 +888,16 @@
       "rejectedMeshProvider": "https://www.tripo3d.ai/terms"
     },
     "authentication": "authenticated OAuth",
-    "actualPilotModel": "meshy-7.1"
+    "actualPilotModel": "meshy-7.1",
+    "continuation": {
+      "conceptModel": "seedream-5-0-pro-260628",
+      "meshModel": "P2",
+      "meshTemplate": "api_tripo_p2_image_to_model",
+      "quotedCreditsPerProp": 241.6,
+      "actualCredits": 724.8,
+      "selectionReason": "Three textured Meshy outputs would exceed the remaining 896.32 credits; Tripo P2 fits the allowance.",
+      "recordDirectory": "tools/assets/room-themes/batch-2026-11-03"
+    }
   },
   "preparation": {
     "script": "tools/blender/prepare_room_theme.py",
@@ -573,23 +933,27 @@
   "verification": {
     "unitSuite": {
       "files": 47,
-      "tests": 507,
+      "tests": 510,
       "status": "passed"
     },
     "typecheck": "passed",
     "build": "passed; existing large-bundle advisory",
     "browser": {
       "suite": "e2e/theme-art.spec.ts",
-      "tests": 2,
+      "tests": 6,
       "status": "passed",
-      "nearBlackPixels": 0,
-      "canvasPixels": 491776,
-      "regressionTests": 6,
+      "regressionTests": 8,
       "regressionSuites": [
         "e2e/themes.spec.ts",
-        "billboard artwork/filtering through growth and Reorganize"
+        "e2e/billboards.spec.ts"
       ],
-      "uniqueTestsPassed": 8
+      "uniqueTestsPassed": 14,
+      "measurements": [
+        "docs/screenshots/theme-assets/lab-specimen-cabinet-measurements.json",
+        "docs/screenshots/theme-assets/foundry-press-measurements.json",
+        "docs/screenshots/theme-assets/factory-parts-organizer-measurements.json",
+        "docs/screenshots/theme-assets/fabrication-paper-cutter-measurements.json"
+      ]
     },
     "exporter": {
       "paletteColorValidation": "passed; missing/mismatched COLOR_0 rejected",
@@ -597,8 +961,10 @@
       "sourceUnchanged": true
     },
     "review": {
-      "standards": "No documented violations; one nonblocking suggestion to share accessor bounds calculations.",
-      "spec": "No pilot-scope defects; remaining three props intentionally pending user review."
-    }
+      "standards": "No documented violations or actionable smells in runtime/fixture/test changes.",
+      "spec": "No integration requirements missing or incorrectly implemented; complete four-prop evidence verified after generation."
+    },
+    "packBytes": 896368,
+    "packTriangles": 7837
   }
 }

@@ -1,0 +1,200 @@
+{
+  "viewport": {
+    "width": 1536,
+    "height": 1600
+  },
+  "opening": {
+    "fallback": {
+      "frameMs": 101.66333333333314,
+      "calls": 587,
+      "triangles": 42342,
+      "geometries": 111,
+      "textures": 31,
+      "estimatedTextureBytes": 14870491
+    },
+    "generated": {
+      "frameMs": 104.44000000000038,
+      "calls": 583,
+      "triangles": 49627,
+      "geometries": 111,
+      "textures": 31,
+      "estimatedTextureBytes": 14870491
+    }
+  },
+  "expanded": {
+    "fallback": {
+      "frameMs": 127.21666666666667,
+      "calls": 836,
+      "triangles": 55002,
+      "geometries": 132,
+      "textures": 33,
+      "estimatedTextureBytes": 14906075
+    },
+    "generated": {
+      "frameMs": 131.6599999999996,
+      "calls": 832,
+      "triangles": 62287,
+      "geometries": 132,
+      "textures": 33,
+      "estimatedTextureBytes": 14906075
+    }
+  },
+  "comparisons": {
+    "research-lab": {
+      "replacementDelta": 1756,
+      "normal": {
+        "fallback": {
+          "frameMs": 104.9966666666666,
+          "calls": 584,
+          "triangles": 47943,
+          "geometries": 111,
+          "textures": 31,
+          "estimatedTextureBytes": 14870491
+        },
+        "generated": {
+          "frameMs": 104.99333333333331,
+          "calls": 583,
+          "triangles": 49699,
+          "geometries": 111,
+          "textures": 31,
+          "estimatedTextureBytes": 14870491
+        }
+      },
+      "expanded": {
+        "fallback": {
+          "frameMs": 127.21666666666667,
+          "calls": 833,
+          "triangles": 61035,
+          "geometries": 132,
+          "textures": 33,
+          "estimatedTextureBytes": 14906075
+        },
+        "generated": {
+          "frameMs": 129.43666666666687,
+          "calls": 832,
+          "triangles": 62791,
+          "geometries": 132,
+          "textures": 33,
+          "estimatedTextureBytes": 14906075
+        }
+      }
+    },
+    "foundry": {
+      "replacementDelta": 1876,
+      "normal": {
+        "fallback": {
+          "frameMs": 103.88333333333334,
+          "calls": 584,
+          "triangles": 47751,
+          "geometries": 111,
+          "textures": 31,
+          "estimatedTextureBytes": 14870491
+        },
+        "generated": {
+          "frameMs": 107.77333333333348,
+          "calls": 583,
+          "triangles": 49627,
+          "geometries": 111,
+          "textures": 31,
+          "estimatedTextureBytes": 14870491
+        }
+      },
+      "expanded": {
+        "fallback": {
+          "frameMs": 132.77333333333323,
+          "calls": 833,
+          "triangles": 60411,
+          "geometries": 132,
+          "textures": 33,
+          "estimatedTextureBytes": 14906075
+        },
+        "generated": {
+          "frameMs": 137.21666666666667,
+          "calls": 832,
+          "triangles": 62287,
+          "geometries": 132,
+          "textures": 33,
+          "estimatedTextureBytes": 14906075
+        }
+      }
+    },
+    "factory": {
+      "replacementDelta": 1803,
+      "normal": {
+        "fallback": {
+          "frameMs": 106.66333333333338,
+          "calls": 584,
+          "triangles": 47871,
+          "geometries": 111,
+          "textures": 31,
+          "estimatedTextureBytes": 14870491
+        },
+        "generated": {
+          "frameMs": 105,
+          "calls": 583,
+          "triangles": 49674,
+          "geometries": 111,
+          "textures": 31,
+          "estimatedTextureBytes": 14870491
+        }
+      },
+      "expanded": {
+        "fallback": {
+          "frameMs": 131.66666666666666,
+          "calls": 833,
+          "triangles": 60819,
+          "geometries": 132,
+          "textures": 33,
+          "estimatedTextureBytes": 14906075
+        },
+        "generated": {
+          "frameMs": 134.43666666666687,
+          "calls": 832,
+          "triangles": 62622,
+          "geometries": 132,
+          "textures": 33,
+          "estimatedTextureBytes": 14906075
+        }
+      }
+    },
+    "fabrication-plant": {
+      "replacementDelta": 1850,
+      "normal": {
+        "fallback": {
+          "frameMs": 104.99666666666647,
+          "calls": 584,
+          "triangles": 47931,
+          "geometries": 111,
+          "textures": 31,
+          "estimatedTextureBytes": 14870491
+        },
+        "generated": {
+          "frameMs": 104.99666666666695,
+          "calls": 583,
+          "triangles": 49781,
+          "geometries": 111,
+          "textures": 31,
+          "estimatedTextureBytes": 14870491
+        }
+      },
+      "expanded": {
+        "fallback": {
+          "frameMs": 132.21666666666667,
+          "calls": 833,
+          "triangles": 61527,
+          "geometries": 132,
+          "textures": 33,
+          "estimatedTextureBytes": 14906075
+        },
+        "generated": {
+          "frameMs": 133.88333333333333,
+          "calls": 832,
+          "triangles": 63377,
+          "geometries": 132,
+          "textures": 33,
+          "estimatedTextureBytes": 14906075
+        }
+      }
+    }
+  }
+}

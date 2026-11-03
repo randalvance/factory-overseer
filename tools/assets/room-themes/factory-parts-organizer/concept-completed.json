@@ -1,0 +1,78 @@
+{
+  "id": "factory-parts-organizer",
+  "completed": {
+    "result": {
+      "status": "succeeded",
+      "warnings": [],
+      "job_status": "completed",
+      "raw_status": "completed"
+    },
+    "workflow_note": "This job's stored API-format graph (3 nodes) is returned as `workflow` \u2014 pass it to submit_workflow to rerun it, verbatim or edited.",
+    "workflow_node_count": 3,
+    "workflow_class_types": [
+      "ByteDanceSeedreamNodeV3",
+      "LoadImage",
+      "SaveImageAdvanced"
+    ],
+    "workflow": {
+      "2": {
+        "_meta": {
+          "title": "Save Image (Advanced)"
+        },
+        "class_type": "SaveImageAdvanced",
+        "inputs": {
+          "filename_prefix": "factory_overseer/room_themes/factory_parts_organizer_concept",
+          "format": "png",
+          "format.bit_depth": "8-bit",
+          "format.input_color_space": "sRGB",
+          "images": [
+            "8",
+            0
+          ]
+        }
+      },
+      "3": {
+        "_meta": {
+          "title": "Load Image"
+        },
+        "class_type": "LoadImage",
+        "inputs": {
+          "image": "8e8c155f21fea4dc3d2bb81ab297f821b3011c6b0195c263d35e7a5e0a17b599.png"
+        }
+      },
+      "8": {
+        "_meta": {
+          "title": "ByteDance Seedream 4.5 & 5.0"
+        },
+        "class_type": "ByteDanceSeedreamNodeV3",
+        "inputs": {
+          "model": "seedream 5.0 pro",
+          "model.height": 1024,
+          "model.images.image_1": [
+            "3",
+            0
+          ],
+          "model.prompt_optimization": "standard",
+          "model.seed": 260028,
+          "model.size_preset": "(1K) 1024x1024 (1:1)",
+          "model.thinking": true,
+          "model.watermark": false,
+          "model.width": 1024,
+          "prompt": "Use the attached diorama ONLY as reference for the folded-paper materials, muted palette and handmade construction. Generate ONE isolated hero prop: Folded paper parts organizer. Cream folded side panels, muted sage shelves and four wide open-front bins in two rows containing a few large paper blocks. Short rectangular storage silhouette. No labels and no loose scattered parts. The accent color is #719881, warm cream #f4e6c9, kraft edges #c6b28f. Broad flat cardstock faces, thick folded edges and a few clear folds; large structurally solid parts and clean openings. Approximately 1.1 wide, 0.76 deep, 1.18 tall. Full object, front three-quarter view with only 15 degrees yaw, 30 degrees camera elevation. Centered fills 75% of square on completely plain light-gray background. Flat diffuse neutral illumination with minimal cast shadow. Matte opaque solid color regions, subtle paper fibers. No room, floor, ground plane, pedestal, text, lettering, numbers, labels, logos, arrows, pets, people, belts, glass, metal, plastic, glossy detail, dense machinery or baked dark shadow stains. Only this single furnishing."
+        }
+      }
+    }
+  },
+  "jobId": "a31a0fff-022d-4256-996f-3a59cd1e384a",
+  "output": {
+    "job_id": "a31a0fff-022d-4256-996f-3a59cd1e384a",
+    "source_node_id": "2",
+    "filename_prefix": "factory_overseer/room_themes/factory_parts_organizer_concept",
+    "class_type": "SaveImageAdvanced",
+    "filename": "013f9e598185bd2d7b79ed990dd74c784bb6fef2d6ff49e31e20f776fd18a80e.png",
+    "suggested_save_path": "~/Downloads/ComfyUI/comfy_factory-parts-organizer-2.png",
+    "saved_to_disk": false,
+    "width": 1024,
+    "height": 1024
+  }
+}

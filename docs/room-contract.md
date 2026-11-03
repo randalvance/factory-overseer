@@ -379,16 +379,17 @@ paper appearance; `appearance="legacy"` retains its original environment.
 
 | Preset | Floor | Station | Rear furnishing |
 | --- | --- | --- | --- |
-| `research-lab` | Cool blue graph paper | Blue lab workstation | Generated paper cabinet pilot; authored shelves while loading or on failure |
-| `foundry` | Honey paper planks | Ochre folded machinery | Small press |
-| `factory` | Sage checkerboard | Sage assembly bench | Parts storage |
-| `fabrication-plant` | Terracotta marked bays | Precision-cut worktable | Paper cutter |
+| `research-lab` | Cool blue graph paper | Blue lab workstation | Generated paper specimen cabinet |
+| `foundry` | Honey paper planks | Ochre folded machinery | Generated folded press |
+| `factory` | Sage checkerboard | Sage assembly bench | Generated parts organizer |
+| `fabrication-plant` | Terracotta marked bays | Precision-cut worktable | Generated paper cutter |
 
 Add a theme by passing an immutable `roomThemes` registry to `RoomFactory`
 (or the underlying `Factory` with `roomState`). Definitions may extend one
 built-in preset, including its bundled asset descriptors; registry inheritance
 does not chain. An explicit `assets: { decoration: undefined }` in the registry
-or per-room override selects authored furniture instead of the bundled cabinet. Registry entries can
+or per-room override selects authored furniture instead of the bundled prop. Each preset also uses its authored furnishing
+while its GLB loads or if loading fails. Registry entries can
 also override a built-in key. `themeOverrides.extends` is ignored: inheritance
 belongs to the registry definition, while per-room overrides patch fields.
 
@@ -467,10 +468,11 @@ use fallbacks. Reuse stable asset URLs during a session.
 
 ### Budgets for generated art (#26)
 
-Working presets are authored geometry and 256 × 256 floor textures. For
-future generated art, target at most 500 triangles per station accessory,
+Presets retain authored architecture, stations and 256 × 256 floor textures;
+generated GLBs replace only their rear furnishings. Target at most 500
+triangles per station accessory,
 2,000 per rear furnishing, two materials per model and a shared 512 × 512
-color atlas. Avoid transparent layers and embedded lighting. Keep the room
+color atlas or solid vertex colors. Avoid transparent layers and embedded lighting. Keep the room
 sparse: one accessory per station and at most one rear furnishing plus a
 plant per room. A 100-agent map should add no more than 50,000 accessory
 triangles; room furniture adds 2,000 triangles per visible room. These are

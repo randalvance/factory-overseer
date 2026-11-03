@@ -1,0 +1,28 @@
+{
+  "name": "api_tripo_p2_image_to_model",
+  "input_overrides": {
+    "14": {
+      "filename_prefix": "factory_overseer/room_themes/factory_parts_organizer"
+    },
+    "15": {
+      "model": "P2",
+      "model.quad": false,
+      "model.face_limit": 6000,
+      "model.texture": "standard",
+      "model.pbr": false,
+      "model.model_seed": 260028,
+      "model.texture_alignment": "original_image",
+      "model.orientation": "default",
+      "model.enable_image_autofix": false,
+      "model.texture_seed": 260028,
+      "model.auto_size": false,
+      "model.export_uv": true,
+      "model.compress_geometry": false
+    },
+    "16": {
+      "image": "013f9e598185bd2d7b79ed990dd74c784bb6fef2d6ff49e31e20f776fd18a80e.png"
+    }
+  },
+  "tool": "run_template",
+  "description": "factory-parts-organizer"
+}

@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "assetId": "factory-parts-organizer",
+  "source": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/factory-parts-organizer/source/model.glb",
+    "sha256": "fe4ad6d0e34c68dbac0377a113580479a08f4dc5a095e07b2399b52133cfaeb7",
+    "triangles": 5577,
+    "materials": 1
+  },
+  "output": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/factory-parts-organizer.glb",
+    "sha256": "e98f3b3de8420d0cf60e3160f8583f0c4b64d3424917eec48963f46a284d2f98",
+    "triangles": 1959,
+    "materials": 1,
+    "textureDimensions": [],
+    "bytes": 224432,
+    "bounds": {
+      "minimum": [
+        -0.5500000715255737,
+        0.0,
+        -0.30667755007743835
+      ],
+      "maximum": [
+        0.5500000715255737,
+        1.076339840888977,
+        0.30667755007743835
+      ],
+      "width": 1.1000001430511475,
+      "depth": 0.6133551001548767,
+      "height": 1.076339840888977
+    }
+  },
+  "manifest": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/factory-parts-organizer/export-settings.json",
+    "sha256": "677efe15c25657b24ce09cd8ac4f3e16552a80accfaa171520b7e1c1ec6a03f9"
+  },
+  "script": {
+    "path": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+    "sha256": "e88e57132f07ea0cbc07245237f06a2eaae9838d30e5c4fda46cbb13ea04121a"
+  },
+  "blenderVersion": "5.1.2",
+  "command": [
+    "/Applications/Blender.app/Contents/MacOS/Blender",
+    "--background",
+    "--factory-startup",
+    "--python-exit-code",
+    "1",
+    "--python",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/blender/prepare_room_theme.py",
+    "--",
+    "--source",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/factory-parts-organizer/source/model.glb",
+    "--asset-id",
+    "factory-parts-organizer",
+    "--manifest",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/factory-parts-organizer/export-settings.json",
+    "--output",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/factory-parts-organizer.glb",
+    "--report",
+    "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/factory-parts-organizer/export-report.json",
+    "--yaw-degrees",
+    "-90.0",
+    "--paper-palette"
+  ],
+  "arguments": {
+    "source": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/factory-parts-organizer/source/model.glb",
+    "assetId": "factory-parts-organizer",
+    "manifest": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/factory-parts-organizer/export-settings.json",
+    "output": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/public/assets/models/room-themes/factory-parts-organizer.glb",
+    "report": "/Users/randal/orca/workspaces/factory-overseer/Factory-Redesign/tools/assets/room-themes/factory-parts-organizer/export-report.json",
+    "yawDegrees": -90.0,
+    "paperPalette": true
+  },
+  "processing": {
+    "color": "Explicit recoloring: source sRGB albedo classified by seven interior samples per triangle into manifest accent/cream/kraft; flat opaque vertex colors, no texture",
+    "paperPalette": {
+      "accent": "#719881",
+      "cream": "#f4e6c9",
+      "kraft": "#c6b28f"
+    },
+    "paletteFaceCounts": {
+      "accent": 1461,
+      "kraft": 498
+    },
+    "discardedChannels": [
+      "metallic",
+      "roughness",
+      "normal",
+      "occlusion",
+      "emission"
+    ],
+    "shading": "flat",
+    "opaque": true,
+    "uniformScale": 1.1025115402025178,
+    "removedObjects": [],
+    "sourceExtensionsUsed": [],
+    "limitations": [
+      "Source-albedo shadows may classify as kraft facets; inspect the broad color regions visually.",
+      "Decimation and discrete color classification can change fine detail; browser review is required.",
+      "Rebuilds depend on the recorded Blender version; remote generation is not deterministic."
+    ]
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "id": "fabrication-paper-cutter",
+  "completed": {
+    "result": {
+      "status": "succeeded",
+      "warnings": [],
+      "job_status": "completed",
+      "raw_status": "completed"
+    },
+    "workflow_note": "This job's stored API-format graph (3 nodes) is returned as `workflow` \u2014 pass it to submit_workflow to rerun it, verbatim or edited.",
+    "workflow_id": "e65fc6f8-e52c-4440-9bb8-bca99d6f29c9",
+    "workflow_node_count": 3,
+    "workflow_class_types": [
+      "LoadImage",
+      "Save3DAdvanced",
+      "TripoPSeriesImageToModelNode"
+    ],
+    "workflow": {
+      "14": {
+        "_meta": {
+          "title": "Save 3D (Advanced)"
+        },
+        "class_type": "Save3DAdvanced",
+        "inputs": {
+          "filename_prefix": "factory_overseer/room_themes/fabrication_paper_cutter",
+          "height": 1024,
+          "model_3d": [
+            "15",
+            1
+          ],
+          "viewport_state": "",
+          "width": 1024
+        }
+      },
+      "15": {
+        "_meta": {
+          "title": "Tripo P2: Image to Model"
+        },
+        "class_type": "TripoPSeriesImageToModelNode",
+        "inputs": {
+          "model": "P2",
+          "model.auto_size": false,
+          "model.compress_geometry": false,
+          "model.enable_image_autofix": false,
+          "model.export_uv": true,
+          "model.face_limit": 6000,
+          "model.image": [
+            "16",
+            0
+          ],
+          "model.model_seed": 260029,
+          "model.orientation": "default",
+          "model.pbr": false,
+          "model.quad": false,
+          "model.texture": "standard",
+          "model.texture_alignment": "original_image",
+          "model.texture_seed": 260029
+        }
+      },
+      "16": {
+        "_meta": {
+          "title": "Load Image"
+        },
+        "class_type": "LoadImage",
+        "inputs": {
+          "image": "aa55b830f02e24dce139de25c10ad6d078c60b836ed3f7787f7d4e7894b048b7.png"
+        }
+      }
+    }
+  },
+  "jobId": "2d941f37-5cd9-4f88-9792-6cc356ab7d2b",
+  "output": {
+    "job_id": "2d941f37-5cd9-4f88-9792-6cc356ab7d2b",
+    "source_node_id": "14",
+    "filename_prefix": "factory_overseer/room_themes/fabrication_paper_cutter",
+    "class_type": "Save3DAdvanced",
+    "filename": "bb0078db65ed6b42063f8431583bf8c59a563b49528813749e225151b2fed8a5.glb",
+    "suggested_save_path": "~/Downloads/ComfyUI/comfy_fabrication-paper-cutter-3.glb",
+    "saved_to_disk": false
+  }
+}

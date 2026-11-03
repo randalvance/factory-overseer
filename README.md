@@ -156,13 +156,15 @@ URLs/indices and custom role wardrobes remain supported. Paper standees
 retain walking, work poses, status badges, shared task labels and human waits.
 
 Architecture and most furniture are authored meshes with shared geometry/materials;
-the standee cast and signage are authored canvas artwork. The research-lab
-cabinet is the first generated Comfy Cloud prop under #26, pending visual
-review before the other themes. Its source concept, raw models, costs and
-cleanup records are retained under `tools/assets/room-themes/`; see
+the standee cast and signage are authored canvas artwork. Four sparse Comfy Cloud
+furnishings now distinguish the presets: a research-lab specimen cabinet,
+foundry press, factory parts organizer and fabrication paper cutter. They
+use solid palette colors with shared paper shading. Source concepts, raw
+models, costs and reproducible cleanup records are retained under
+`tools/assets/room-themes/`; see
 [the asset brief](docs/design/room-theme-assets.md) and [art terms](ASSETS.md).
-Preview the [lab cabinet gallery](http://localhost:3000/e2e/fixtures/theme-art.html)
-and [pilot verification](docs/screenshots/theme-assets/README.md).
+Preview the [four-prop gallery](http://localhost:3000/e2e/fixtures/theme-art.html)
+and [asset verification](docs/screenshots/theme-assets/README.md).
 The design reference remains `docs/design/paper-diorama-concept.png`.
 
 Repeating belts and desks are instanced in four-tile spatial groups while

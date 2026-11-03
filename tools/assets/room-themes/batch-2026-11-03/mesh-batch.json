@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Submitted 3/3 job(s) as one batch.\nPoll the whole set with get_batch_status(\"batch_eyJ2IjoxLCJpdGVtcyI6W3siaWQiOiI2YzQ0MjU2Yy1iMDI5LTQxNWUtYjcxMS04NmVjODllNzZiYjUiLCJsYWJlbCI6ImZvdW5kcnktcHJlc3MifSx7ImlkIjoiZjU3NGM0YWQtNWJmMi00MDZjLWEzYmQtMjA5ZDk2NmYxNDFmIiwibGFiZWwiOiJmYWN0b3J5LXBhcnRzLW9yZ2FuaXplciJ9LHsiaWQiOiIyZDk0MWYzNy01Y2Q5LTRmODgtOTc5Mi02Y2MzNTZhYjdkMmIiLCJsYWJlbCI6ImZhYnJpY2F0aW9uLXBhcGVyLWN1dHRlciJ9XX0\"); pass that SAME batch_id to get_batch_output to collect every ready output. The id is also on structuredContent.batch_id."
+    }
+  ],
+  "structuredContent": {
+    "batch_id": "batch_eyJ2IjoxLCJpdGVtcyI6W3siaWQiOiI2YzQ0MjU2Yy1iMDI5LTQxNWUtYjcxMS04NmVjODllNzZiYjUiLCJsYWJlbCI6ImZvdW5kcnktcHJlc3MifSx7ImlkIjoiZjU3NGM0YWQtNWJmMi00MDZjLWEzYmQtMjA5ZDk2NmYxNDFmIiwibGFiZWwiOiJmYWN0b3J5LXBhcnRzLW9yZ2FuaXplciJ9LHsiaWQiOiIyZDk0MWYzNy01Y2Q5LTRmODgtOTc5Mi02Y2MzNTZhYjdkMmIiLCJsYWJlbCI6ImZhYnJpY2F0aW9uLXBhcGVyLWN1dHRlciJ9XX0",
+    "job_ids": [
+      "6c44256c-b029-415e-b711-86ec89e76bb5",
+      "f574c4ad-5bf2-406c-a3bd-209d966f141f",
+      "2d941f37-5cd9-4f88-9792-6cc356ab7d2b"
+    ],
+    "submitted": 3,
+    "failed": [],
+    "result": {
+      "status": "succeeded",
+      "warnings": []
+    }
+  }
+}

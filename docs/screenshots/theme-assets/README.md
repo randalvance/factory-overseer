@@ -1,9 +1,97 @@
-# Lab cabinet pilot — #26
+# Generated room furnishings — #26
 
-The first generated prop is ready for user visual review. The remaining
-foundry, factory and fabrication props have not been generated.
+The user approved the lab pilot on 2026-11-03 and asked to continue. All four
+props are now generated, exported and integrated. All 14 asset, theme and
+billboard browser tests pass, including growth to seven agents and a task
+handoff.
 
-Open the [isolated gallery](http://localhost:3000/e2e/fixtures/theme-art.html)
+Open the [four-prop gallery](http://localhost:3000/e2e/fixtures/theme-art.html)
+or the [factory](http://localhost:3000). Append `?theme=research-lab`,
+`?theme=foundry`, `?theme=factory` or `?theme=fabrication-plant` to the gallery
+URL for an isolated closeup. Every view uses the production model loader,
+shared paper treatment and factory's 38° camera angle.
+
+## Batch exports — 2026-11-03
+
+| Furnishing | Triangles | Materials | Model textures | GLB bytes |
+| --- | ---: | ---: | ---: | ---: |
+| Lab specimen cabinet | 1,960 | 1 | 0 | 224,484 |
+| Foundry press | 1,960 | 1 | 0 | 224,288 |
+| Factory parts organizer | 1,959 | 1 | 0 | 224,432 |
+| Fabrication paper cutter | 1,958 | 1 | 0 | 223,164 |
+| **Pack total** | **7,837** | | **0** | **896,368** |
+
+All exports use solid vertex colors and fit uniformly within their manifest
+footprints. The scene's shared paper shading still uses textures. Explicit
+palette recoloring converts some source shading and cream areas into kraft
+facets, particularly on the cutter; original textured sources are retained.
+Visual inspection found the four silhouettes distinct and readable, with no
+clipping or black texture wedges. This does not claim lossless color preservation.
+
+The continuation cost 724.80 credits, bringing the full batch, including the
+rejected pilot attempt, to **1,328.48 / 1,500 credits**. **171.52 remain**.
+Per-asset source, export and billing records are in
+[`tools/assets/room-themes/`](../../../tools/assets/room-themes/).
+## Batch browser evidence
+
+| Evidence | What it verifies |
+| --- | --- |
+| [Four-prop gallery](four-prop-gallery.png) | All four generated silhouettes and theme colors through the production loader |
+| [Mixed rooms](four-theme-in-room.png) | All four furnishings beside their retained floors, stations, pets, belts and signs |
+| [Seven-agent growth](four-theme-expanded-seven.png) | Expanded Implementation room with one rear furnishing and seven stations |
+| [Press closeup](foundry-press-gallery.png) · [measurements](foundry-press-measurements.json) | Open frame, cream ram, ochre palette and export budgets |
+| [Organizer closeup](factory-parts-organizer-gallery.png) · [measurements](factory-parts-organizer-measurements.json) | Four bins, sage palette and export budgets |
+| [Cutter closeup](fabrication-paper-cutter-gallery.png) · [measurements](fabrication-paper-cutter-measurements.json) | Raised lever, terracotta base and export budgets |
+| [Current lab measurements](lab-specimen-cabinet-measurements.json) | Lab pilot under the updated gallery and checks |
+| [Room metrics](four-theme-room-metrics.json) | All-generated and all-authored scenes plus each prop's isolated replacement delta |
+
+The browser suite checks each GLB's footprint, geometry, materials, colors
+and texture/vertex-color attributes. All four isolated views have zero
+near-black pixels. Switching each theme between generated and authored
+furnishings preserves the rooms, stations, belts and boxes. Each replacement
+adds the same geometry before and after seven-agent growth: lab +1,756,
+press +1,876, organizer +1,803 and cutter +1,850 triangles. A subsequent
+handoff reaches the seventh agent, with the human-attention notification
+retained and no unrouted tasks, page errors or alerts.
+
+## Batch measured comparison
+
+| Scene / furnishing | Triangles | Draw calls | Texture count | Estimated source texture bytes | Mean frame interval |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Opening / authored | 42,342 | 587 | 31 | 14,870,491 | 101.66 ms |
+| Opening / generated | 49,627 | 583 | 31 | 14,870,491 | 104.44 ms |
+| Expanded / authored | 55,002 | 836 | 33 | 14,906,075 | 127.22 ms |
+| Expanded / generated | 62,287 | 832 | 33 | 14,906,075 | 131.66 ms |
+
+The complete replacement adds **7,285 triangles**, removes **four draw calls**
+and leaves source texture count/bytes unchanged in both scenes. Growth does
+not multiply these furnishings per station. Measurements use Chromium
+software WebGL, DPR 1, at 1536 × 1600 after two fresh 30-frame samples with
+stable triangle counts. Gallery screenshots use 1280 × 800. Frame intervals
+are regression observations, not hardware performance guarantees or evidence
+of a speed improvement. Estimated source texture bytes exclude shadow maps,
+framebuffers and other GPU allocations.
+
+## Batch verification
+
+510 unit tests across 47 files, typecheck and production build pass. All 14
+browser tests pass: six asset checks in `e2e/theme-art.spec.ts`, all five existing
+theme checks, and three billboard checks. The build retains its existing
+large-bundle advisory.
+
+To reproduce all 14 browser checks inside the devcontainer:
+
+```bash
+devcontainer exec --workspace-folder . bun run smoke \
+  e2e/theme-art.spec.ts e2e/themes.spec.ts e2e/billboards.spec.ts --workers=1
+```
+
+## Pilot evidence — 2026-11-02
+
+At this checkpoint only the research-lab specimen cabinet was generated and
+integrated; the remaining three props awaited pilot review.
+
+Open the [isolated lab gallery](http://localhost:3000/e2e/fixtures/theme-art.html?theme=research-lab)
 or the [factory](http://localhost:3000). The research-lab preset uses the new
 cabinet at the rear of its room. Review the folded frame and shelf openings,
 the cream/blue/kraft colors, and the cabinet's scale beside the pets and belts.
@@ -54,9 +142,9 @@ texture bytes; that byte estimate excludes framebuffer/shadow allocations.
 [manifest](../../../tools/assets/room-theme-manifest.json), and
 [art terms](../../../ASSETS.md) record the source jobs, rejected attempt,
 603.68-credit spend, 896.32-credit balance and reproducible Blender cleanup.
-User approval of this pilot remains pending.
+These are the pilot totals before the approved continuation.
 
-## Measured comparison
+## Pilot measured comparison
 
 | Scene / furnishing | Triangles | Draw calls | Texture count | Estimated source texture bytes | Mean frame interval |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -72,7 +160,7 @@ one fewer draw call and unchanged texture allocation remain consistent.
 Frame intervals vary on software WebGL; these observations do not establish
 a speed improvement.
 
-## Verification and review
+## Pilot verification and review
 
 507 unit tests across 47 files, typecheck and production build pass. Eight
 unique browser tests pass: two pilot tests, all five existing theme tests,
@@ -86,6 +174,6 @@ the UV and vertex-color validators; their semantic checks remain separate,
 and the suggestion does not affect the validated export.
 
 Spec review found no pilot-scope defects or scope creep. Source/settings/
-script/output hashes and evidence links were independently checked. Full
-#26 completion intentionally waits for pilot approval, the remaining three
-props and final four-theme evidence.
+script/output hashes and evidence links were independently checked. At the pilot checkpoint, full
+#26 completion still required the remaining three props and final four-theme
+evidence. Pilot approval was subsequently given on 2026-11-03.
