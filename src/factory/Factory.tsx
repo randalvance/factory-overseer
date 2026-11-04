@@ -28,6 +28,8 @@ export type { PetAsset, PetAssets, PetAnimation, PetAnimations } from "./petAsse
 import { type FactoryView, type Styling, createFactoryView } from "./view"
 
 export interface FactoryProps {
+  /** Directory before assets/, absolute or page-relative. Fixed for this mount; defaults to /. */
+  assetBase?: string
   /** Host theme registry layered over the four paper presets. Replace immutably to update. */
   roomThemes?: RoomThemeRegistry
   /** Transparent pet images or 6×4 sheets selected by agent, role, then default. */
@@ -84,7 +86,7 @@ export interface FactoryHandle {
   reorganize(): void
 }
 
-export function Factory({ roomThemes, petAssets, onRenderMetrics, appearance = "paper", pipeline, agents, tasks, roomLayout = false, roomState, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }: FactoryProps) {
+export function Factory({ assetBase = "/", roomThemes, petAssets, onRenderMetrics, appearance = "paper", pipeline, agents, tasks, roomLayout = false, roomState, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
@@ -116,7 +118,7 @@ export function Factory({ roomThemes, petAssets, onRenderMetrics, appearance = "
   useEffect(() => {
     if (!mount.current) return
     const created = createFactoryView(mount.current, {
-      assetBase: import.meta.env.BASE_URL,
+      assetBase: assetBase.replace(/\/?$/, "/"),
       onRenderMetrics: onRenderMetrics ? (metrics) => latest.current.onRenderMetrics?.(metrics) : undefined,
       onClick: setPicked,
       onLanded: (taskId) => {
@@ -194,7 +196,7 @@ export function Factory({ roomThemes, petAssets, onRenderMetrics, appearance = "
   }, [drawn])
 
   return (
-    <div className="factory">
+    <div className={`factory${appearance === "paper" && (roomLayout || roomState) ? " factory-paper" : ""}`}>
       <div ref={mount} className="factory-canvas" role="img" aria-label="Factory floor" aria-description={roomState?.configuration.rooms.map((room) => room.billboard?.alt ? `${room.label}: ${room.billboard.alt}` : room.label).join("; ")} data-drawn={drawn} data-rooms={previous.current?.rooms?.length ?? 0} />
       <Hud
         snapshot={roomState ? roomSnapshotForView(roomState) : { agents, tasks }}

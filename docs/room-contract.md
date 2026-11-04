@@ -1,11 +1,12 @@
 # Room host contract
 
-The room types are exported from src/model/types.ts (defined in rooms.ts).
-validateRoomState in src/model/roomValidation.ts checks a complete
-RoomFactoryState without mutating it. It validates semantic references in
-typed data; decode untrusted JSON before calling it.
+The room types are exported from `factory-overseer` (defined in
+`src/model/rooms.ts` in this repository).
+`RoomFactory` checks each complete `RoomFactoryState` without mutating it,
+using `validateRoomState` in `src/model/roomValidation.ts`. This checks
+semantic references in typed data; decode untrusted JSON in the host first.
 
-The configured renderer is `RoomFactory` in src/factory/RoomFactory.tsx:
+The configured renderer is `RoomFactory`, imported from `factory-overseer`:
 
 ```tsx
 <RoomFactory
@@ -18,7 +19,8 @@ The configured renderer is `RoomFactory` in src/factory/RoomFactory.tsx:
 />
 ```
 
-The example values are exported from src/model/roomExamples.ts. Pass new
+The repository examples in `src/model/roomExamples.ts` demonstrate these
+configuration and snapshot values. Construct them in your host and pass new
 immutable state values when configuration or snapshots change. Optional
 onLayout reports the physical layout, planned motions and unrouted task IDs.
 onTaskLanded is a view notification; it does not mean work is complete.
@@ -28,17 +30,29 @@ update fails validation. The legacy Factory API remains available.
 onHumanNeeded is optional. It reports accepted active requests to your host;
 the factory never supplies an answer or decides when to resume work.
 
-## Source integration and demo acceptance
+## Package integration and demo acceptance
 
-The source entry points are `RoomFactory` / `RoomFactoryProps` in
-`src/factory/RoomFactory.tsx`, room state and `OnHumanNeeded` types in
-`src/model/types.ts`, and `FactoryHandle` in `src/factory/Factory.tsx`.
-Theme definitions are also re-exported from `src/model/types.ts`; pet asset
-types are exported from `src/factory/Factory.tsx`. Import the shared
-`src/styles.css` and give the component a positioned container with an
-explicit height. The README contains a complete source-integration example.
-Package-level distribution and its library build remain tracked in #16;
-these source exports and this contract remain the reference for that work.
+Import `RoomFactory`, `RoomFactoryProps`, `FactoryHandle`, room types,
+`OnHumanNeeded`, theme definitions and pet asset types from `factory-overseer`.
+The legacy `Factory` / `FactoryProps`, `Pipeline`, `Agent` and `Task` remain
+available from that same entry point. Presets include `ROOM_THEMES`,
+`ROOM_THEME_SLOTS`, `DEFAULT_PET_ASSETS` and `DEFAULT_STATUS_STYLES`.
+`ROOM_THEMES` contains resolved preset values; define host overrides using
+`RoomThemeRegistry` and an `extends` preset name.
+
+Import `factory-overseer/styles.css` and give the component a positioned
+container with an explicit height. The package has a separate ES module build
+and portable TypeScript declarations; it does not include demo controls.
+See the README's complete embedding example and local tarball workflow.
+
+Serve the installed `public/assets` tree, including notices, below the
+mount-fixed `assetBase` directory (default `/`). For example,
+`assetBase="/factory-overseer/"` loads built-in pieces from
+`/factory-overseer/assets/models/pieces.glb`. A missing trailing slash is
+added. Relative pet, billboard and theme URLs use this base; explicit
+root-relative or absolute URLs keep their meaning. Custom legacy sprite
+URLs continue to be used as supplied. Remount the component to change the
+base. Cross-origin servers must supply appropriate CORS headers.
 
 Room HUD counts show agents, in-flight tasks, active human requests and
 shipped tasks. Requests are counted independently of tasks: two requests
@@ -336,7 +350,7 @@ transparent PNG, WebP or SVG artwork:
 ```
 
 `PetAsset`, `PetAssets`, `PetAnimation` and `PetAnimations` are exported from
-`src/factory/petAssets.ts` and `src/factory/Factory.tsx`.
+`factory-overseer`.
 Each asset has a `src` URL, optional `layout` (`image` by default, or
 `sheet`), optional height in floor tiles (default 2.3), and optional
 frame width/height ratio (otherwise read from the image). Relative asset
@@ -428,7 +442,7 @@ also override a built-in key. `themeOverrides.extends` is ignored: inheritance
 belongs to the registry definition, while per-room overrides patch fields.
 
 ```tsx
-import type { RoomThemeRegistry } from "./src/factory/Factory"
+import type { RoomThemeRegistry } from "factory-overseer"
 
 const roomThemes: RoomThemeRegistry = {
   studio: {
@@ -457,9 +471,9 @@ const configuration = {
 ```
 
 `RoomThemeDefinition`, `RoomThemeRegistry`, `RoomModelAsset` and
-`RoomThemeAssets` are exported from `src/model/types.ts` and
-`src/factory/Factory.tsx`. `ROOM_THEMES`, `ROOM_THEME_SLOTS` and
-`resolveRoomTheme` are in `src/model/roomThemes.ts`. Colors are six-digit
+`RoomThemeAssets` are exported from `factory-overseer`, along with `ROOM_THEMES` and
+`ROOM_THEME_SLOTS`. The internal `resolveRoomTheme` implementation is in
+`src/model/roomThemes.ts`. Colors are six-digit
 sRGB hex strings. Floor patterns are `kraft-pavers`, `blue-grid`,
 `honey-planks`, `sage-checker` and `terracotta-bays`. Station styles are
 `lab`, `foundry`, `assembly` and `precision`; decoration styles are
@@ -473,8 +487,8 @@ the declared footprint, then places their bottom center on the slot anchor.
 It preserves proportions and converts materials to the shared Lambert paper
 surface treatment. The component owns these loaded resources. Animations,
 skinned meshes, lights and cameras are unsupported. Use host-served URLs
-(or remote URLs with appropriate browser CORS); relative URLs resolve from
-the page URL. Floor images repeat once per two world tiles; expanding a room
+(or remote URLs with appropriate browser CORS); relative URLs resolve under
+`assetBase`. Floor images repeat once per two world tiles; expanding a room
 adds repeats instead of stretching the image.
 
 | Slot | Maximum width × depth × height | Anchor and clearance |

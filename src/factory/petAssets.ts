@@ -1,3 +1,4 @@
+import { resolveAssetUrl } from "./assetUrl"
 import * as THREE from "three"
 import type { Agent } from "~/model/types"
 import type { Wardrobes } from "./sprites"
@@ -74,9 +75,8 @@ export function createPetTextures(base: string, load: (url: string) => Promise<T
   const owned = new Set<THREE.Texture>()
   let disposed = false
   const own = (texture: THREE.Texture) => { if (disposed) texture.dispose(); else owned.add(texture); return texture }
-  const urlFor = (src: string) => /^(?:[a-z][a-z\d+.-]*:|\/)/i.test(src) ? src : base + src
   function source(src: string) {
-    const url = urlFor(src)
+    const url = resolveAssetUrl(src, base)
     let pending = sources.get(url)
     if (!pending) {
       pending = load(url).then(own)

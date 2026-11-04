@@ -29,7 +29,10 @@ environment.
 | Command inside the devcontainer | Purpose |
 | --- | --- |
 | `bun run dev` | Demo on port 3000 |
-| `bun run build` | Production demo build |
+| `bun run build` | Production demo build in `dist/` |
+| `bun run build:lib` | ES module, scoped CSS and declarations in `lib/` |
+| `npm pack` | Build the library and create a local installable tarball |
+| `bun run test:package` | Install the tarball into an independent app; check types, production build, assets and browser rendering |
 | `bun run test` | Pure unit tests; no WebGL |
 | `bun run typecheck` | TypeScript checks |
 | `bun run smoke` | Deterministic Chromium browser tests; evidence in `test-results` |
@@ -75,21 +78,54 @@ ships a task. The earlier seeded, beat-driven demo remains at `?layout=legacy`;
 the earlier room-growth example is at `?layout=rooms`. Use `?art=legacy` on
 the configured demo for the earlier appearance.
 
-## Embed a room factory
+## Embed the library
 
-The current source integration uses these exported modules. Library packaging
-and a package-level entry point remain tracked separately in #16.
+The package exports `RoomFactory`, the legacy `Factory`, their props,
+`FactoryHandle`, room/transition/assignment/attention types, theme and pet
+configuration, status styles, and layout/render-metric callback types. It is
+an ES module for React 19 hosts. React stays external; Three.js is a runtime
+dependency. The demo build remains separate from the library.
+
+Create an installable archive from this checkout:
+
+```bash
+devcontainer exec --workspace-folder . npm pack
+```
+
+This runs the library build and writes `factory-overseer-0.0.0.tgz`. In your
+host app, install that local archive together with React and React DOM 19.
+No registry publication is needed for local integration. TypeScript hosts
+also need their usual React types.
+
+Copy the installed `node_modules/factory-overseer/public/assets` directory,
+including its notices and provenance, to your host's
+`public/factory-overseer/assets`. Serve it at `/factory-overseer/assets/`.
+The `assetBase` prop is the directory **before** `assets/`:
 
 ```tsx
-import { RoomFactory } from "./src/factory/RoomFactory"
-import type { RoomFactoryState, OnHumanNeeded } from "./src/model/types"
-import { exampleRooms, planningFirst } from "./src/model/roomExamples"
-import { DEFAULT_PET_ASSETS } from "./src/factory/petAssets"
-import "./src/styles.css"
+import {
+  RoomFactory, DEFAULT_PET_ASSETS,
+  type RoomFactoryState, type OnHumanNeeded,
+} from "factory-overseer"
+import "factory-overseer/styles.css"
 
 const state: RoomFactoryState = {
-  configuration: exampleRooms,
-  snapshot: planningFirst,
+  configuration: {
+    rooms: [
+      { id: "intake", label: "Intake", role: "router", kind: "intake" },
+      { id: "build", label: "Implementation", role: "implementer", kind: "work", theme: "foundry" },
+      { id: "deploy", label: "Deployment", role: "deployer", kind: "deployment" },
+    ],
+    transitions: [
+      { id: "start", from: "intake", to: "build", outcome: "ready" },
+      { id: "release", from: "build", to: "deploy", outcome: "approved" },
+    ],
+  },
+  snapshot: {
+    agents: [{ id: "worker", name: "Builder", role: "implementer", roomId: "build", status: "working" }],
+    tasks: [{ id: "task", label: "Build a feature", at: { kind: "room", roomId: "build", assignment: { agentIds: ["worker"], completedAgentIds: [] } } }],
+    humanRequests: [],
+  },
 }
 const onHumanNeeded: OnHumanNeeded = (request) => {
   // Open your host UI; publish a new snapshot when the request is resolved.
@@ -98,12 +134,24 @@ const onHumanNeeded: OnHumanNeeded = (request) => {
 
 export function Example() {
   return <div style={{ position: "relative", height: 600 }}>
-    <RoomFactory state={state} width={28} appearance="paper"
+    <RoomFactory state={state} assetBase="/factory-overseer/" width={28}
       petAssets={DEFAULT_PET_ASSETS} onHumanNeeded={onHumanNeeded}
       onReady={(handle) => handle.fitAll()} />
   </div>
 }
 ```
+
+Mount the factory in a client component with a positioned container and an
+explicit height. Importing the package does not require a DOM, but drawing
+requires browser WebGL. The stylesheet styles only factory components; it
+does not reset the host's page, body, controls or theme.
+
+`assetBase` defaults to `/`, accepts a page-relative directory or a complete
+URL, and adds a trailing slash if omitted. Keep it fixed for a mounted
+factory; remount to change it. Relative pet, billboard and theme URLs resolve
+under this directory. Explicit root-relative and absolute URLs stay as
+supplied; remote assets need appropriate CORS headers. A custom legacy
+`agent.sprite` URL is used as supplied, preserving the legacy contract.
 
 Publish immutable state values to move work. Room transitions can branch,
 cycle for rework, or include additional host-defined roles. Deployment is
@@ -111,12 +159,17 @@ terminal. Multiple participants share one task box; the host reports the
 completed subset and chooses when to hand it onward. `onTaskLanded` reports
 visual arrival, not completion of agent work.
 
-The [room contract](docs/room-contract.md) is the single reference for public
-types, validation, attention hooks, assignments, themes, billboard images,
-pets, render metrics and migration from the legacy `Pipeline` API. The
-imperative `FactoryHandle` is exported by `src/factory/Factory.tsx`.
-Serve the contents of `public/assets` at the URLs used by the bundled presets;
-custom theme, billboard and pet URLs follow the contract's resolution rules.
+The [room contract](docs/room-contract.md) is the reference for types,
+validation, attention hooks, assignments, themes, billboard images, pets,
+render metrics and migration from the legacy `Pipeline` API. Existing hosts
+can import `Factory`, `Pipeline`, `Agent`, `Task` and `FactoryHandle` from the
+same package. Demo state and controls remain application code.
+
+[Package verification](docs/screenshots/library-package/README.md) exercises
+an installed tarball in an independent TypeScript app at `/host/`, with assets
+at `/host/static/factory/assets/`. It covers both components, attention,
+handles, bundled art and CSS isolation. Generated art retains the terms in
+[ASSETS.md](ASSETS.md); a local archive does not change those terms.
 
 ## Art and performance
 

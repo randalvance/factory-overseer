@@ -19,7 +19,7 @@ export function RoomFactory({ state, onHumanNeeded, ...props }: RoomFactoryProps
   const snapshot = useMemo(() => accepted && roomSnapshotForView(accepted), [accepted])
   const pipeline = useMemo(() => ({ roles: accepted?.configuration.rooms.map((room) => room.role) ?? [] }), [accepted])
   return <>
-    {errors.length > 0 && <p className="room-error" role="alert">{errors.map((error) => `${error.path}: ${error.message}`).join("; ")}</p>}
+    {errors.length > 0 && <p className={`room-error factory-error${props.appearance !== "legacy" ? " factory-paper-error" : ""}`} role="alert">{errors.map((error) => `${error.path}: ${error.message}`).join("; ")}</p>}
     {accepted && snapshot && <Factory {...props} pipeline={pipeline} agents={snapshot.agents} tasks={snapshot.tasks} roomState={accepted} />}
   </>
 }

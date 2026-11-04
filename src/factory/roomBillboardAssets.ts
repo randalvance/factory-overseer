@@ -1,3 +1,4 @@
+import { resolveAssetUrl } from "./assetUrl"
 import * as THREE from "three"
 import type { RoomBillboard } from "~/model/types"
 
@@ -16,7 +17,7 @@ export function createRoomBillboardAssets(
   const urlFor = (billboard?: RoomBillboard) => {
     const image = billboard?.image?.trim()
     if (!image) return undefined
-    return /^(?:[a-z][a-z\d+.-]*:|\/)/i.test(image) ? image : `${base.replace(/\/?$/, "/")}${image.replace(/^\.\//, "")}`
+    return resolveAssetUrl(image, base)
   }
   let disposed = false
   const images = new Map<string, { texture?: THREE.Texture }>()

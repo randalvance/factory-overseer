@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "description": "Runtime derivatives of generated art. Preserve this record and NOTICE.md with the four GLBs. This record does not grant additional rights.",
+  "repository": "https://github.com/randalvance/factory-overseer",
+  "sourceManifest": "tools/assets/room-theme-manifest.json (repository source; not part of the package)",
+  "terms": {
+    "comfy": "https://comfy.org/terms-of-service/",
+    "concept": "https://docs.byteplus.com/zh-CN/docs/legal/AI-Services-terms",
+    "meshy": "https://www.meshy.ai/terms-of-use",
+    "tripo": "https://www.tripo3d.ai/terms"
+  },
+  "assets": [
+    {
+      "id": "lab-specimen-cabinet",
+      "theme": "research-lab",
+      "file": "lab-specimen-cabinet.glb",
+      "sha256": "b0af64c58adf4a76e58678c0a13f9b963b27fd03d1dc5867ec65f8c32bb42f7f",
+      "bytes": 224484,
+      "triangles": 1960,
+      "materials": 1,
+      "modelTextures": [],
+      "license": "Provider terms apply; excluded from repository MIT license.",
+      "recordedTerms": {
+        "recordedAt": "2026-11-02",
+        "source": "Paid Comfy Cloud Meshy 7.1 output, using retained Seedream 5.0 Pro concept; rejected Tripo P2 attempt retained for audit.",
+        "providerTermsUrl": "https://comfy.org/terms-of-service/",
+        "modelTermsUrl": "https://www.meshy.ai/terms-of-use",
+        "redistributionRights": "Comfy documents commercial use. Direct Meshy paid-plan output ownership is documented, but Comfy-to-Meshy plan entitlement is not explicitly mapped in the public terms reviewed. No unrestricted/MIT raw-asset redistribution grant is asserted."
+      },
+      "concept": {
+        "provider": "Seedream through Comfy Cloud",
+        "model": "seedream-5-0-pro-260628",
+        "jobId": "653822aa-634e-47ab-9e89-518c76633f4d",
+        "sourceSha256": "727208ce19dc2e0f3b692eda14e274a7c14592c378d3951ad13528e5e81dd608"
+      },
+      "mesh": {
+        "provider": "Meshy through Comfy Cloud",
+        "model": "meshy-7.1",
+        "jobId": "fae97b33-bce6-42f0-8507-0d1eabef4830",
+        "sourceSha256": "1fcc029050d578e6d56acf1a2d16943c54795623bbd75f0ef660d5a052e77357"
+      },
+      "cleanup": {
+        "script": "tools/blender/prepare_room_theme.py",
+        "scriptSha256": "e88e57132f07ea0cbc07245237f06a2eaae9838d30e5c4fda46cbb13ea04121a",
+        "settingsSha256": "0e212545e2ab68fc189aaad58bccc5a1eb3b10a12889dcff4f7ad1054369686a",
+        "blenderVersion": "5.1.2",
+        "color": "Explicit recoloring: source sRGB albedo classified by seven interior samples per triangle into manifest accent/cream/kraft; flat opaque vertex colors, no texture",
+        "shading": "flat",
+        "opaque": true,
+        "discardedChannels": [
+          "metallic",
+          "roughness",
+          "normal",
+          "occlusion",
+          "emission"
+        ]
+      }
+    },
+    {
+      "id": "foundry-press",
+      "theme": "foundry",
+      "file": "foundry-press.glb",
+      "sha256": "fb99653ac73096d9c4068a7b33ad3db86f326de6476ee5ac780cafb50e9fae53",
+      "bytes": 224288,
+      "triangles": 1960,
+      "materials": 1,
+      "modelTextures": [],
+      "license": "Provider terms apply; excluded from repository MIT license.",
+      "recordedTerms": {
+        "recordedAt": "2026-11-03",
+        "source": "Paid Comfy Cloud Tripo P2 output using retained Seedream 5.0 Pro concept.",
+        "providerTermsUrl": "https://comfy.org/terms-of-service/",
+        "modelTermsUrl": "https://www.tripo3d.ai/terms",
+        "redistributionRights": "Comfy documents commercial use. Public terms reviewed do not explicitly map paid Comfy calls to Tripo plan entitlements. No unrestricted/MIT raw-asset redistribution grant is asserted."
+      },
+      "concept": {
+        "provider": "Seedream through Comfy Cloud",
+        "model": "seedream-5-0-pro-260628",
+        "jobId": "e6aa9c87-da34-4a6a-825b-3af850b41b1d",
+        "sourceSha256": "a3d20efda94aceb40da5d15bf37940693e44c1372fbea9632a7d6075a74ee536"
+      },
+      "mesh": {
+        "provider": "Tripo through Comfy Cloud",
+        "model": "P2",
+        "jobId": "6c44256c-b029-415e-b711-86ec89e76bb5",
+        "sourceSha256": "00ce0846037c61fbd3e6037478ac9544994b9b29954acf99adc30ee7f2ece5e7"
+      },
+      "cleanup": {
+        "script": "tools/blender/prepare_room_theme.py",
+        "scriptSha256": "e88e57132f07ea0cbc07245237f06a2eaae9838d30e5c4fda46cbb13ea04121a",
+        "settingsSha256": "3144c86f7d394de911b6709612803b350c5ba9b5c502864869b1fce733e73e67",
+        "blenderVersion": "5.1.2",
+        "color": "Explicit recoloring: source sRGB albedo classified by seven interior samples per triangle into manifest accent/cream/kraft; flat opaque vertex colors, no texture",
+        "shading": "flat",
+        "opaque": true,
+        "discardedChannels": [
+          "metallic",
+          "roughness",
+          "normal",
+          "occlusion",
+          "emission"
+        ]
+      }
+    },
+    {
+      "id": "factory-parts-organizer",
+      "theme": "factory",
+      "file": "factory-parts-organizer.glb",
+      "sha256": "e98f3b3de8420d0cf60e3160f8583f0c4b64d3424917eec48963f46a284d2f98",
+      "bytes": 224432,
+      "triangles": 1959,
+      "materials": 1,
+      "modelTextures": [],
+      "license": "Provider terms apply; excluded from repository MIT license.",
+      "recordedTerms": {
+        "recordedAt": "2026-11-03",
+        "source": "Paid Comfy Cloud Tripo P2 output using retained Seedream 5.0 Pro concept.",
+        "providerTermsUrl": "https://comfy.org/terms-of-service/",
+        "modelTermsUrl": "https://www.tripo3d.ai/terms",
+        "redistributionRights": "Comfy documents commercial use. Public terms reviewed do not explicitly map paid Comfy calls to Tripo plan entitlements. No unrestricted/MIT raw-asset redistribution grant is asserted."
+      },
+      "concept": {
+        "provider": "Seedream through Comfy Cloud",
+        "model": "seedream-5-0-pro-260628",
+        "jobId": "a31a0fff-022d-4256-996f-3a59cd1e384a",
+        "sourceSha256": "57a53edbc736c4b697e0d81e85ab9092b8efae8ba1cc3ea54f4ccba375009b11"
+      },
+      "mesh": {
+        "provider": "Tripo through Comfy Cloud",
+        "model": "P2",
+        "jobId": "f574c4ad-5bf2-406c-a3bd-209d966f141f",
+        "sourceSha256": "fe4ad6d0e34c68dbac0377a113580479a08f4dc5a095e07b2399b52133cfaeb7"
+      },
+      "cleanup": {
+        "script": "tools/blender/prepare_room_theme.py",
+        "scriptSha256": "e88e57132f07ea0cbc07245237f06a2eaae9838d30e5c4fda46cbb13ea04121a",
+        "settingsSha256": "677efe15c25657b24ce09cd8ac4f3e16552a80accfaa171520b7e1c1ec6a03f9",
+        "blenderVersion": "5.1.2",
+        "color": "Explicit recoloring: source sRGB albedo classified by seven interior samples per triangle into manifest accent/cream/kraft; flat opaque vertex colors, no texture",
+        "shading": "flat",
+        "opaque": true,
+        "discardedChannels": [
+          "metallic",
+          "roughness",
+          "normal",
+          "occlusion",
+          "emission"
+        ]
+      }
+    },
+    {
+      "id": "fabrication-paper-cutter",
+      "theme": "fabrication-plant",
+      "file": "fabrication-paper-cutter.glb",
+      "sha256": "2d3bed83970304a82ecb232491306d5a79e53b9be5c68256470aedc561442c4f",
+      "bytes": 223164,
+      "triangles": 1958,
+      "materials": 1,
+      "modelTextures": [],
+      "license": "Provider terms apply; excluded from repository MIT license.",
+      "recordedTerms": {
+        "recordedAt": "2026-11-03",
+        "source": "Paid Comfy Cloud Tripo P2 output using retained Seedream 5.0 Pro concept.",
+        "providerTermsUrl": "https://comfy.org/terms-of-service/",
+        "modelTermsUrl": "https://www.tripo3d.ai/terms",
+        "redistributionRights": "Comfy documents commercial use. Public terms reviewed do not explicitly map paid Comfy calls to Tripo plan entitlements. No unrestricted/MIT raw-asset redistribution grant is asserted."
+      },
+      "concept": {
+        "provider": "Seedream through Comfy Cloud",
+        "model": "seedream-5-0-pro-260628",
+        "jobId": "0272b82e-6408-4ae8-915e-39664d3138a9",
+        "sourceSha256": "c76985ba8915276458879f565278f2d824e825665fe62b8ea859766002f61b3a"
+      },
+      "mesh": {
+        "provider": "Tripo through Comfy Cloud",
+        "model": "P2",
+        "jobId": "2d941f37-5cd9-4f88-9792-6cc356ab7d2b",
+        "sourceSha256": "03f75239ddc4e2c37324b43237d491985ab88657d07e320f5bdc7edaba9924c9"
+      },
+      "cleanup": {
+        "script": "tools/blender/prepare_room_theme.py",
+        "scriptSha256": "e88e57132f07ea0cbc07245237f06a2eaae9838d30e5c4fda46cbb13ea04121a",
+        "settingsSha256": "ffc8f286ff354670f607c654fe24cdc976786c5c5ddcfad837a2e5dbad1b11b6",
+        "blenderVersion": "5.1.2",
+        "color": "Explicit recoloring: source sRGB albedo classified by seven interior samples per triangle into manifest accent/cream/kraft; flat opaque vertex colors, no texture",
+        "shading": "flat",
+        "opaque": true,
+        "discardedChannels": [
+          "metallic",
+          "roughness",
+          "normal",
+          "occlusion",
+          "emission"
+        ]
+      }
+    }
+  ]
+}

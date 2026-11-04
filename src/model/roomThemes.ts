@@ -50,16 +50,16 @@ export const ROOM_THEME_SLOTS = {
 
 export const ROOM_THEMES: Readonly<Record<BuiltinRoomTheme, ResolvedRoomTheme>> = {
   "research-lab": { id: "research-lab", label: "Research lab", wall: 0x82a8bd, accent: 0x618fae, floor: "blue-grid", station: "lab", decoration: "shelves", assets: {
-    decoration: { url: "/assets/models/room-themes/lab-specimen-cabinet.glb", footprint: { width: 1.1, depth: .74, height: 1.24 } },
+    decoration: { url: "assets/models/room-themes/lab-specimen-cabinet.glb", footprint: { width: 1.1, depth: .74, height: 1.24 } },
   } },
   foundry: { id: "foundry", label: "Foundry", wall: 0xe2b45d, accent: 0xd5a145, floor: "honey-planks", station: "foundry", decoration: "press", assets: {
-    decoration: { url: "/assets/models/room-themes/foundry-press.glb", footprint: { width: 1.1, depth: .76, height: 1.24 } },
+    decoration: { url: "assets/models/room-themes/foundry-press.glb", footprint: { width: 1.1, depth: .76, height: 1.24 } },
   } },
   factory: { id: "factory", label: "Factory", wall: 0x9db79b, accent: 0x719881, floor: "sage-checker", station: "assembly", decoration: "parts", assets: {
-    decoration: { url: "/assets/models/room-themes/factory-parts-organizer.glb", footprint: { width: 1.1, depth: .76, height: 1.18 } },
+    decoration: { url: "assets/models/room-themes/factory-parts-organizer.glb", footprint: { width: 1.1, depth: .76, height: 1.18 } },
   } },
   "fabrication-plant": { id: "fabrication-plant", label: "Fabrication plant", wall: 0xc98366, accent: 0xb97055, floor: "terracotta-bays", station: "precision", decoration: "cutter", assets: {
-    decoration: { url: "/assets/models/room-themes/fabrication-paper-cutter.glb", footprint: { width: 1.1, depth: .76, height: 1.12 } },
+    decoration: { url: "assets/models/room-themes/fabrication-paper-cutter.glb", footprint: { width: 1.1, depth: .76, height: 1.12 } },
   } },
 }
 

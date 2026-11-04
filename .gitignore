@@ -9,3 +9,5 @@ playwright-report/
 *.blend2
 /tmp/
 .scratch/
+lib/
+*.tgz

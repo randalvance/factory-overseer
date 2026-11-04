@@ -1,3 +1,4 @@
+import { resolveAssetUrl } from "./assetUrl"
 import * as THREE from "three"
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js"
 import { ROOM_THEME_SLOTS, type ResolvedRoomTheme, type RoomModelAsset } from "~/model/roomThemes"
@@ -15,7 +16,7 @@ export interface ThemeAssets {
  * the view closes, so a room changing theme cannot invalidate another room.
  * Model copies share cache resources; callers own/dispose floor clones.
  */
-export function createRoomThemeAssets(onChange: () => void): ThemeAssets {
+export function createRoomThemeAssets(onChange: () => void, base = "/"): ThemeAssets {
   let disposed = false
   const owned = new Set<Resource>(), released = new WeakSet<Resource>(), closedImages = new WeakSet<object>()
   const release = (resource: Resource) => {
@@ -37,8 +38,8 @@ export function createRoomThemeAssets(onChange: () => void): ThemeAssets {
     update(themes) {
       if (disposed) return
       for (const theme of themes) {
-        const url = theme.assets.floor
-        if (url?.trim() && !floors.has(url) && floors.size + models.size < 32) {
+        const url = theme.assets.floor?.trim() ? resolveAssetUrl(theme.assets.floor.trim(), base) : undefined
+        if (url && !floors.has(url) && floors.size + models.size < 32) {
           floors.set(url, undefined)
           void textures.loadAsync(url).then((texture) => {
             if (disposed || !smallTexture(texture)) { release(texture); return }
@@ -47,9 +48,11 @@ export function createRoomThemeAssets(onChange: () => void): ThemeAssets {
         }
         for (const slot of ["station", "decoration"] as const) {
           const asset = theme.assets[slot]
-          if (!validAsset(asset, slot) || models.has(asset.url) || floors.size + models.size >= 32) continue
-          models.set(asset.url, undefined)
-          void loader.loadAsync(asset.url).then((gltf) => {
+          if (!validAsset(asset, slot)) continue
+          const url = resolveAssetUrl(asset.url, base)
+          if (models.has(url) || floors.size + models.size >= 32) continue
+          models.set(url, undefined)
+          void loader.loadAsync(url).then((gltf) => {
             const resources = modelResources(gltf)
             if (disposed || !compatibleModel(gltf)) { resources.forEach(release); return }
             resources.forEach((resource) => owned.add(resource))
@@ -69,14 +72,14 @@ export function createRoomThemeAssets(onChange: () => void): ThemeAssets {
               }
               object.material = Array.isArray(object.material) ? object.material.map(convert) : convert(object.material)
             })
-            models.set(asset.url, gltf.scene); onChange()
+            models.set(url, gltf.scene); onChange()
           }).catch(() => {})
         }
       }
     },
     model(asset, slot) {
       if (!validAsset(asset, slot)) return undefined
-      const source = models.get(asset.url)
+      const source = models.get(resolveAssetUrl(asset.url, base))
       if (!source) return undefined
       const bounds = new THREE.Box3().setFromObject(source)
       const size = bounds.getSize(new THREE.Vector3()), center = bounds.getCenter(new THREE.Vector3())
@@ -87,7 +90,7 @@ export function createRoomThemeAssets(onChange: () => void): ThemeAssets {
       return result
     },
     floor(url, width, depth) {
-      const source = url ? floors.get(url) : undefined
+      const source = url ? floors.get(resolveAssetUrl(url, base)) : undefined
       if (!source || ![width, depth].every((value) => Number.isFinite(value) && value > 0)) return undefined
       const texture = source.clone()
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping
