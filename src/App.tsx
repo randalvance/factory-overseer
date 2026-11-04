@@ -71,7 +71,7 @@ function PipelineDemo() {
       </header>
       {/* Both stay mounted: the factory keeps its additive layout and its rides across toggles. */}
       <section className="demo-factory" hidden={view !== "factory"}>
-        <Factory
+        <Factory assetBase={import.meta.env.BASE_URL}
           pipeline={runtime.pipeline}
           agents={snapshot.agents}
           tasks={snapshot.tasks}

@@ -103,7 +103,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   const petTextures = createPetTextures(assetBase)
   const paperSurfaces = createPaperSurfaces()
   let sceneryPaintPending = false
-  const themeAssets = createRoomThemeAssets(() => { sceneryPaintPending = true })
+  const themeAssets = createRoomThemeAssets(() => { sceneryPaintPending = true }, assetBase)
   const billboardAssets = createRoomBillboardAssets(() => { sceneryPaintPending = true }, assetBase)
   let shownThemes: ReadonlyMap<string, ResolvedRoomTheme> | undefined
   let shownPieces: Pieces | undefined

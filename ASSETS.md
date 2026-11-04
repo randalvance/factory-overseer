@@ -2,13 +2,17 @@
 
 The MIT licence in `LICENSE` covers the code. The art under `public/assets/`
 has its own terms, listed here so you know what you are redistributing.
+The installable library keeps this tree at `public/assets/`. Copy the entire
+tree, including [the portable notices](public/assets/NOTICE.md), when serving
+assets from a host app. The package also includes this document and `LICENSE`.
 
 | Path | What it is | Terms |
 | --- | --- | --- |
 | `public/assets/characters/` | The 132 pixel-art character sheets the agents and the inspector are drawn with | MIT, from the pixel-agents project by Pablo De Lucca. The notice in `public/assets/characters/ATTRIBUTION.md` must travel with the files. |
 | `public/assets/models/pieces.glb` | The pieces the floor is drawn with, listed below, with their textures painted in | Built for this project by `tools/blender/build_pieces.py`. MIT with the code. |
+| `public/assets/models/room-themes/` | Four generated paper furnishings, one per room theme | Provider terms apply; excluded from MIT. [Notice and distribution limitation](public/assets/models/room-themes/NOTICE.md), [portable provenance](public/assets/models/room-themes/provenance.json). |
 | `public/assets/billboards/` | Five paper room graphics, a custom paper rocket and a 32 px pixel crate example | Original SVG artwork authored for this project. MIT with the code. |
-| `public/assets/pets/` | Transparent paper-cut animal illustrations (corgi, rabbit, cat, owl, fox) | Authored SVG artwork for this project. MIT with the code. |
+| `public/assets/pets/` | Five paper-cut animal illustrations and their five pose sheets (corgi, rabbit, cat, owl, fox) | Authored SVG artwork for this project. MIT with the code. |
 | `public/assets/icons/` | The status icons shown over agents' heads and on their tablets | Drawn for this project by `tools/icons/draw_status_icons.py`. MIT with the code. |
 
 Every sheet is a 6 by 4 grid of 32 by 48 px cells, one row per facing. If you
@@ -40,17 +44,21 @@ has the terms.
 | `door` | The door segment of the back wall: a roll-up door in a yellow frame | Door |
 | `lamp` | A pendant lamp, hanging from the point it is placed at | Bay |
 
-The wall, the window and the lamp are built here and hung when the hall is
-dressed. Until the hero props arrive, the pallets, the hopper and the shipping
-container are still drawn in plain colours.
+The wall, the window and the lamp are built here and hung when the legacy
+hall is dressed. Its pallets, hopper and shipping container are procedural
+plain-color meshes. The paper appearance uses the authored outdoor intake
+and deployment truck described below.
 
 ## Paper environment
 
 The paper room environment is authored in `src/factory/paper.ts` and
 `src/factory/rooms.ts`: simple meshes and canvas-painted textures, covered
 by the code license. It reuses the project's authored GLB belt geometry and
-its UV directions, with new sage/terracotta textures. The standees and paper status badges in `src/factory/paperCharacters.ts` are also authored canvas art, covered by the code license. No paid generation or
-new third-party art is used in this milestone. The concept under
+its UV directions, with new sage/terracotta textures. The standees and paper
+status badges in `src/factory/paperCharacters.ts` are also authored canvas
+art, covered by the code license. These environment meshes and standees use
+no paid generation or new third-party art; the generated room furnishings
+are listed separately below. The concept under
 `docs/design/paper-diorama-concept.png` was generated with the built-in image
 tool for design reference; it is not shipped as runtime art or represented
 as covered by the code's MIT license. Existing character notices still apply.
@@ -69,11 +77,11 @@ and paper surface grain are procedural, with no external texture downloads.
 
 
 The four room theme presets in `src/model/roomThemes.ts` use authored paper
-workstations and rear furnishings (`paper.ts`, `rooms.ts`) and the existing
-procedural floor patterns. These working placeholders are MIT with the code.
-No paid generation was used for #25. Custom theme textures and GLBs retain
-their host's licensing. Placement contracts and generation budgets for #26
-are documented in [the room contract](docs/room-contract.md#room-themes).
+workstations, procedural floor patterns and fallback furnishings
+(`paper.ts`, `rooms.ts`), which are MIT with the code. Their default rear
+furnishings now use the four generated GLBs listed below. Custom theme
+textures and GLBs retain their host's licensing. Placement contracts are
+documented in [the room contract](docs/room-contract.md#room-themes).
 
 
 ## Room billboard graphics
@@ -99,6 +107,23 @@ Each file is self-contained and served from `/assets/billboards/<filename>`.
 The 256 px graphics use smooth edges; the pixel example has a fixed 32 px
 intrinsic size and uses integer-aligned shapes. Host-provided billboard
 images retain their own license terms.
+
+## Package inventory
+
+The runtime tree contains 157 art files: 132 character sheets, three status
+icons, seven billboard graphics, ten pet illustration/pose SVGs, the base
+pieces GLB and four generated furnishing GLBs. It also includes the
+pixel-agents attribution, a portable authored-art MIT notice, and generated
+art notices and provenance. No raw provider meshes, generated concepts,
+workflow records or billing files are shipped in the library package.
+
+For a host mount such as `/factory-overseer/`, copy
+`node_modules/factory-overseer/public/assets/` to the host's
+`public/factory-overseer/assets/` and set `assetBase="/factory-overseer/"`.
+Preserve the directory names and notices. Source and workflow paths later in
+this document refer to the source checkout; the portable runtime notices
+contain the licence and provenance information needed alongside the copied
+files.
 
 ## Generated room-theme furnishings — #26
 

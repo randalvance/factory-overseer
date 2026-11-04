@@ -1,7 +1,7 @@
 {
   "name": "factory-overseer",
   "version": "0.0.0",
-  "description": "A 3D factory that shows an agentic system at work: pixel-art agents at stations, tasks as boxes on conveyor belts.",
+  "description": "An embeddable 3D paper factory for host-controlled agent workflows.",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -10,27 +10,69 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "smoke": "playwright test"
+    "smoke": "playwright test",
+    "build:lib": "node tools/build-library.mjs",
+    "prepack": "bun run build:lib",
+    "test:package": "bun run build:lib && node tools/test-package.mjs"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/randalvance/factory-overseer.git"
   },
-  "keywords": ["three", "webgl", "pixel-art", "agents", "factory", "conveyor", "visualization"],
+  "keywords": [
+    "three",
+    "webgl",
+    "pixel-art",
+    "agents",
+    "factory",
+    "conveyor",
+    "visualization"
+  ],
   "dependencies": {
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "three": "^0.187.0"
+    "three": "^0.187.0",
+    "@types/three": "^0.187.0"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@types/three": "^0.187.0",
     "@vitejs/plugin-react": "^6.1.2",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "main": "./lib/index.js",
+  "module": "./lib/index.js",
+  "types": "./lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./styles.css": {
+      "types": "./lib/styles.d.ts",
+      "default": "./lib/styles.css"
+    },
+    "./package.json": "./package.json",
+    "./assets/*": "./public/assets/*"
+  },
+  "files": [
+    "lib",
+    "public/assets",
+    "LICENSE",
+    "ASSETS.md",
+    "docs/room-contract.md",
+    "docs/screenshots/integrated-demo/full-flow.png",
+    "GLOSSARY.md",
+    "docs/adr"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "peerDependencies": {
+    "react": "^19.0.0"
   }
 }

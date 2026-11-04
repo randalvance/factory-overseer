@@ -1,0 +1,17 @@
+{
+  "package": "factory-overseer@0.0.0",
+  "bytes": 8011007,
+  "unpackedBytes": 9040885,
+  "files": 242,
+  "checks": [
+    "tarball installed outside repository",
+    "strict NodeNext declarations without aliases or Vite types",
+    "Node import without DOM",
+    "consumer production build at /host/",
+    "nested assets including all four furnishings",
+    "RoomFactory attention and handle",
+    "legacy Factory and sprite",
+    "host CSS preserved",
+    "no browser errors"
+  ]
+}

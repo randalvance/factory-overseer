@@ -1,3 +1,5 @@
+@import "./factory/styles.css";
+
 :root {
   color-scheme: dark;
   font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
@@ -62,8 +64,7 @@ body,
 }
 
 .demo-cluster select,
-.demo-cluster button,
-.factory-hud button {
+.demo-cluster button {
   font: inherit;
   font-size: 0.8rem;
   color: #e6e8ee;
@@ -74,8 +75,7 @@ body,
   cursor: pointer;
 }
 
-.demo-cluster button:hover,
-.factory-hud button:hover {
+.demo-cluster button:hover {
   background: #2c3442;
 }
 
@@ -111,105 +111,6 @@ body,
   flex: 1;
   min-height: 0;
   position: relative;
-}
-
-.factory,
-.factory-canvas {
-  position: absolute;
-  inset: 0;
-}
-
-.factory canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  touch-action: none;
-}
-
-.factory canvas:focus {
-  outline: none;
-}
-
-/* The HUD lies over the canvas and lets the pointer through to it except where it has something to click. */
-.factory-hud {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  font-size: 0.8rem;
-}
-
-.factory-hud-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.4rem 0.8rem;
-  background: rgba(11, 13, 18, 0.75);
-  border-bottom: 1px solid #1f2531;
-  pointer-events: auto;
-}
-
-.factory-hud-counts {
-  display: flex;
-  gap: 1rem;
-  color: #cfd6e4;
-}
-
-.factory-hud-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 0.5rem;
-}
-
-.factory-card {
-  position: absolute;
-  left: 0.8rem;
-  bottom: 0.8rem;
-  min-width: 16rem;
-  max-width: 28rem;
-  padding: 0.6rem 0.8rem;
-  background: rgba(20, 24, 33, 0.92);
-  border: 1px solid #2c3442;
-  border-radius: 6px;
-  pointer-events: auto;
-}
-
-.factory-card h2 {
-  margin: 0 0.4rem 0.4rem 0;
-  font-size: 0.95rem;
-}
-
-.factory-card dl {
-  margin: 0;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.2rem 0.8rem;
-}
-
-.factory-card dt {
-  color: #9fb3c8;
-}
-
-.factory-card dd {
-  margin: 0;
-}
-
-.factory-card-close {
-  position: absolute;
-  top: 0.3rem;
-  right: 0.3rem;
-  padding: 0 0.4rem;
-}
-
-.room-error {
-  position: absolute;
-  z-index: 3;
-  bottom: 0;
-  left: 1rem;
-  right: 1rem;
-  padding: 0.7rem;
-  background: #442528;
-  color: #ffdcda;
-  font-size: 0.8rem;
 }
 
 .route-status { margin: 0; font-size: 0.8rem; color: #b8d7c8; }
@@ -254,17 +155,11 @@ body,
 .paper-demo button:disabled { opacity: .42; }
 .paper-demo .demo-cluster label { color: #6f796e; font-size: .75rem; }
 .paper-demo .route-status { color: #5e7568; margin: .15rem 0; font-size: .78rem; }
-.paper-demo .factory-hud-header { background: rgba(248,241,229,.92); color: #5c695f; border-bottom: 1px solid #e3d9c5; }
-.paper-demo .factory-card, .paper-demo .human-attention { background: #fffaf0; color: #39464d; border-color: #d8ccb4; box-shadow: 0 8px 28px #5b49341a; }
-.paper-demo .factory-card dd, .paper-demo .factory-card dt { color: #4d5e58; }
-
-.paper-demo .factory-hud-counts { color: #657369; }
-.paper-demo .factory-card { font-family: ui-sans-serif, system-ui, sans-serif; }
+.paper-demo .human-attention { background: #fffaf0; color: #39464d; border-color: #d8ccb4; box-shadow: 0 8px 28px #5b49341a; }
 
 .paper-demo .human-attention h2 { color: #805f33; }
 .paper-demo .human-attention textarea { color: #39464d; background: #fffdf7; border-color: #b7c5b5; }
 .paper-demo .attention-context, .paper-demo .attention-note { color: #667568; }
-
 
 /* Keep host controls readable as the workshop narrows; the floor keeps usable space. */
 .demo-brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem 1rem; }
@@ -280,13 +175,6 @@ body,
 .demo-control-group label select { flex: 1; }
 .shared-work { width: 100%; min-width: 0; }
 .route-status { width: 100%; overflow-wrap: anywhere; }
-.factory-hud-header, .factory-hud-counts { flex-wrap: wrap; }
-.factory-hud-counts { gap: .35rem .85rem; }
-.factory-hud-counts > span { white-space: nowrap; }
-.factory-card { box-sizing: border-box; min-width: 0; width: min(28rem, calc(100% - 1.6rem)); max-height: calc(100% - 5rem); overflow: auto; }
-.factory-card h2 { padding-right: 1.5rem; overflow-wrap: anywhere; }
-.factory-card dd { min-width: 0; overflow-wrap: anywhere; }
-.factory-card ul, .factory-card ol { padding-left: 1.1rem; }
 .human-attention textarea { box-sizing: border-box; width: 100%; min-width: 0; }
 .human-attention, .human-attention p { overflow-wrap: anywhere; }
 
@@ -301,11 +189,9 @@ body,
 .paper-demo .demo-cluster input[type="range"], .paper-demo input[type="checkbox"] { accent-color: #5e8069; }
 .paper-demo .shared-work { border-top: 1px solid #ded3bd; padding-top: .65rem; }
 .paper-demo .shared-work > .demo-cluster { border-color: #c6d2bf; }
-.paper-demo .factory-card dt { font-weight: 650; }
-.paper-demo .factory-card-close { min-width: 2rem; }
 .paper-demo .human-attention form + form { border-color: #ded3bd; }
 .paper-demo .human-attention button[type="submit"]:enabled { background: #526e5c; border-color: #526e5c; color: #fffdf6; }
-.paper-demo .room-error, .paper-demo .demo-note { background: #fff1dd; color: #824c29; border-color: #d9b990; }
+.paper-demo .demo-note { background: #fff1dd; color: #824c29; border-color: #d9b990; }
 
 @media (max-width: 899px) {
   .paper-demo { height: auto; min-height: 100dvh; }
@@ -315,9 +201,6 @@ body,
   .routing-demo-header { padding: .6rem .75rem; }
   .demo-control-group.demo-task-controls { flex-basis: 100%; }
   .demo-control-group { flex-basis: calc(50% - .4rem); }
-  .factory-hud-header { gap: .4rem; padding: .4rem .6rem; }
-  .factory-hud-counts { font-size: .75rem; }
-  .factory-hud-actions { gap: .35rem; }
 }
 
 @media (max-width: 600px) {
@@ -327,6 +210,4 @@ body,
   .paper-demo .demo-control-group summary { font-size: .75rem; }
   .paper-demo button, .paper-demo select { min-height: 2.25rem; }
   .paper-demo .demo-cluster label, .paper-demo button, .paper-demo select { font-size: .78rem; }
-  .paper-demo .factory-hud-actions { margin-left: 0; }
-  .paper-demo .factory-card { left: .6rem; bottom: .6rem; width: calc(100% - 1.2rem); }
 }

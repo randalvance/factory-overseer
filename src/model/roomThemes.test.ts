@@ -39,7 +39,7 @@ it.each([
   const theme = resolveRoomTheme({ theme: preset })
   expect(theme).toMatchObject({ floor, station, decoration })
   expect(theme.assets.decoration).toEqual({
-    url: `/assets/models/room-themes/${asset}.glb`,
+    url: `assets/models/room-themes/${asset}.glb`,
     footprint: { width: 1.1, depth, height },
   })
 })
@@ -50,7 +50,7 @@ it("inherits a preset furnishing alongside a host accessory without sharing muta
   } } }
   const original = JSON.stringify(registry)
   const theme = resolveRoomTheme({ theme: "studio", themeOverrides: { accent: "#123456" } }, registry)
-  expect(theme.assets.decoration?.url).toBe("/assets/models/room-themes/lab-specimen-cabinet.glb")
+  expect(theme.assets.decoration?.url).toBe("assets/models/room-themes/lab-specimen-cabinet.glb")
   expect(theme.assets.station?.url).toBe("/host/instrument.glb")
   theme.assets.decoration!.footprint.width = .5
   theme.assets.station!.footprint.height = .1
@@ -71,7 +71,7 @@ it("lets registry and room asset overrides replace the bundled furnishing withou
     url: "/room/shelf.glb", footprint: { width: .9, depth: .6, height: 1 },
   })
   expect(JSON.stringify({ registry, room })).toBe(originals)
-  expect(resolveRoomTheme({ theme: "research-lab" }).assets.decoration?.url).toBe("/assets/models/room-themes/lab-specimen-cabinet.glb")
+  expect(resolveRoomTheme({ theme: "research-lab" }).assets.decoration?.url).toBe("assets/models/room-themes/lab-specimen-cabinet.glb")
 })
 
 it.each([

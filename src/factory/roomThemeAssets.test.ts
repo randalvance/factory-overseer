@@ -231,3 +231,32 @@ it("closes a shared bitmap only once when its cache-owned textures are released"
   cache.dispose(); cache.dispose()
   expect(bitmap.close).toHaveBeenCalledTimes(1)
 })
+
+
+it("loads relative theme assets from the host asset base while preserving explicit URLs", async () => {
+  const loadModel = vi.spyOn(GLTFLoader.prototype, "loadAsync").mockImplementation(async () => gltf(cube().scene))
+  const loadFloor = vi.spyOn(THREE.TextureLoader.prototype, "loadAsync").mockImplementation(async () =>
+    new THREE.Texture({ width: 256, height: 256 } as HTMLImageElement))
+  const cache = createRoomThemeAssets(() => {}, "/embedded/factory")
+  const relative = { ...asset, url: "assets/tool.glb" }
+  cache.update([
+    theme({ station: relative, floor: "./skins/floor.png" }),
+    theme({ station: { ...asset, url: "/host/tool.glb" }, floor: "/host/floor.png" }),
+    theme({ station: { ...asset, url: "https://cdn.example/tool.glb" }, floor: "https://cdn.example/floor.png" }),
+  ])
+  await settle()
+  expect(loadModel.mock.calls.map(([url]) => url)).toEqual([
+    "/embedded/factory/assets/tool.glb", "/host/tool.glb", "https://cdn.example/tool.glb",
+  ])
+  expect(loadFloor.mock.calls.map(([url]) => url)).toEqual([
+    "/embedded/factory/skins/floor.png", "/host/floor.png", "https://cdn.example/floor.png",
+  ])
+  expect(cache.model(relative, "station")).toBeInstanceOf(THREE.Object3D)
+  const floor = cache.floor("./skins/floor.png", 6, 4)
+  expect(floor).toBeInstanceOf(THREE.Texture)
+  // Referring to an already loaded URL by its resolved path shares the load.
+  cache.update([theme({ station: { ...asset, url: "/embedded/factory/assets/tool.glb" }, floor: "/embedded/factory/skins/floor.png" })])
+  expect(loadModel).toHaveBeenCalledTimes(3)
+  expect(loadFloor).toHaveBeenCalledTimes(3)
+  floor?.dispose(); cache.dispose()
+})
