@@ -26,7 +26,7 @@ function Demo() {
   const [value, setValue] = useState(() => state(params.has("large") ? 100 : 20))
   return <><button onClick={() => setValue(state(100))}>Grow to 100 agents</button>
     <div style={{ position: "relative", height: "calc(100vh - 32px)" }}>
-      <RoomFactory state={value} petAssets={params.get("art") === "legacy" ? undefined : DEFAULT_PET_ASSETS} width={28} speed={2} appearance={params.get("art") === "legacy" ? "legacy" : "paper"}
+      <RoomFactory state={value} petAssets={DEFAULT_PET_ASSETS} width={28} speed={2}
         onRenderMetrics={(metrics) => { window.samples.push(metrics); if (window.samples.length > 60) window.samples.shift() }} />
     </div></>
 }

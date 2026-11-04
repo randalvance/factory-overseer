@@ -21,76 +21,55 @@ import { tileKey } from "~/floor/tiles"
 import { trimPaperBeltAtBenches } from "./paperConveyors"
 import { paperWallPortTile } from "./paperWallPorts"
 import { openPaperBeltTile } from "./paperJunctions"
-import { beltTile, bench, containerWalls, door, floorSlab, hopper, pallet, patch } from "./pieces"
+import { beltTile, bench, containerWalls, door, hopper, pallet } from "./pieces"
 
 /**
  * Every piece is named for what it is of the layout: a belt tile for the
  * belt it is on, by the name a belt keeps when the floor is laid afresh, and
- * how far along it is; a bench for its station; a patch for its bay; and so
+ * how far along it is; a bench for its station; a wall for its room; and so
  * on. The same name in the next drawing is the same piece, slid there.
  */
 export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets, billboards?: BillboardAssets): THREE.Group {
   const group = new THREE.Group()
-  group.userData.paper = !!pieces.paper
   const add = (name: string, piece: THREE.Object3D) => {
     piece.name = name
     group.add(piece)
   }
-  if (pieces.paper && layout.rooms) {
-    const truck = paperTruckPlacement(layout)
-    const road = paperRoadFootprint(layout)
-    const reserved = [...(truck ? [truck.footprint] : []), ...(road ? [road] : [])]
-    add("floor", drawPaperGround(layout, reserved))
-    add("paper-trees", drawPaperTrees(layout, reserved))
-    const roadPiece = paperRoad(layout)
-    if (roadPiece) add("paper-road", roadPiece)
-  } else {
-    const floor = floorSlab(layout.bounds, pieces.floor)
-    if (layout.rooms) (floor.material as THREE.MeshLambertMaterial).color.setHex(0x303941)
-    add("floor", floor)
-  }
-  drawRooms(layout, pieces.floor, add, pieces.paper, themes, assets, billboards)
-  if (!pieces.paper) add("patch:intake", patch(layout.intake.rect, "intake"))
-  if (!pieces.paper) for (const bay of layout.bays) add(`patch:${bay.id}`, patch(bay.rect, "bay"))
-  if (layout.staging && !pieces.paper) add("patch:staging", patch(layout.staging.rect, "staging"))
+  const truckPlacement = paperTruckPlacement(layout)
+  const road = paperRoadFootprint(layout)
+  const reserved = [...(truckPlacement ? [truckPlacement.footprint] : []), ...(road ? [road] : [])]
+  add("floor", drawPaperGround(layout, reserved))
+  add("paper-trees", drawPaperTrees(layout, reserved))
+  const roadPiece = paperRoad(layout)
+  if (roadPiece) add("paper-road", roadPiece)
+  drawRooms(layout, add, themes, assets, billboards)
 
   const paperBenches = new Set(layout.bays.flatMap((bay) => bay.stations.map((station) => tileKey(station.bench))))
-  if (layout.staging) paperBenches.add(tileKey(layout.staging.bench))
   for (const belt of layout.belts) {
     const surface = carriesRework(belt) ? "rework" : "forward"
     belt.tiles.forEach((tile, i) => {
       // Cargo tiles remain routable, but the truck floor carries them once
       // they pass its open rear; conveyor feet must not pierce the sleeve.
-      if (pieces.paper && layout.shippingDock?.cargoTiles.some((cargo) => cargo.x === tile.x && cargo.y === tile.y)) return
+      if (layout.shippingDock?.cargoTiles.some((cargo) => cargo.x === tile.x && cargo.y === tile.y)) return
       const onPlatform = layout.rooms?.some(({ rect, kind }) => kind !== "intake" && tile.x >= rect.x && tile.x < rect.x + rect.w && tile.y >= rect.y && tile.y < rect.y + rect.h)
-      const floorY = pieces.paper && layout.rooms && !onPlatform ? -.22 : 0
-      const drawingTile = pieces.paper ? paperWallPortTile(openPaperBeltTile(tile), layout.rooms) : tile
+      const floorY = onPlatform ? 0 : -.22
+      const drawingTile = paperWallPortTile(openPaperBeltTile(tile), layout.rooms)
       const piece = beltTile(drawingTile, surface, pieces, floorY)
-      if (pieces.paper) trimPaperBeltAtBenches(piece, drawingTile, paperBenches)
+      trimPaperBeltAtBenches(piece, drawingTile, paperBenches)
       add(`belt:${beltName(belt)}:${i}`, piece)
     })
   }
 
   const stationPalette = new Map<number, THREE.MeshLambertMaterial>()
   for (const bay of layout.bays) for (const station of bay.stations) add(`bench:${station.id}`, bench(station.bench, station.vacant, pieces, station.role, themes?.get(bay.id), assets, stationPalette))
-  if (layout.staging) {
-    add("bench:staging", bench(layout.staging.bench, false, pieces))
-    // The first staging spot is the bench itself; the rest are shelves beside the inspector.
-    layout.staging.pile.slice(1).forEach((tile, i) => add(`pallet:staging:${i}`, pallet(tile)))
-  }
-  if (layout.rooms) {
-    for (const room of layout.rooms) if (!pieces.paper || room.kind !== "intake") add(`door:${room.id}`, door(room.door, pieces))
-  } else add("door", door(layout.door, pieces))
+  for (const room of layout.rooms ?? []) if (room.kind !== "intake") add(`door:${room.id}`, door(room.door, pieces))
   layout.intake.pile.forEach((tile, i) => add(`pallet:intake:${i}`, pallet(tile)))
-  add("hopper", hopper(layout.intake, pieces.paper, pieces.paper && layout.rooms ? -.22 : 0))
-  // Configured paper factories ship through the deployment side outlet;
-  // the old front-facing tray/arch would create a second, disconnected exit.
-  if (!pieces.paper || !layout.shippingDock) add("container", containerWalls(layout.container, pieces.paper))
-  if (pieces.paper) {
-    const truck = paperTruck(layout)
-    const deployment = layout.rooms?.find((room) => room.kind === "deployment")
-    if (truck && deployment) add(`${deployment.id}:truck`, truck)
-  }
+  add("hopper", hopper(layout.intake, -.22))
+  // Factories with a deployment outlet ship into the parked truck.
+  if (!layout.shippingDock) add("container", containerWalls(layout.container))
+  const truck = paperTruck(layout)
+  const deployment = layout.rooms?.find((room) => room.kind === "deployment")
+  if (truck && deployment) add(`${deployment.id}:truck`, truck)
   return group
 }
 
@@ -114,7 +93,7 @@ export function disposeMeshes(root: THREE.Object3D) {
 // Keep named pieces for layout glides, but batch repeated solid furniture and
 // belt meshes while settled. Originals retain their identity for the next slide.
 export function batchPaperDrawing(root: THREE.Group) {
-  if (!root.userData.paper || root.userData.batch) return
+  if (root.userData.batch) return
   root.updateMatrixWorld(true)
   const groups = new Map<string, THREE.Mesh[]>()
   const hidden: THREE.Object3D[] = []

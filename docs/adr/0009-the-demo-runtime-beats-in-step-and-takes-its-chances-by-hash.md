@@ -1,5 +1,8 @@
 # The demo runtime beats in step and takes its chances by hash
 
+> Current status: Superseded by ADR 0012: this records the removed seeded legacy demo. The
+> current example host advances work only through explicit control actions.
+
 The demo stands in for a host (ADR 0001) with a runtime of its own: a pure
 value, advanced one beat at a time, that reports a snapshot the way a host
 would and knows nothing of the floor. At a beat every agent's work goes a

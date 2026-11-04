@@ -18,13 +18,11 @@ export interface CameraPose {
   zoom: number
 }
 
-/** Legacy manual zoom floor; the paper view can use its smaller fitted zoom. */
+/** Manual zoom floor; Fit all can use a smaller zoom for a large layout. */
 export const ZOOM_MIN = 0.5
 export const ZOOM_MAX = 4
 /** Screen pixels across one tile at zoom 1. */
 export const PX_PER_TILE = 64
-/** Fixed legacy camera angle below the horizon, matching the pixel sprite sheets. */
-export const PITCH = (50 * Math.PI) / 180
 /** A lower view of the paper model exposes desk fronts, folded feet and raised belts. */
 export const PAPER_PITCH = (38 * Math.PI) / 180
 /** Mild perspective gives the front rooms more presence without a wide-angle lens. */
@@ -37,13 +35,6 @@ const ZOOM_STEP = Math.SQRT2
 const PAN_MARGIN = 2
 /** Room kept around the floor when framing it, in tiles. */
 const FIT_MARGIN = 1
-/** Height of what stands on the floor, in tiles, so framing leaves room for it. */
-const HEADROOM = 2
-
-/** Keep the target when changing appearance, restoring legacy zoom limits without reframing. */
-export function cameraPoseForAppearance(pose: CameraPose, appearance: "paper" | "legacy"): CameraPose {
-  return appearance === "paper" ? pose : { ...pose, zoom: clamp(pose.zoom, ZOOM_MIN, ZOOM_MAX) }
-}
 
 export function zoomBy(pose: CameraPose, deltaY: number, minimumZoom = ZOOM_MIN): CameraPose {
   return { ...pose, zoom: clamp(pose.zoom * 2 ** (-deltaY / WHEEL_PX_PER_DOUBLING), minimumZoom, ZOOM_MAX) }
@@ -61,7 +52,7 @@ export function pinchBy(pose: CameraPose, from: number, to: number, minimumZoom 
 }
 
 /** Move the target so the floor follows a drag of dx, dy screen pixels. Depth is foreshortened by the pitch. */
-export function panBy(pose: CameraPose, dx: number, dy: number, pitch = PITCH): CameraPose {
+export function panBy(pose: CameraPose, dx: number, dy: number, pitch = PAPER_PITCH): CameraPose {
   const tilesPerPx = 1 / (PX_PER_TILE * pose.zoom)
   return { ...pose, x: pose.x - dx * tilesPerPx, z: pose.z - (dy * tilesPerPx) / Math.sin(pitch) }
 }
@@ -72,24 +63,6 @@ export function clampToFloor(pose: CameraPose, floor: Rect): CameraPose {
     x: clamp(pose.x, floor.x - PAN_MARGIN, floor.x + floor.w + PAN_MARGIN),
     z: clamp(pose.z, floor.y - PAN_MARGIN, floor.y + floor.h + PAN_MARGIN),
   }
-}
-
-/**
- * The pose the view opens on: the floor's width filling the viewport, so the
- * overseer never scrolls sideways, and the whole floor when it fits; when it
- * is taller than the viewport, the back of it, from where the overseer pans
- * toward the camera. On screen a tile of depth is foreshortened by the pitch,
- * and what stands on the floor rises above the back wall by the headroom.
- */
-export function fitFloor(floor: Rect, viewport: Viewport): CameraPose {
-  const zoom = clamp(viewport.width / ((floor.w + 2 * FIT_MARGIN) * PX_PER_TILE), ZOOM_MIN, ZOOM_MAX)
-  const screenDepth = floor.h * Math.sin(PITCH) + HEADROOM * Math.cos(PITCH)
-  const screenHalfHeight = viewport.height / PX_PER_TILE / zoom / 2
-  const fits = screenDepth + 2 * FIT_MARGIN <= 2 * screenHalfHeight
-  const z = fits
-    ? floor.y + floor.h / 2
-    : floor.y + (screenHalfHeight - FIT_MARGIN - HEADROOM * Math.cos(PITCH)) / Math.sin(PITCH)
-  return { x: floor.x + floor.w / 2, z, zoom }
 }
 
 /** The perspective lens preserves the existing pixels-per-tile scale at its target. */
@@ -184,7 +157,7 @@ export function fitDioramaLayout(layout: Layout, viewport: Viewport): CameraPose
 
 /** Frame the complete paper model in perspective, including raised rear belts,
  * sign tops and the cardstock base; keep the canvas HUD above the composition.
- * Fit may zoom below the legacy minimum; maps deeper than the perspective
+ * Fit may zoom below the manual minimum; maps deeper than the perspective
  * camera can contain still open on a pannable portion.
  */
 export function fitDiorama(floor: Rect, viewport: Viewport, pitch = PAPER_PITCH, modelPoints?: readonly PaperPoint[]): CameraPose {

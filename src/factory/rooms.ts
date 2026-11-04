@@ -5,7 +5,6 @@ import { wayIn } from "~/floor/walk"
 import type { ThemeAssets } from "./roomThemeAssets"
 import { isShared } from "./models"
 import { paperWallPortSide } from "./paperWallPorts"
-import { floorSlab } from "./pieces"
 import { paperFloorProfile, paperFloorTexture } from "./paperFlooring"
 import { roomBillboardPlacement } from "./billboardGeometry"
 import { roomBillboard, roomIdentity } from "./roomBillboards"
@@ -14,32 +13,13 @@ import type { BillboardAssets } from "./roomBillboardAssets"
 type Add = (name: string, piece: THREE.Object3D) => void
 
 /** The paper room is an authored piece of scenery; routing owns all openings. */
-export function drawRooms(layout: Layout, floorTexture: THREE.Texture, add: Add, paper = false, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets, billboards?: BillboardAssets) {
+export function drawRooms(layout: Layout, add: Add, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets, billboards?: BillboardAssets) {
   const occupied = new Set(layout.belts.flatMap((belt) => belt.tiles.map((tile) => `${tile.x},${tile.y}`)))
   for (const room of layout.rooms ?? []) {
     const definition = layout.routing?.configuration.rooms.find((definition) => `room:${definition.id}` === room.id)
-    add(`room:${room.id}:sign`, roomBillboard(room, roomBillboardPlacement(room, layout.intake.rect, paper), definition?.billboard, billboards))
+    add(`room:${room.id}:sign`, roomBillboard(room, roomBillboardPlacement(room, layout.intake.rect), definition?.billboard, billboards))
     // Intake's sign sits on its outdoor hopper; it has no room enclosure.
-    if (paper && room.kind === "intake") continue
-    if (paper) { drawPaperRoom(room, occupied, add, layout, themes?.get(room.id), assets); continue }
-    const { x, y, w, h } = room.rect
-    const color = room.kind === "intake" ? 0x5278ab : room.kind === "deployment" ? 0xb17a49 : room.kind === "staging" ? 0xc7a454 : 0x638a7d
-    const floor = floorSlab(room.rect, floorTexture)
-    ;(floor.material as THREE.MeshLambertMaterial).color.setHex(color).lerp(new THREE.Color(0xffffff), .7)
-    floor.position.y = .012
-    add(`room:${room.id}:floor`, floor)
-    const wall = (key: string, cx: number, cy: number, width: number, depth: number, height: number) => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), new THREE.MeshLambertMaterial({ color: 0x50616a }))
-      mesh.position.set(cx, height / 2, cy)
-      add(`room:${room.id}:${key}`, mesh)
-    }
-    for (let i = 0; i < w; i++) {
-      if (x + i !== room.door.x && !occupied.has(`${x + i},${y}`)) wall(`back:${i}`, x + i + .5, y + .12, 1, .24, 1.1)
-      wall(`front:${i}`, x + i + .5, y + h - .12, 1, .24, .18)
-    }
-    for (let i = 1; i < h - 1; i++) for (const [side, xx] of [["left", x], ["right", x + w - 1]] as const) {
-      if (!occupied.has(`${xx},${y + i}`)) wall(`${side}:${i}`, xx + (side === "left" ? .12 : .88), y + i + .5, .24, 1, .45)
-    }
+    if (room.kind !== "intake") drawPaperRoom(room, occupied, add, layout, themes?.get(room.id), assets)
   }
 }
 

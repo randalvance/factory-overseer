@@ -17,8 +17,6 @@ export interface Agent {
   status: AgentStatus
   /** Bubble text. Empty falls back to the status default. */
   activity?: string
-  /** A stock sheet index, or a URL to a sheet in the stock layout. */
-  sprite?: number | string
   color?: string
 }
 

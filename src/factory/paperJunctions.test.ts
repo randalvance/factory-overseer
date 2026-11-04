@@ -139,7 +139,7 @@ describe("paper splitter and merger modules", () => {
     expect(surfaceA.material).toBe(surfaceB.material)
   })
 
-  it("replaces paper junctions completely but leaves legacy piece composition unchanged", () => {
+  it("replaces the shared junction geometry with one paper module", () => {
     let clones = 0
     const texture = new THREE.Texture()
     const pieces: Pieces = {
@@ -153,9 +153,5 @@ describe("paper splitter and merger modules", () => {
     expect(paper.children).toHaveLength(1)
     expect(paper.children[0]!.name).toBe("paper-junction")
     expect(clones).toBe(0)
-    pieces.paper = false
-    const legacy = beltTile(tile, "rework", pieces)
-    expect(clones).toBeGreaterThan(1)
-    expect(legacy.getObjectByName("paper-junction")).toBeUndefined()
   })
 })

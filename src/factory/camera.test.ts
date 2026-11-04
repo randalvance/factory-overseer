@@ -3,25 +3,10 @@ import { PerspectiveCamera, Vector3 } from "three"
 import type { Rect } from "~/floor/types"
 import { layoutConfiguredRooms } from "~/floor/configuredRooms"
 import { exampleRooms } from "~/model/roomExamples"
-import { type CameraPose, cameraPoseForAppearance, clampToFloor, dioramaModelPoints, fitDiorama, fitDioramaLayout, fitFloor, PAPER_CAMERA_DISTANCE, PAPER_PITCH, PX_PER_TILE, panBy, panDiorama, paperFieldOfView, projectDioramaPoint, pinchBy, zoomBy, zoomStep } from "./camera"
+import { type CameraPose, clampToFloor, dioramaModelPoints, fitDiorama, fitDioramaLayout, PAPER_CAMERA_DISTANCE, PAPER_PITCH, PX_PER_TILE, panBy, panDiorama, paperFieldOfView, projectDioramaPoint, pinchBy, zoomBy, zoomStep } from "./camera"
 
 const centred: CameraPose = { x: 10, z: 2.5, zoom: 1 }
 const floor: Rect = { x: 0, y: 0, w: 30, h: 5 }
-
-describe("switching camera appearance", () => {
-  it("restores legacy zoom after a narrow paper fit without moving the camera target", () => {
-    const paper = fitDiorama({ x: 4, y: 8, w: 28, h: 18 }, { width: 390, height: 500 })
-    expect(paper.zoom).toBeLessThan(.5)
-    const legacy = cameraPoseForAppearance(paper, "legacy")
-    expect(legacy).toEqual({ x: paper.x, z: paper.z, zoom: .5 })
-    expect(zoomBy(legacy, -100).zoom).toBeCloseTo(.5 * 2 ** .2, 6)
-    expect(zoomStep(legacy, 1).zoom).toBeCloseTo(.5 * Math.SQRT2, 6)
-    expect(pinchBy(legacy, 100, 120).zoom).toBeCloseTo(.6, 6)
-    expect(cameraPoseForAppearance(paper, "paper")).toBe(paper)
-    expect(cameraPoseForAppearance(legacy, "paper")).toBe(legacy)
-    expect(cameraPoseForAppearance(centred, "legacy")).toEqual(centred)
-  })
-})
 
 describe("wheel zoom", () => {
   // Five hundred pixels of wheel is one doubling, either way.
@@ -87,11 +72,11 @@ describe("drag pan", () => {
     expect(panBy({ ...centred, zoom: 2 }, 64, 0).x).toBeCloseTo(9.5, 6)
   })
 
-  // The camera looks down at 50 degrees, so a tile of depth covers only
-  // sin(50°) of a tile on screen: 64 pixels of drag is 1 / 0.7660 tiles.
+  // The camera looks down at 38 degrees, so a tile of depth covers only
+  // sin(38°) of a tile on screen: 64 pixels of drag is 1 / 0.6157 tiles.
   it("drags the floor forward further than sideways because depth is foreshortened", () => {
-    expect(panBy(centred, 0, 64).z).toBeCloseTo(2.5 - 1.3054, 3)
-    expect(panBy(centred, 0, -64).z).toBeCloseTo(2.5 + 1.3054, 3)
+    expect(panBy(centred, 0, 64).z).toBeCloseTo(2.5 - 1.6243, 3)
+    expect(panBy(centred, 0, -64).z).toBeCloseTo(2.5 + 1.6243, 3)
   })
 
   it("keeps paper floor movement under the pointer at its lower viewing angle", () => {
@@ -112,40 +97,6 @@ describe("pan limits", () => {
 
   it("leaves a target over the floor alone", () => {
     expect(clampToFloor(centred, floor)).toEqual(centred)
-  })
-})
-
-describe("framing the floor's width", () => {
-  const viewport = { width: 1280, height: 800 }
-
-  it("looks at the middle of a floor that fits the viewport", () => {
-    expect(fitFloor({ x: 0, y: 0, w: 10, h: 5 }, viewport)).toMatchObject({ x: 5, z: 2.5 })
-  })
-
-  // Ten tiles plus a tile of margin each side is 12 tiles, 768 pixels at
-  // zoom 1, so 1280 pixels fit at 1.6667; the depth would allow more.
-  it("zooms so a short floor fills the width with a tile of margin", () => {
-    expect(fitFloor({ x: 0, y: 0, w: 10, h: 5 }, viewport).zoom).toBeCloseTo(1.6667, 3)
-  })
-
-  // Twenty tiles plus the margins fill 1280 pixels at 0.9091, though the
-  // floor's twenty-five rows would need 0.56 to fit: the width wins, so the
-  // overseer never scrolls sideways.
-  it("zooms to the width however tall the floor is", () => {
-    expect(fitFloor({ x: 0, y: 0, w: 20, h: 25 }, viewport).zoom).toBeCloseTo(0.9091, 3)
-  })
-
-  // At that zoom the viewport is 13.75 tiles tall on screen; with a tile of
-  // margin and two tiles of headroom foreshortened by the pitch above the
-  // back wall, the centre of the screen falls 5.99 tiles into the floor.
-  it("starts at the back of a floor taller than the viewport, from where the overseer pans toward the camera", () => {
-    expect(fitFloor({ x: 0, y: 0, w: 20, h: 25 }, viewport)).toMatchObject({ x: 10 })
-    expect(fitFloor({ x: 0, y: 0, w: 20, h: 25 }, viewport).z).toBeCloseTo(5.991, 2)
-  })
-
-  it("never zooms past the limits to fit", () => {
-    expect(fitFloor({ x: 0, y: 0, w: 400, h: 5 }, viewport).zoom).toBe(0.5)
-    expect(fitFloor({ x: 0, y: 0, w: 2, h: 1 }, { width: 1280, height: 1600 }).zoom).toBe(4)
   })
 })
 
@@ -273,7 +224,7 @@ describe("Fit all in narrow and shallow paper canvases", () => {
     }
     expect(pose.zoom).toBeLessThan(.5)
     // Every input can zoom in from Fit all and return to it without jumping
-    // to the legacy half-scale floor.
+    // to the manual half-scale floor.
     const wheeled = zoomBy(pose, -100, pose.zoom)
     expect(wheeled.zoom).toBeCloseTo(pose.zoom * 2 ** .2, 6)
     expect(zoomBy(wheeled, 100, pose.zoom).zoom).toBeCloseTo(pose.zoom, 6)

@@ -1,22 +1,26 @@
 /* Component styles only: the embedding page keeps its document and layout styles. */
 .factory {
-  color-scheme: dark;
-  color: #e6e8ee;
-  font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+  color: #39464d;
+  font-family: ui-sans-serif, system-ui, sans-serif;
 }
 
 .factory-hud button {
   font: inherit;
-  font-size: 0.8rem;
-  color: #e6e8ee;
-  background: #1f2531;
-  border: 1px solid #2c3442;
-  border-radius: 4px;
-  padding: 0.25rem 0.6rem;
+  font-size: .75rem;
+  color: #46514c;
+  background: #fffaf0;
+  border: 1px solid #d8ccb4;
+  border-radius: 5px;
+  padding: .25rem .5rem;
+  min-height: 2rem;
+  line-height: 1.35;
   cursor: pointer;
 }
 
-.factory-hud button:hover { background: #2c3442; }
+.factory-hud button:hover:enabled { background: #e4eadc; border-color: #8ca391; }
+.factory-hud button:disabled { opacity: .42; }
+.factory-hud button:focus-visible { outline: 2px solid #567b68; outline-offset: 3px; }
 
 .factory,
 .factory-canvas {
@@ -49,8 +53,9 @@
   gap: 1rem;
   flex-wrap: wrap;
   padding: 0.4rem 0.8rem;
-  background: rgba(11, 13, 18, 0.75);
-  border-bottom: 1px solid #1f2531;
+  background: rgba(248,241,229,.92);
+  color: #5c695f;
+  border-bottom: 1px solid #e3d9c5;
   pointer-events: auto;
 }
 
@@ -58,7 +63,7 @@
   display: flex;
   gap: .35rem .85rem;
   flex-wrap: wrap;
-  color: #cfd6e4;
+  color: #657369;
 }
 
 .factory-hud-actions {
@@ -78,8 +83,10 @@
   max-height: calc(100% - 5rem);
   overflow: auto;
   padding: 0.6rem 0.8rem;
-  background: rgba(20, 24, 33, 0.92);
-  border: 1px solid #2c3442;
+  background: #fffaf0;
+  color: #39464d;
+  border: 1px solid #d8ccb4;
+  box-shadow: 0 8px 28px #5b49341a;
   border-radius: 6px;
   pointer-events: auto;
 }
@@ -99,16 +106,19 @@
 }
 
 .factory-card dt {
-  color: #9fb3c8;
+  color: #4d5e58;
+  font-weight: 650;
 }
 
 .factory-card dd {
+  color: #4d5e58;
   margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
 .factory-card-close {
+  min-width: 2rem;
   position: absolute;
   top: 0.3rem;
   right: 0.3rem;
@@ -122,44 +132,15 @@
   left: 1rem;
   right: 1rem;
   padding: 0.7rem;
-  background: #442528;
-  color: #ffdcda;
+  background: #fff1dd;
+  color: #824c29;
+  border-color: #d9b990;
   font-size: 0.8rem;
 }
 
 
 .factory-hud-counts > span { white-space: nowrap; }
 .factory-card ul, .factory-card ol { padding-left: 1.1rem; }
-
-/* Paper appearance belongs to the component, including when no demo shell exists. */
-.factory-paper {
-  color-scheme: light;
-  color: #39464d;
-  font-family: ui-sans-serif, system-ui, sans-serif;
-}
-
-.factory-paper .factory-hud button {
-  color: #46514c;
-  background: #fffaf0;
-  border: 1px solid #d8ccb4;
-  border-radius: 5px;
-  padding: .25rem .5rem;
-  font-size: .75rem;
-  font-family: inherit;
-  min-height: 2rem;
-  line-height: 1.35;
-}
-
-.factory-paper .factory-hud button:hover:enabled { background: #e4eadc; border-color: #8ca391; }
-.factory-paper .factory-hud button:disabled { opacity: .42; }
-.factory-paper .factory-hud button:focus-visible { outline: 2px solid #567b68; outline-offset: 3px; }
-.factory-paper .factory-hud-header { background: rgba(248,241,229,.92); color: #5c695f; border-bottom: 1px solid #e3d9c5; }
-.factory-paper .factory-hud-counts { color: #657369; }
-.factory-paper .factory-card { background: #fffaf0; color: #39464d; border-color: #d8ccb4; box-shadow: 0 8px 28px #5b49341a; }
-.factory-paper .factory-card dd, .factory-paper .factory-card dt { color: #4d5e58; }
-.factory-paper .factory-card dt { font-weight: 650; }
-.factory-paper .factory-card-close { min-width: 2rem; }
-.factory-paper-error { background: #fff1dd; color: #824c29; border-color: #d9b990; }
 
 @media (max-width: 899px) {
   .factory-hud-header { gap: .4rem; padding: .4rem .6rem; }
@@ -168,7 +149,7 @@
 }
 
 @media (max-width: 600px) {
-  .factory-paper .factory-hud button { min-height: 2.25rem; font-size: .78rem; }
-  .factory-paper .factory-hud-actions { margin-left: 0; }
-  .factory-paper .factory-card { left: .6rem; bottom: .6rem; width: calc(100% - 1.2rem); }
+  .factory-hud button { min-height: 2.25rem; font-size: .78rem; }
+  .factory-hud-actions { margin-left: 0; }
+  .factory-card { left: .6rem; bottom: .6rem; width: calc(100% - 1.2rem); }
 }

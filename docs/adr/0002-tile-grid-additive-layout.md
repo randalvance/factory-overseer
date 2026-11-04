@@ -1,5 +1,8 @@
 # The floor is a tile grid and layout is additive
 
+> Current status: The room-growth amendments in ADR 0010 and configured layout in ADR 0011
+> supersede the original bay-only layout. ADR 0012 retires the legacy mode.
+
 Belts, stations, bays and the two ends of the line live on a tile grid; belts
 are paths of straight, corner and junction tiles. Layout is additive: placing
 something reserves tiles, and nothing already placed moves when agents or

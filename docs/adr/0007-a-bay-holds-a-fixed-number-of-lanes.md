@@ -1,5 +1,8 @@
 # A bay holds a fixed number of lanes; a role that outgrows it gets an annex
 
+> Current status: This records the original fixed-capacity bays and annexes. Rooms now grow
+> under ADRs 0010 and 0011; ADR 0012 retires the legacy bay mode.
+
 Lanes grow toward the camera, and once a band lies below a bay (ADR 0006)
 there is no room for another. So a bay holds a fixed number of lanes, three
 unless the host says otherwise, and the next agent of that role takes a lane in

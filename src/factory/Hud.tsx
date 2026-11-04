@@ -5,16 +5,13 @@
 import { type ReactNode, useEffect, useState } from "react"
 import { counts } from "~/model/counts"
 import { type AgentStatus, type StatusStyle, bubbleText } from "~/model/status"
-import { tasksAt } from "~/model/tasks"
-import { type Trails, placeText, whereText } from "~/model/trails"
 import { recordRoomTrails, type RoomTrails, type RoomTrailStop } from "~/model/roomTrails"
 import { humanRequestAgentIds } from "~/model/roomRouting"
 import type { HumanAttentionRequest, RoomFactoryState, RoomTask, Snapshot, Subject } from "~/model/types"
 
 export interface HudProps {
-  roomState?: RoomFactoryState
+  roomState: RoomFactoryState
   snapshot: Snapshot
-  trails: Trails
   /** The tasks whose boxes are still riding to where the snapshot puts them. */
   riding: ReadonlySet<string>
   /** What each status looks like, for the activity of an agent that reports none of its own. */
@@ -29,11 +26,10 @@ export interface HudProps {
 }
 
 /** The header with the counts and the Fit all and Reorganize buttons, and the card for what the overseer clicked, if anything. */
-export function Hud({ snapshot, roomState, trails, riding, styles, picked, ready, onClose, onFitAll, onReorganize }: HudProps) {
+export function Hud({ snapshot, roomState, riding, styles, picked, ready, onClose, onFitAll, onReorganize }: HudProps) {
   const tally = counts(snapshot)
   const [roomTrails, setRoomTrails] = useState<RoomTrails>({})
   useEffect(() => {
-    if (!roomState) return
     setRoomTrails((before) => recordRoomTrails(before, roomState))
   }, [roomState])
   return (
@@ -42,8 +38,7 @@ export function Hud({ snapshot, roomState, trails, riding, styles, picked, ready
         <span className="factory-hud-counts" aria-label="Counts">
           <span>{tally.agents} agents</span>
           <span>{tally.inFlight} in flight</span>
-          {roomState ? <span>{roomState.snapshot.humanRequests.length} human {roomState.snapshot.humanRequests.length === 1 ? "request" : "requests"}</span> :
-            <span>{tally.awaitingReview} awaiting review</span>}
+          <span>{roomState.snapshot.humanRequests.length} human {roomState.snapshot.humanRequests.length === 1 ? "request" : "requests"}</span>
           <span>{tally.shipped} shipped</span>
         </span>
         <span className="factory-hud-actions">
@@ -57,7 +52,7 @@ export function Hud({ snapshot, roomState, trails, riding, styles, picked, ready
       </header>
       {picked && "agent" in picked && <AgentCard id={picked.agent} roomState={roomState} snapshot={snapshot} styles={styles} onClose={onClose} />}
       {picked && "task" in picked && (
-        <BoxCard roomState={roomState} roomTrail={roomTrails[picked.task]} taskId={picked.task} snapshot={snapshot} trails={trails} riding={riding.has(picked.task)} onClose={onClose} />
+        <BoxCard roomState={roomState} roomTrail={roomTrails[picked.task]} taskId={picked.task} riding={riding.has(picked.task)} onClose={onClose} />
       )}
     </div>
   )
@@ -72,21 +67,19 @@ function AgentCard({
   onClose,
 }: {
   id: string
-  roomState?: RoomFactoryState
+  roomState: RoomFactoryState
   snapshot: Snapshot
   styles: Readonly<Record<AgentStatus, StatusStyle>>
   onClose: () => void
 }) {
   const agent = snapshot.agents.find((a) => a.id === id)
   if (!agent) return null
-  const roomAgent = roomState?.snapshot.agents.find((agent) => agent.id === id)
-  const requests = roomState?.snapshot.humanRequests.filter((request) => humanRequestAgentIds(roomState.snapshot, request).includes(id)) ?? []
-  const associated = snapshot.assignments
-    ? snapshot.tasks.filter((task) => snapshot.assignments?.[task.id]?.agentIds.includes(id))
-    : tasksAt(snapshot.tasks, id)
+  const roomAgent = roomState.snapshot.agents.find((agent) => agent.id === id)
+  const requests = roomState.snapshot.humanRequests.filter((request) => humanRequestAgentIds(roomState.snapshot, request).includes(id)) ?? []
+  const associated = snapshot.tasks.filter((task) => snapshot.assignments?.[task.id]?.agentIds.includes(id))
   return (
     <Card title={agent.name} onClose={onClose}>
-      {roomAgent && <><dt>Room</dt><dd>{roomState?.configuration.rooms.find((room) => room.id === roomAgent.roomId)?.label ?? roomAgent.roomId}</dd></>}
+      {roomAgent && <><dt>Room</dt><dd>{roomState.configuration.rooms.find((room) => room.id === roomAgent.roomId)?.label ?? roomAgent.roomId}</dd></>}
       <dt>Role</dt>
       <dd>{agent.role}</dd>
       <dt>Status</dt>
@@ -105,40 +98,34 @@ function BoxCard({
   roomState,
   roomTrail,
   taskId,
-  snapshot,
-  trails,
   riding,
   onClose,
 }: {
-  roomState?: RoomFactoryState
+  roomState: RoomFactoryState
   roomTrail?: readonly RoomTrailStop[]
   taskId: string
-  snapshot: Snapshot
-  trails: Trails
   riding: boolean
   onClose: () => void
 }) {
-  const task = snapshot.tasks.find((t) => t.id === taskId)
-  if (!task) return null
-  const trail = trails[taskId] ?? [task.at]
-  const roomTask = roomState?.snapshot.tasks.find((task) => task.id === taskId)
-  const requests = roomState?.snapshot.humanRequests.filter((request) => request.taskId === taskId ||
-    (!request.taskId && roomTask?.at.kind === "room" && request.roomId === roomTask.at.roomId && (!request.agentIds.length ||
+  const roomTask = roomState.snapshot.tasks.find((task) => task.id === taskId)
+  if (!roomTask) return null
+  const requests = roomState.snapshot.humanRequests.filter((request) => request.taskId === taskId ||
+    (!request.taskId && roomTask.at.kind === "room" && request.roomId === roomTask.at.roomId && (!request.agentIds.length ||
       roomTask.at.assignment?.agentIds.some((id) => request.agentIds.includes(id))))) ?? []
   return (
-    <Card title={task.label} onClose={onClose}>
+    <Card title={roomTask.label} onClose={onClose}>
       <dt>Where</dt>
-      <dd>{roomTask && roomState ? `${riding ? "Riding to " : ""}${roomPlace(roomTask, roomState)}` : whereText(task, snapshot, riding ? "riding" : "arrived")}</dd>
-      {roomTask?.at.kind === "room" && roomTask.at.assignment && <>
+      <dd>{`${riding ? "Riding to " : ""}${roomPlace(roomTask, roomState)}`}</dd>
+      {roomTask.at.kind === "room" && roomTask.at.assignment && <>
         <dt>Participants</dt>
         <dd><ul>{roomTask.at.assignment.agentIds.map((id) => <li key={id}>
-          {roomState!.snapshot.agents.find((agent) => agent.id === id)?.name ?? id}: {roomTask.at.kind === "room" && roomTask.at.assignment!.completedAgentIds.includes(id) ? "complete" : roomState!.snapshot.agents.find((agent) => agent.id === id)?.status}
+          {roomState.snapshot.agents.find((agent) => agent.id === id)?.name ?? id}: {roomTask.at.kind === "room" && roomTask.at.assignment!.completedAgentIds.includes(id) ? "complete" : roomState.snapshot.agents.find((agent) => agent.id === id)?.status}
         </li>)}</ul></dd>
         <dt>Join</dt><dd>{roomTask.at.assignment.completedAgentIds.length}/{roomTask.at.assignment.agentIds.length} complete · host controls handoff</dd>
       </>}
       <HumanRequestContext requests={requests} />
       <dt>Trail</dt>
-      <dd>{roomState ? roomTrail?.map((stop) => stop.label).join(" → ") : trail.map((place) => placeText(place, snapshot.agents)).join(" → ")}</dd>
+      <dd>{roomTrail?.map((stop) => stop.label).join(" → ")}</dd>
     </Card>
   )
 }

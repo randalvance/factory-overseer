@@ -38,39 +38,21 @@ describe("paper surfaces", () => {
     expect(mapDispose).not.toHaveBeenCalled()
   })
 
-  it("leaves a retired legacy drawing untouched during a paper resize and restores reused materials on a switch back", () => {
+  it("preserves host shader extensions while adding paper grain once", () => {
     const surfaces = createPaperSurfaces()
-    const legacy = new THREE.MeshLambertMaterial()
-    const reused = new THREE.MeshLambertMaterial()
+    const material = new THREE.MeshLambertMaterial()
     const originalCompile = vi.fn()
-    const originalKey = () => "host-custom-material"
-    reused.onBeforeCompile = originalCompile
-    reused.customProgramCacheKey = originalKey
-    const legacyCompile = legacy.onBeforeCompile
-    const legacyKey = legacy.customProgramCacheKey
-    const scene = new THREE.Group(), oldDrawing = new THREE.Group(), newDrawing = new THREE.Group()
-    oldDrawing.userData.paper = false
-    newDrawing.userData.paper = true
-    oldDrawing.add(new THREE.Mesh(new THREE.BoxGeometry(), legacy))
-    const nested = new THREE.Group()
-    nested.add(new THREE.Mesh(new THREE.BoxGeometry(), legacy))
-    oldDrawing.add(nested)
-    scene.add(oldDrawing, newDrawing, new THREE.Mesh(new THREE.BoxGeometry(), reused))
+    material.onBeforeCompile = originalCompile
+    material.customProgramCacheKey = () => "host-custom-material"
+    const scene = new THREE.Group()
+    scene.add(new THREE.Mesh(new THREE.BoxGeometry(), material))
     surfaces.apply(scene)
-    expect(legacy.onBeforeCompile).toBe(legacyCompile)
-    expect(legacy.customProgramCacheKey).toBe(legacyKey)
-    expect(reused.onBeforeCompile).not.toBe(originalCompile)
-    expect(reused.customProgramCacheKey()).toContain("paper-pulp")
-    surfaces.restore(scene)
-    expect(reused.onBeforeCompile).toBe(originalCompile)
-    expect(reused.customProgramCacheKey).toBe(originalKey)
-    // A second paper appearance decorates the same live box again.
     surfaces.apply(scene)
-    expect(reused.onBeforeCompile).not.toBe(originalCompile)
-    expect(reused.customProgramCacheKey()).toBe("host-custom-material:paper-pulp-v1")
-    surfaces.restore(scene)
-    expect(reused.onBeforeCompile).toBe(originalCompile)
+    const shader = { uniforms: {}, vertexShader: THREE.ShaderLib.lambert.vertexShader, fragmentShader: THREE.ShaderLib.lambert.fragmentShader }
+    const renderer = {} as THREE.WebGLRenderer
+    material.onBeforeCompile(shader as Parameters<THREE.Material["onBeforeCompile"]>[0], renderer)
+    expect(originalCompile).toHaveBeenCalledExactlyOnceWith(shader, renderer)
+    expect(material.customProgramCacheKey()).toBe("host-custom-material:paper-pulp-v1")
     surfaces.dispose()
   })
-
 })

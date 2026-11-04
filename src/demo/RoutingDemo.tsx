@@ -193,7 +193,7 @@ export function RoutingDemo() {
   const shared = sharedTasks.has(selected) && task.at.kind === "room" && task.at.roomId === "implementation"
   const assignment = task.at.kind === "room" ? task.at.assignment : undefined
   const joinBlocked = shared && !implementationReady(state, selected)
-  return <main className={new URLSearchParams(location.search).get("art") === "legacy" ? "demo" : "demo paper-demo"}>
+  return <main className="demo">
     <header className="demo-header routing-demo-header">
       <div className="demo-brand"><h1>Factory Overseer</h1><span>Paper workshop</span></div>
       <div className="demo-controls">
@@ -264,7 +264,7 @@ export function RoutingDemo() {
       <p className="route-status" role="status">{task.label}: {riding.has(selected) ? "riding to " : task.at.kind === "shipped" ? "shipped from " : "in "}{room.label}{waitingForHuman ? " · waiting for your response" : room.kind === "intake" ? " · ready to route" : task.at.kind === "room" && !task.at.assignment ? " · waiting for assignment" : ""}</p>
     </header>
     <section className="demo-factory">
-      <RoomFactory assetBase={import.meta.env.BASE_URL} roomThemes={DEMO_ROOM_THEMES} petAssets={new URLSearchParams(location.search).get("art") === "legacy" ? undefined : DEFAULT_PET_ASSETS} appearance={new URLSearchParams(location.search).get("art") === "legacy" ? "legacy" : "paper"} state={state} speed={speed} width={28} onReady={setHandle}
+      <RoomFactory assetBase={import.meta.env.BASE_URL} roomThemes={DEMO_ROOM_THEMES} petAssets={DEFAULT_PET_ASSETS} state={state} speed={speed} width={28} onReady={setHandle}
         onTaskLanded={taskLanded}
         onHumanNeeded={(request) => setNotifications((before) => [...before, request])}
         onLayout={(_layout, motions) => { setRiding(new Set(motions.toPlay.map((motion) => motion.taskId))); setUnrouted(motions.unrouted) }} />

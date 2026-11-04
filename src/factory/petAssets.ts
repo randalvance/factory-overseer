@@ -1,7 +1,6 @@
 import { resolveAssetUrl } from "./assetUrl"
 import * as THREE from "three"
 import type { Agent } from "~/model/types"
-import type { Wardrobes } from "./sprites"
 
 /** Columns of a 6×4 sheet, in playback order; repeated columns can hold a pose. */
 export interface PetAnimation {
@@ -49,15 +48,12 @@ export const DEFAULT_PET_ASSETS: Readonly<PetAssets> = {
   },
 }
 
-type Wearer = Pick<Agent, "id" | "role" | "sprite">
+type Wearer = Pick<Agent, "id" | "role">
 
-/** Explicit stock sprites remain an escape hatch; custom wardrobes precede built-in pets. */
-export function petAssetFor(agent: Wearer, assets: PetAssets | undefined, paper: boolean, wardrobes: Wardrobes = {}): PetAsset | undefined {
-  if (agent.sprite !== undefined) return undefined
-  const requested = assets?.byAgent?.[agent.id] ?? assets?.byRole?.[agent.role] ?? assets?.default
-  if (requested) return requested
-  if (!paper || Object.hasOwn(wardrobes, agent.role)) return undefined
-  return DEFAULT_PET_ASSETS.byRole?.[agent.role] ?? DEFAULT_PET_ASSETS.default
+/** Host assets override bundled pets by agent, role, then component default. */
+export function petAssetFor(agent: Wearer, assets?: PetAssets): PetAsset {
+  return assets?.byAgent?.[agent.id] ?? assets?.byRole?.[agent.role] ?? assets?.default
+    ?? DEFAULT_PET_ASSETS.byRole?.[agent.role] ?? DEFAULT_PET_ASSETS.default!
 }
 
 export function petDimensions(asset: PetAsset, width: number, height: number) {

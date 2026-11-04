@@ -25,7 +25,7 @@ immutable state values when configuration or snapshots change. Optional
 onLayout reports the physical layout, planned motions and unrouted task IDs.
 onTaskLanded is a view notification; it does not mean work is complete.
 RoomFactory retains its last accepted state and displays an alert when an
-update fails validation. The legacy Factory API remains available.
+update fails validation. `RoomFactory` is the sole public factory component.
 
 onHumanNeeded is optional. It reports accepted active requests to your host;
 the factory never supplies an answer or decides when to resume work.
@@ -34,8 +34,7 @@ the factory never supplies an answer or decides when to resume work.
 
 Import `RoomFactory`, `RoomFactoryProps`, `FactoryHandle`, room types,
 `OnHumanNeeded`, theme definitions and pet asset types from `factory-overseer`.
-The legacy `Factory` / `FactoryProps`, `Pipeline`, `Agent` and `Task` remain
-available from that same entry point. Presets include `ROOM_THEMES`,
+Presets include `ROOM_THEMES`,
 `ROOM_THEME_SLOTS`, `DEFAULT_PET_ASSETS` and `DEFAULT_STATUS_STYLES`.
 `ROOM_THEMES` contains resolved preset values; define host overrides using
 `RoomThemeRegistry` and an `extends` preset name.
@@ -50,14 +49,13 @@ mount-fixed `assetBase` directory (default `/`). For example,
 `assetBase="/factory-overseer/"` loads built-in pieces from
 `/factory-overseer/assets/models/pieces.glb`. A missing trailing slash is
 added. Relative pet, billboard and theme URLs use this base; explicit
-root-relative or absolute URLs keep their meaning. Custom legacy sprite
-URLs continue to be used as supplied. Remount the component to change the
-base. Cross-origin servers must supply appropriate CORS headers.
+root-relative or absolute URLs keep their meaning. Remount the component
+to change the base. Cross-origin servers must supply appropriate CORS headers.
 
 Room HUD counts show agents, in-flight tasks, active human requests and
 shipped tasks. Requests are counted independently of tasks: two requests
 may concern one task, while a task shared by several agents still counts
-once. Legacy mode retains its staging-area review count.
+once.
 
 Agent cards show their room and relevant active requests. Task cards show
 current room, participants, completed members and active requests. A room
@@ -69,8 +67,7 @@ These trails describe this mounted session, not a persisted audit log.
 The default demo is a deterministic host driven by explicit control actions.
 Resolving a request leaves its task in place until the host sends it onward;
 completion of all shared members enables that action without taking it.
-The legacy demo retains ADR 0009's seeded beat runtime. No renderer clock
-chooses branches, answers questions or ships work.
+No renderer clock chooses branches, answers questions or ships work.
 
 [Integrated verification](screenshots/integrated-demo/README.md) covers both
 intake branches, questions and answers, shared completion, rework, configured
@@ -160,7 +157,7 @@ One task counts once. Completion of one or even all members does not cause a
 handoff until the host changes the task location. This also supports a
 host-driven return to planning with the same task ID and context.
 
-The sprite layer labels every shared participant with the task ID. Completed
+The pet layer labels every shared participant with the task ID. Completed
 participants show a full tablet bar and stop emitting work sparks; other
 participants retain the host's status (including waiting and error). When an
 agent participates in multiple tasks, snapshot order selects its tablet's
@@ -265,25 +262,27 @@ through onLayout and leave existing boxes in place. See ADR 0011.
 
 ## Migration and examples
 
-Existing Pipeline, Snapshot and FactoryProps are unchanged.
-migrateLegacyFactory(pipeline, snapshot, staging = true) explicitly produces
-a RoomFactoryState. It creates intake and deployment rooms, one room per
-declared role, then rooms for late roles present in the snapshot. It uses
-stable role:<role> IDs to avoid collisions with the special rooms.
+The paper-only library removes `Factory`, `FactoryProps`, `Pipeline`,
+`Snapshot`, `Agent` and `Task` from the public API, along with `appearance`,
+`wardrobes` and per-agent `sprite` fields. There is no compatibility bundle
+or legacy demo. This is an intentional breaking change; see
+[ADR 0012](adr/0012-paper-factory-only.md).
 
-Legacy agent-held tasks get a single-member assignment; intake and shipped
-map to their corresponding rooms. With staging enabled, a human-review
-work room preserves the old staging queue. With staging disabled, an
-existing staging task is an error, never silently shipped. Missing holders
-must be supplied as offline agents before conversion.
+Existing hosts should construct `RoomFactoryState` explicitly:
 
-The adapter creates forward ready transitions only. Callers must explicitly
-add rework, conditional planning and other transitions before using them;
-legacy arbitrary on-demand routes cannot be inferred from one snapshot.
-It synthesizes no human requests from Waiting, since legacy state lacks
-stable question identities and content. The migration is a starting point
-for a host contract, not a promise that the new renderer matches every
-legacy scene detail.
+1. Define intake, work and deployment rooms with stable IDs. Declare the
+   directed transitions the host permits, including rework and branches.
+2. Add `roomId` to agents. Place tasks in rooms with an optional assignment,
+   or mark them shipped. Agent-held work becomes a single-member assignment;
+   shared work lists all members and the completed subset.
+3. Represent review as a work room when it belongs in the host workflow.
+   Supply stable human-request IDs and content for questions, approvals or
+   help; a waiting status alone does not create a request.
+4. Pass the state to `RoomFactory` and replace sprite or wardrobe selections
+   with `petAssets`. Keep `FactoryHandle` callbacks and import the package CSS.
+
+The host owns this conversion: old role order and snapshots cannot infer
+conditional transitions, human-request identities or shared assignments.
 
 src/model/roomExamples.ts provides checked TypeScript examples:
 
@@ -295,35 +294,21 @@ src/model/roomExamples.ts provides checked TypeScript examples:
   implementers, with only one completed.
 
 Room contract tests validate those examples as well as malformed references,
-shared assignments, terminal behavior and legacy migration.
+shared assignments and terminal behavior.
 
-## Room layout preview (#20)
+## Room layout
 
-Factory's roomLayout flag keeps one room per role, plus intake, optional
-human review and deployment. Rooms pack into fixed-width rows (minimum 18
-tiles); each room grows in depth with its stations. Existing stations retain
-their identities, and vacant benches remain until Reorganize. A growing
-room increases only its row's height and displaces later rows as needed.
-A newly introduced role is appended so existing rooms keep their order.
-Reorganize compacts vacancies and restores pipeline order.
-
-Cutaway walls leave agents and tablets visible, and openings match belt
-crossings. Arrivals start at their own room's rear door and walk down its
-aisle. Automatic geometry changes glide the room, connections, agents and
-boxes together; snapshots arriving during that pass are coalesced to the
-newest state and drawn once the pass settles. This preserves active task
-identity, camera follow and cards.
-
-This older preview remains available at ?layout=rooms and retains the old
-runtime and sequential/return belts. The default demo and RoomFactory now
-use the configured graph described in ADR 0011. The paper appearance uses the lower fixed perspective camera described in
-ADR 0008; the legacy appearance retains the original orthographic camera.
-Agent/box interactions remain available in both.
+Rooms pack into fixed-width rows and grow as stations arrive. Existing
+station identities and vacant benches survive growth until Reorganize
+compacts them. Automatic geometry changes glide affected rooms, connections,
+agents and boxes together, preserving active task identity, follow and cards.
+The configured graph determines conveyor routing as described in ADR 0011.
+The fixed perspective camera and paper environment are the only appearance.
 
 ## Pet assets
 
-`RoomFactory` and `Factory` accept a `petAssets` prop, independent of task
-snapshots. The paper appearance includes a bundled animal cast; the demo
+`RoomFactory` accepts a `petAssets` prop, independent of task snapshots.
+The factory includes a bundled animal cast; the demo
 passes `DEFAULT_PET_ASSETS` explicitly. Replace those URLs with host-served
 transparent PNG, WebP or SVG artwork:
 
@@ -357,9 +342,7 @@ frame width/height ratio (otherwise read from the image). Relative asset
 paths resolve under the app's asset base; root-relative and absolute URLs
 are used as supplied. Remote images must allow browser texture loading.
 
-An explicit `agent.sprite` still selects a legacy sprite. Otherwise pet
-selection uses agent ID, role, then the configured default. A custom legacy
-wardrobe remains effective when no pet override is supplied. Supply new
+Pet selection uses agent ID, role, then the configured default. Supply new
 immutable asset props to replace art without changing agent/task IDs.
 Missing pet images fall back to the bundled cat; a drawn pet remains if
 that fallback also cannot load.
@@ -423,7 +406,7 @@ host decision.
 patches its visual fields for just that room. These choices are independent
 of the room's ID, kind, role, agent membership and transitions. A configured
 room with no theme, or an unknown key, uses `factory`. Themes affect the
-paper appearance; `appearance="legacy"` retains its original environment.
+factory's paper environment.
 
 | Preset | Floor | Station | Rear furnishing |
 | --- | --- | --- | --- |
@@ -432,8 +415,7 @@ paper appearance; `appearance="legacy"` retains its original environment.
 | `factory` | Sage checkerboard | Sage assembly bench | Generated parts organizer |
 | `fabrication-plant` | Terracotta marked bays | Precision-cut worktable | Generated paper cutter |
 
-Add a theme by passing an immutable `roomThemes` registry to `RoomFactory`
-(or the underlying `Factory` with `roomState`). Definitions may extend one
+Add a theme by passing an immutable `roomThemes` registry to `RoomFactory`. Definitions may extend one
 built-in preset, including its bundled asset descriptors; registry inheritance
 does not chain. An explicit `assets: { decoration: undefined }` in the registry
 or per-room override selects authored furniture instead of the bundled prop. Each preset also uses its authored furnishing

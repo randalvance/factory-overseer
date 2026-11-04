@@ -46,23 +46,17 @@ export function paperPulpTexture(size = 256): THREE.DataTexture {
 /** Add paper grain without replacing printed arrows, floor patterns or colors.
  * World coordinates keep grain the same size on a desk, wall and ground;
  * instancing uses each piece's transform. Sprites and unlit text stay crisp.
- * The weak map never keeps retired drawing materials alive. */
+ * The weak set never keeps retired drawing materials alive. */
 export function createPaperSurfaces() {
   const texture = paperPulpTexture()
-  const treated = new WeakMap<THREE.Material, Pick<THREE.Material, "onBeforeCompile" | "customProgramCacheKey">>()
+  const treated = new WeakSet<THREE.Material>()
   return {
     apply(root: THREE.Object3D) {
       root.traverse((object) => {
         if (!(object instanceof THREE.Mesh)) return
-        // A previous legacy floor may still be gliding out beside this paper
-        // drawing. Its GLB materials are shared beyond this view.
-        for (let ancestor: THREE.Object3D | null = object; ancestor; ancestor = ancestor.parent) {
-          if (ancestor.userData.paper === false) return
-          if (ancestor === root) break
-        }
         for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
           if (!(material instanceof THREE.MeshLambertMaterial) || treated.has(material)) continue
-          treated.set(material, { onBeforeCompile: material.onBeforeCompile, customProgramCacheKey: material.customProgramCacheKey })
+          treated.add(material)
           const previous = material.onBeforeCompile
           const previousKey = material.customProgramCacheKey()
           material.onBeforeCompile = (shader, renderer) => {
@@ -101,20 +95,6 @@ export function createPaperSurfaces() {
           }
           material.customProgramCacheKey = () => previousKey + ":paper-pulp-v1"
           material.needsUpdate = true
-        }
-      })
-    },
-    /** Reused boxes/tablets keep their material when appearance changes. */
-    restore(root: THREE.Object3D) {
-      root.traverse((object) => {
-        if (!(object instanceof THREE.Mesh)) return
-        for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
-          const original = treated.get(material)
-          if (!original) continue
-          material.onBeforeCompile = original.onBeforeCompile
-          material.customProgramCacheKey = original.customProgramCacheKey
-          material.needsUpdate = true
-          treated.delete(material)
         }
       })
     },

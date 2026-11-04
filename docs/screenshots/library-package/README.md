@@ -7,15 +7,16 @@ references are available to hide packaging problems.
 
 The check runs strict NodeNext typechecking with library checking enabled,
 imports the module in Node without a DOM, and builds the host for production
-under `/host/`. Chromium opens that built host and exercises both
-`RoomFactory` and legacy `Factory`, a human request and answer, task cards,
+under `/host/`. Chromium opens that built host and exercises
+`RoomFactory`, a human request and answer, task cards,
 Fit all and Reorganize. Bundled pieces, all four generated furnishings, pets,
-a billboard and legacy character art load from `/host/static/factory/assets/`.
+and a billboard load from `/host/static/factory/assets/`.
+The archive and browser requests must contain no retired character or icon PNGs,
+and the retired component, pipeline and sprite declarations must stay absent.
 It rejects browser errors and missing assets, and checks that package CSS
 leaves the host page margin intact.
 
 - [Room factory in the consumer](rooms.png)
-- [Legacy factory in the consumer](legacy.png)
 - [Machine-readable package verification](verification.json)
 
 To reproduce:
@@ -34,18 +35,19 @@ The demo remains separately buildable in `dist/`; the library lives in
 `lib/`. React and its JSX runtime stay external, Three.js is a runtime
 dependency, and the public stylesheet contains no page resets or demo UI.
 
-## Checkpoint results
+## Paper-only checkpoint
 
-- 519 unit tests pass across 49 files; typecheck passes.
-- All 46 browser regression scenarios pass, including both integrated flows,
-  mobile controls, legacy navigation and generated furnishings through growth.
-- After the review's URL-resolver cleanup, all 44 affected loader tests and
-  the independent installed-package check pass again.
-- Demo and library production builds pass independently. The library module
-  is about 177 KB (55 KB gzip), excluding its external dependencies; the
-  local archive is about 8 MB with 157 runtime art files and their notices.
-- Both review axes have no outstanding findings. Vite still reports the
-  existing large-bundle warning for the demo and consuming app.
+- 455 unit tests pass across 47 files; typecheck passes.
+- All 33 browser scenarios pass: the three paper navigation regressions,
+  plus all 30 workflow, room, pet, theme, billboard and furnishing checks.
+- The independent installed-package check passes, including absence of the
+  retired API and pixel assets, all four generated furnishings, and host CSS isolation.
+- Demo and library production builds pass. The library is about 149 KB
+  (46 KB gzip), excluding external dependencies. The archive is 1,545,316 bytes
+  with 22 runtime art files and their notices, down from about 8 MB.
+- Standards and specification reviews against the previous package commit
+  (`296fc76`) found no outstanding issues. Vite still reports its existing
+  large-bundle warning for the demo and consuming app.
 
 The software-rendered browser verifies integration and behavior. It does
 not establish hardware frame-rate targets; the existing measurements and

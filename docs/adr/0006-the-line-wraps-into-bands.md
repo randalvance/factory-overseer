@@ -1,5 +1,8 @@
 # The line wraps into bands within a fixed floor width
 
+> Current status: This records the original serpentine bay layout. Configured room packing
+> and routing are defined in ADRs 0010 and 0011; ADR 0012 retires this legacy mode.
+
 The floor has a width in tiles, fixed when the first layout is laid: the host
 chooses it, and the demo takes it from the window. When the next bay, or the
 staging area and container after it, would not fit in the band the line is

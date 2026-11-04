@@ -5,9 +5,10 @@ const browser = await chromium.launch({ headless: true })
 const results = []
 const outputDir = process.env.PAPER_MEASURE_DIR ?? "docs/screenshots/paper"
 await mkdir(outputDir, { recursive: true })
-for (const large of [false, true]) for (const art of ["legacy", "paper"]) {
+for (const large of [false, true]) {
+  const art = "paper"
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 })
-  await page.goto("http://127.0.0.1:3000/e2e/fixtures/paper.html?art=" + art + (large ? "&large" : ""))
+  await page.goto("http://127.0.0.1:3000/e2e/fixtures/paper.html" + (large ? "?large" : ""))
   await page.waitForFunction(() => window.samples?.length >= 10, undefined, { timeout: 120000 })
   const result = await page.evaluate(() => {
     const samples = window.samples.slice(-8)

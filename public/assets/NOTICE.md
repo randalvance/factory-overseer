@@ -7,13 +7,11 @@ with `assetBase="/factory-overseer/"`.
 
 ## Inventory and terms
 
-Paths below are relative to this directory. There are 157 runtime art files;
+Paths below are relative to this directory. There are 22 runtime art files;
 notices and provenance records are additional files.
 
 | Files | Count | Source and terms |
 | --- | ---: | --- |
-| `characters/char_0.png` through `characters/char_131.png` | 132 | Pixel-agents character sheets by Pablo De Lucca, MIT. Preserve [the full attribution notice](characters/ATTRIBUTION.md). |
-| `icons/check.png`, `icons/hand.png`, `icons/warning.png` | 3 | Status icons authored for Factory Overseer, MIT under the notice below. |
 | `billboards/*.svg` | 7 | Six paper room/example graphics and one pixel crate graphic authored for Factory Overseer, MIT under the notice below. |
 | `pets/*.svg` | 10 | Five animal illustrations and their five pose sheets authored for Factory Overseer, MIT under the notice below. |
 | `models/pieces.glb` | 1 | Floor, belt, workstation and hall pieces authored for Factory Overseer with Blender, MIT under the notice below. Embedded textures are authored with the pieces. |
@@ -32,8 +30,7 @@ assert unrestricted redistribution rights for those four GLBs.
 ## MIT notice for project-authored art
 
 This notice covers the authored files identified as MIT above. It does not
-cover the four generated room-theme GLBs or the independently credited
-pixel-agents character sheets.
+cover the four generated room-theme GLBs.
 
 ```
 MIT License

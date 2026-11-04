@@ -41,7 +41,7 @@ function createView(theme: ResolvedRoomTheme) {
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
   renderer.setClearColor(0xf6f0e6)
   const scene = new THREE.Scene()
-  // Match the paper branch in the factory view, including its soft fill.
+  // Match the factory view, including its soft fill.
   scene.add(new THREE.HemisphereLight(0xffffff, 0xbcae94, 2.0))
   const sun = new THREE.DirectionalLight(0xffffff, .9)
   sun.position.set(-12, 30, 15)
@@ -107,7 +107,6 @@ function createView(theme: ResolvedRoomTheme) {
     },
     dispose() {
       resize.disconnect()
-      if (model) surfaces.restore(model)
       renderer.dispose()
     },
   }

@@ -1,5 +1,8 @@
 # A fixed-angle camera that pans and zooms, and never turns
 
+> Current status: The fixed-angle rule and paper camera remain. ADR 0012 removes the legacy
+> orthographic camera and stock pixel-sheet provisions recorded below.
+
 The overseer is the camera: a point of view over the floor, not a figure on
 it. The view is a diorama seen from a fixed angle above and before the back
 wall. It pans, by drag or by keys, within the floor plus a margin; it zooms

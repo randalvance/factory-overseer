@@ -8,16 +8,14 @@ assets from a host app. The package also includes this document and `LICENSE`.
 
 | Path | What it is | Terms |
 | --- | --- | --- |
-| `public/assets/characters/` | The 132 pixel-art character sheets the agents and the inspector are drawn with | MIT, from the pixel-agents project by Pablo De Lucca. The notice in `public/assets/characters/ATTRIBUTION.md` must travel with the files. |
 | `public/assets/models/pieces.glb` | The pieces the floor is drawn with, listed below, with their textures painted in | Built for this project by `tools/blender/build_pieces.py`. MIT with the code. |
 | `public/assets/models/room-themes/` | Four generated paper furnishings, one per room theme | Provider terms apply; excluded from MIT. [Notice and distribution limitation](public/assets/models/room-themes/NOTICE.md), [portable provenance](public/assets/models/room-themes/provenance.json). |
 | `public/assets/billboards/` | Five paper room graphics, a custom paper rocket and a 32 px pixel crate example | Original SVG artwork authored for this project. MIT with the code. |
 | `public/assets/pets/` | Five paper-cut animal illustrations and their five pose sheets (corgi, rabbit, cat, owl, fox) | Authored SVG artwork for this project. MIT with the code. |
-| `public/assets/icons/` | The status icons shown over agents' heads and on their tablets | Drawn for this project by `tools/icons/draw_status_icons.py`. MIT with the code. |
 
-Every sheet is a 6 by 4 grid of 32 by 48 px cells, one row per facing. If you
-would rather ship your own, the factory reads sheets by URL, so any file in the
-same layout works.
+Host pet art can be a static image or a six-column, four-facing pose sheet.
+The pet asset contract supports configurable dimensions and animation clips;
+see [pet assets](docs/room-contract.md#pet-assets).
 
 ## The pieces
 
@@ -31,10 +29,10 @@ has the terms.
 
 | Piece | What it is | Term |
 | --- | --- | --- |
-| `belt-straight` | One straight tile of belt | Belt, Trunk, Feeder, Collector; with `-return`, Return Belt, Drop, Riser |
-| `belt-corner-left`, `belt-corner-right` | A tile of belt curving a quarter to its left or its right about the tile's inner corner, the chevrons fanning across the turn | Turn |
+| `belt-straight` | One straight tile of belt | Belt, Feeder, Collector; with `-return`, Return Belt |
+| `belt-corner-left`, `belt-corner-right` | A tile of belt curving a quarter to its left or its right about the tile's inner corner, the chevrons fanning across the turn | Belt |
 | `belt-split` | The arm of a junction that boxes leave the belt by, laid over a straight on the side they leave toward | Junction |
-| `belt-merge` | The arm of a junction that boxes join the belt by, laid over a straight on the side they come from | Junction, Crossing |
+| `belt-merge` | The arm of a junction that boxes join the belt by, laid over a straight on the side they come from | Junction |
 | `floor-tile` | One tile of concrete floor; the floor wears its texture once a tile | Factory |
 | `bench` | A station's bench, the width of its tile so the belts meet it | Station |
 | `tablet` | The tablet at the right end of a bench; the view draws its face | Tablet |
@@ -42,12 +40,12 @@ has the terms.
 | `wall` | One tile of the hall's back wall | Factory |
 | `window` | A segment of the back wall with a high window | Factory |
 | `door` | The door segment of the back wall: a roll-up door in a yellow frame | Door |
-| `lamp` | A pendant lamp, hanging from the point it is placed at | Bay |
+| `lamp` | A pendant lamp, hanging from the point it is placed at | Piece |
 
-The wall, the window and the lamp are built here and hung when the legacy
-hall is dressed. Its pallets, hopper and shipping container are procedural
-plain-color meshes. The paper appearance uses the authored outdoor intake
-and deployment truck described below.
+The shared GLB remains in the paper factory for belt and workstation geometry.
+Its original wall, window and lamp pieces remain in that source model; the
+current environment uses the authored paper rooms, outdoor intake and
+deployment truck described below.
 
 ## Paper environment
 
@@ -61,7 +59,7 @@ no paid generation or new third-party art; the generated room furnishings
 are listed separately below. The concept under
 `docs/design/paper-diorama-concept.png` was generated with the built-in image
 tool for design reference; it is not shipped as runtime art or represented
-as covered by the code's MIT license. Existing character notices still apply.
+as covered by the code's MIT license.
 
 The outdoor paper lawn and parked delivery truck are authored procedural
 meshes in `src/factory/paperGround.ts`, `src/factory/paperRoad.ts` and
@@ -110,11 +108,10 @@ images retain their own license terms.
 
 ## Package inventory
 
-The runtime tree contains 157 art files: 132 character sheets, three status
-icons, seven billboard graphics, ten pet illustration/pose SVGs, the base
-pieces GLB and four generated furnishing GLBs. It also includes the
-pixel-agents attribution, a portable authored-art MIT notice, and generated
-art notices and provenance. No raw provider meshes, generated concepts,
+The runtime tree contains 22 art files: seven billboard graphics, ten pet
+illustration/pose SVGs, the base pieces GLB and four generated furnishing GLBs. It also includes a portable authored-art MIT
+notice and generated-art notices and provenance. The retired pixel-character
+sheets are no longer included. No raw provider meshes, generated concepts,
 workflow records or billing files are shipped in the library package.
 
 For a host mount such as `/factory-overseer/`, copy

@@ -6,21 +6,17 @@ const agent = { id: "piper", role: "planner" }
 const image = (width = 256, height = 320) => new THREE.Texture({ width, height } as HTMLImageElement)
 
 describe("host pet assets", () => {
-  it("selects agent, then role, then component default without replacing explicit stock sprites", () => {
+  it("selects agent, then role, then component default", () => {
     const pets = { default: { src: "default.png" }, byRole: { planner: { src: "role.png" } }, byAgent: { piper: { src: "agent.png" } } }
-    expect(petAssetFor(agent, pets, true)?.src).toBe("agent.png")
-    expect(petAssetFor({ ...agent, id: "robin" }, pets, true)?.src).toBe("role.png")
-    expect(petAssetFor({ id: "alex", role: "tester" }, pets, true)?.src).toBe("default.png")
-    expect(petAssetFor({ ...agent, sprite: 0 }, pets, true)).toBeUndefined()
-    expect(petAssetFor({ ...agent, sprite: "/custom-sheet.png" }, pets, true)).toBeUndefined()
+    expect(petAssetFor(agent, pets).src).toBe("agent.png")
+    expect(petAssetFor({ ...agent, id: "robin" }, pets).src).toBe("role.png")
+    expect(petAssetFor({ id: "alex", role: "tester" }, pets).src).toBe("default.png")
   })
 
-  it("keeps legacy defaults and custom wardrobes, while accepting an explicit pet in either appearance", () => {
-    expect(petAssetFor(agent, undefined, false)).toBeUndefined()
-    expect(petAssetFor(agent, undefined, true, { planner: [1] })).toBeUndefined()
-    expect(petAssetFor(agent, undefined, true)).toEqual(DEFAULT_PET_ASSETS.byRole!.planner)
-    const custom = { default: { src: "bunny.png" } }
-    expect(petAssetFor(agent, custom, false, { planner: [1] })).toEqual(custom.default)
+  it("uses bundled role pets and a default pet when no host asset is configured", () => {
+    expect(petAssetFor(agent)).toEqual(DEFAULT_PET_ASSETS.byRole!.planner)
+    expect(petAssetFor({ id: "alex", role: "tester" })).toEqual(DEFAULT_PET_ASSETS.default)
+    expect(petAssetFor(agent, { byAgent: { alex: { src: "alex.png" } } })).toEqual(DEFAULT_PET_ASSETS.byRole!.planner)
   })
 
   it("uses image or frame dimensions and ignores nonpositive/nonfinite overrides", () => {

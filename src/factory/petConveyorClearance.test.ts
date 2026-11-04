@@ -41,13 +41,13 @@ function intersections(count: number, movePetsTowardReturn = 0): string[] {
   for (const bay of layout.bays) for (const station of bay.stations) station.agentTile.y -= movePetsTowardReturn
   const scene = new THREE.Group(), agents = createAgents(scene)
   const texture = new THREE.Texture()
-  const sheets = new Map(state.snapshot.agents.map((agent) => {
+  const pets = new Map(state.snapshot.agents.map((agent) => {
     const sheet = new THREE.Texture()
     sheet.userData = { paper: true, pet: true, petLayout: "image", agentId: agent.id }
     return [agent.id, sheet] as const
   }))
   const pieces: Pieces = { paper: true, floor: texture, cardboard: texture, belts: { forward: texture, rework: texture }, clone: () => new THREE.Group() }
-  agents.update(layout, roomSnapshotForView(state), { pieces, sheets, looks: { styles: DEFAULT_STATUS_STYLES, icons: { hand: texture, check: texture, warning: texture } } }, { arrivals: [], departures: [] })
+  agents.update(layout, roomSnapshotForView(state), { pieces, pets, styles: DEFAULT_STATUS_STYLES }, { arrivals: [], departures: [] })
   scene.updateMatrixWorld(true)
   const camera = new THREE.PerspectiveCamera(30, 1, .1, 100)
   camera.position.set(0, 50 * Math.sin(PAPER_PITCH), 50 * Math.cos(PAPER_PITCH))
@@ -78,7 +78,7 @@ function intersections(count: number, movePetsTowardReturn = 0): string[] {
     if (obstacles.some((bounds) => triangles.some((triangle) => bounds.intersectsTriangle(triangle)))) hits.push(object.material.map.userData.agentId as string)
   })
   expect(bodies).toBe(state.snapshot.agents.length)
-  agents.dispose(); texture.dispose(); sheets.forEach((sheet) => sheet.dispose()); resources.forEach((resource) => resource.dispose())
+  agents.dispose(); texture.dispose(); pets.forEach((sheet) => sheet.dispose()); resources.forEach((resource) => resource.dispose())
   return hits
 }
 

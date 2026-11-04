@@ -1,5 +1,8 @@
 # Belts run between bays, not between agents
 
+> Current status: Shared conveyors remain, now between configured rooms under ADRs 0010 and
+> 0011. ADR 0012 retires the original bay and staging-area mode.
+
 Agents of the same role share a bay, as parallel lanes behind one junction
 that splits boxes in and one that merges them out. Trunks connect bays in the
 declared pipeline order, and a return belt carries rework back. Routing is by

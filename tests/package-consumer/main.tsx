@@ -1,12 +1,24 @@
 import { useState } from "react"
 import { createRoot } from "react-dom/client"
 import {
-  Factory, RoomFactory, DEFAULT_PET_ASSETS, ROOM_THEMES,
-  type FactoryHandle, type FactoryProps, type RoomFactoryState,
+  RoomFactory, DEFAULT_PET_ASSETS, ROOM_THEMES,
+  type FactoryHandle, type RoomFactoryState,
   type RoomFactoryProps, type OnHumanNeeded, type RenderMetrics,
   type RoomThemeRegistry, type PetAssets, type Layout, type Motions,
 } from "factory-overseer"
 import "factory-overseer/styles.css"
+
+// Retired API must stay absent from the package's public declarations.
+// @ts-expect-error the legacy component is no longer exported
+import type { Factory } from "factory-overseer"
+// @ts-expect-error the legacy pipeline API is no longer exported
+import type { Pipeline } from "factory-overseer"
+// @ts-expect-error legacy pixel-sheet wardrobes are no longer exported
+import type { Wardrobes } from "factory-overseer"
+// @ts-expect-error paper is the sole appearance
+const retiredAppearance: RoomFactoryProps["appearance"] = "pixel"
+// @ts-expect-error room agents select paper assets through petAssets
+const retiredSprite: RoomFactoryState["snapshot"]["agents"][number]["sprite"] = 1
 
 const initial: RoomFactoryState = {
   configuration: {
@@ -35,7 +47,6 @@ function Consumer() {
   const [state, setState] = useState(initial)
   const [handle, setHandle] = useState<FactoryHandle>()
   const [notice, setNotice] = useState("")
-  const [legacy, setLegacy] = useState(false)
   const petAssets: PetAssets = DEFAULT_PET_ASSETS
   const roomThemes: RoomThemeRegistry = { studio: { extends: "research-lab", wall: "#c5d4de" } }
   if (!ROOM_THEMES.foundry) throw new Error("Missing theme presets")
@@ -44,20 +55,14 @@ function Consumer() {
   const onLayout = (_layout: Layout, _motions: Motions) => {}
   const common = { assetBase: "/host/static/factory", onReady: setHandle, onRenderMetrics, onLayout }
   const props: RoomFactoryProps = { ...common, state, petAssets, roomThemes, onHumanNeeded, width: 28 }
-  const legacyProps: FactoryProps = {
-    ...common, pipeline: { roles: ["implementer"] },
-    agents: [{ id: "legacy", name: "Legacy worker", role: "implementer", status: "working", sprite: 1 }],
-    tasks: [{ id: "legacy-task", label: "Legacy package task", at: { agent: "legacy" } }],
-  }
   return <>
     <output aria-label="Host question">{notice}</output>
     <button onClick={() => { setState({ ...state, snapshot: { ...state.snapshot, humanRequests: [] } }); setNotice("Answered") }}>Answer</button>
-    <button onClick={() => handle?.inspect({ task: legacy ? "legacy-task" : "task" })}>Inspect</button>
+    <button onClick={() => handle?.inspect({ task: "task" })}>Inspect</button>
     <button onClick={() => handle?.fitAll()}>Fit</button>
     <button onClick={() => handle?.reorganize()}>Compact</button>
-    <button onClick={() => { setHandle(undefined); setLegacy(!legacy) }}>Switch appearance</button>
     <div style={{ position: "relative", height: 600 }}>
-      {legacy ? <Factory {...legacyProps} /> : <RoomFactory {...props} />}
+      <RoomFactory {...props} />
     </div>
   </>
 }
