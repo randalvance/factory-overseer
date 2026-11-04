@@ -2,28 +2,24 @@
 // they stay from one snapshot to the next: a status change shows on the same
 // figure as a new pose, icon, bubble and tablet face, and a check shown once
 // stays brief. An agent that arrives walks in from the door; one that has
-// left fades where it stands. The inspector stands at the staging area for
-// as long as there is one and stamps each box that lands on the bench. When
-// the overseer reorganizes, every figure and tablet glides to where its
+// left fades where it stands. When the overseer reorganizes, every figure
+// and tablet glides to where its
 // station now is, in step with the floor. Nothing here is laid out: every
 // agent stands where the layout puts its station, and the floor core says
 // who comes and goes.
 
 import * as THREE from "three"
 import { stationed } from "~/floor/layout"
-import { directionBetween, sameTile } from "~/floor/tiles"
+import { directionBetween } from "~/floor/tiles"
 import type { Direction, Layout, Station, Tile } from "~/floor/types"
 import type { ComingsAndGoings } from "~/floor/walk"
 import { type AgentStatus, type StatusIcon, type StatusStyle, bubbleText } from "~/model/status"
 import type { Agent, Snapshot, Task } from "~/model/types"
-import type { Landing } from "./boxes"
 import { type Candidate, nearestOf } from "./picking"
 import { disposeMeshes } from "./drawing"
 import type { Pieces } from "./models"
 import { type Glide, glide, startGlide } from "./slide"
 import {
-  AGENT_H,
-  BENCH_H,
   BOX_SIZE,
   ICON_SIZE,
   type TabletPiece,
@@ -34,8 +30,9 @@ import {
   tablet,
   tileCenter,
 } from "./pieces"
-import { type Facing, INSPECTOR_SHEET, sheetFrame } from "./sprites"
-import { PAPER_PITCH, PITCH } from "./camera"
+import { type Facing, sheetFrame } from "./sprites"
+import { PAPER_PITCH } from "./camera"
+import { PAPER_BELT_H } from "./paperConveyors"
 import { createPaperCharacters, PAPER_AGENT_H, paperFeet } from "./paperCharacters"
 import { type TabletLook, tabletTexture } from "./tablets"
 import type { PetAnimations } from "./petAssets"
@@ -55,10 +52,8 @@ export interface StatusLooks {
 
 /** What a snapshot's figures wear and how they look, and the pieces their tablets are, all loaded. */
 export interface Dressed {
-  petIds?: ReadonlySet<string>
-  customWardrobes?: ReadonlySet<string>
-  sheets: ReadonlyMap<string, THREE.Texture>
-  looks: StatusLooks
+  pets: ReadonlyMap<string, THREE.Texture>
+  styles: StatusStyles
   pieces: Pieces
 }
 
@@ -74,27 +69,16 @@ export interface Agents {
    */
   update(layout: Layout, snapshot: Snapshot, dressed: Dressed, traffic: ComingsAndGoings, settling?: Settling): void
   /**
-   * Carry every walk, fade, pose, jump, spark and tablet dt seconds on; the
-   * inspector stamps each box that has just landed on the staging bench.
+   * Carry every walk, fade, pose, jump, spark and tablet dt seconds on.
    * Walks are scaled with the belts; a status plays in real seconds.
    */
-  tick(dt: number, speed: number, landings: Landing[]): void
-  /** The nearest figure on the ray, by agent id. The inspector is no agent, and a figure fading out is past clicking. */
+  tick(dt: number, speed: number): void
+  /** The nearest figure on the ray, by agent id. A figure fading out is past clicking. */
   pick(raycaster: THREE.Raycaster): Candidate | undefined
   /** Where the agent's feet are now, in the scene. */
   positionOf(id: string): THREE.Vector3 | undefined
   dispose(): void
 }
-
-/** The key the inspector's sheet is handed over under, beside the agents' by id. */
-export const INSPECTOR_ID = "inspector"
-/**
- * The inspector is no agent (GLOSSARY), but wears the agent shape so the
- * figures can stand it like one: a fixed stock sheet, and a look of its own
- * that the host's status styles do not reach.
- */
-export const INSPECTOR: Agent = { id: INSPECTOR_ID, name: "Inspector", role: INSPECTOR_ID, status: "idle", sprite: INSPECTOR_SHEET }
-const INSPECTOR_STYLE: StatusStyle = { motion: "stand", icon: "none", bubble: null, pose: "walk", opacity: 1 }
 
 /** Seconds each work pose is held. */
 const WORK_BEAT = 0.35
@@ -119,8 +103,6 @@ const WALK_SPEED = 3
 const WALK_FPS = 8
 /** Seconds an agent that has left takes to fade. */
 const FADE_S = 1
-/** Seconds the inspector's stamp takes: the arm up, then down on the box. */
-const STAMP_S = 0.6
 /** The sheet row that faces the way an agent steps. */
 const FACING: Record<Direction, Facing> = { e: "right", w: "left", s: "down", n: "up" }
 /** Sheets and icons are cut out at half alpha. */
@@ -141,7 +123,7 @@ interface Figure {
   group: THREE.Group
   body: THREE.Sprite
   height: number
-  feet?: THREE.Group
+  feet: THREE.Group
   artKey?: string
   staticImage: boolean
   pet: boolean
@@ -169,8 +151,6 @@ interface Figure {
   walk?: { wayIn: Tile[]; progress: number }
   /** Seconds into its fade, once it has left. */
   fading?: number
-  /** Seconds into the inspector's stamp, while one is under way. */
-  stamping?: number
   /** Its way to its station while the floor slides. */
   glide?: Glide
 }
@@ -179,7 +159,6 @@ interface Figure {
 interface Posting {
   station: Pick<Station, "agentTile" | "bench">
   sheet: THREE.Texture
-  pitch?: number
   needsHuman?: boolean
   style: StatusStyle
   /** What its bubble says, or null for none. */
@@ -201,8 +180,8 @@ export function createAgents(parent: THREE.Object3D): Agents {
   /** Tablet faces the lines have scrolled by. */
   let scrolled = 0
 
-  function update(layout: Layout, snapshot: Snapshot, { sheets, looks: hostLooks, pieces, petIds }: Dressed, traffic: ComingsAndGoings, settling: Settling = "stand") {
-    const looks = pieces.paper ? { ...hostLooks, icons: paperCast.icons() } : hostLooks
+  function update(layout: Layout, snapshot: Snapshot, { pets, styles, pieces }: Dressed, traffic: ComingsAndGoings, settling: Settling = "stand") {
+    const looks = { styles, icons: paperCast.icons() }
     const humanNeeded = new Set(snapshot.humanNeededAgentIds ?? [])
     const wayInOf = new Map(traffic.arrivals.map((arrival) => [arrival.agentId, arrival.wayIn]))
     const taskById = new Map(snapshot.tasks.map((task) => [task.id, task]))
@@ -226,7 +205,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
     const benches = new Set<string>()
 
     for (const { station, agent } of stationed(layout, snapshot.agents)) {
-      const sheet = agent && (sheets.get(agent.id) ?? (petIds?.has(agent.id) ? paperCast.sheet(agent) : undefined))
+      const sheet = agent && (pets.get(agent.id) ?? paperCast.sheet(agent))
       // A status outside the table is shown as idle rather than not at all.
       const needsHuman = !!agent && (humanNeeded.has(agent.id) || agent.status === "waiting")
       const baseStyle = agent && (looks.styles[agent.status] ?? looks.styles.idle)
@@ -238,7 +217,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
         const completed = assignment?.completedAgentIds.includes(agent.id)
         const activity = needsHuman ? looks.styles.waiting.bubble : bubbleText(agent.status, agent.activity, looks.styles)
         const bubble = shared ? `${task!.id} · ${completed ? "Complete" : activity ?? "Assigned"}` : activity
-        const posting = { station, sheet, pitch: pieces.paper ? PAPER_PITCH : PITCH, needsHuman, style, bubble, hasBox: onBench.has(station.id) && !completed, wayIn: wayInOf.get(agent.id), settling }
+        const posting = { station, sheet, needsHuman, style, bubble, hasBox: onBench.has(station.id) && !completed, wayIn: wayInOf.get(agent.id), settling }
         stand(agent, posting, looks)
         standing.add(agent.id)
       }
@@ -246,15 +225,6 @@ export function createAgents(parent: THREE.Object3D): Agents {
       const complete = agent && task && snapshot.assignments?.[task.id]?.completedAgentIds.includes(agent.id)
       showTablet(station.id, station.bench, complete ? { kind: "bar", progress: 1 } : tabletLook(style, task, looks.icons), settling, pieces)
       benches.add(station.id)
-    }
-    const inspectorSheet = pieces.paper ? paperCast.sheet(INSPECTOR) : sheets.get(INSPECTOR_ID)
-    if (layout.staging && inspectorSheet) {
-      const bench = layout.staging.bench
-      const station = { agentTile: layout.staging.inspectorTile, bench }
-      stand(INSPECTOR, { station, sheet: inspectorSheet, style: INSPECTOR_STYLE, bubble: null, settling }, looks)
-      standing.add(INSPECTOR_ID)
-      showTablet("staging", bench, { kind: "dim" }, settling, pieces)
-      benches.add("staging")
     }
 
     for (const id of traffic.departures) {
@@ -271,7 +241,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
    * glides to its station, a walk under way given up.
    */
   function stand(agent: Agent, posting: Posting, looks: StatusLooks) {
-    const { station, sheet, pitch = PAPER_PITCH, needsHuman = false, style, bubble: text, hasBox = false, wayIn, settling = "stand" } = posting
+    const { station, sheet, needsHuman = false, style, bubble: text, hasBox = false, wayIn, settling = "stand" } = posting
     let figure = figures.get(agent.id)
     const artKey = sheet.userData.petKey as string | undefined
     const redressed = figure !== undefined && (figure.frame.source !== sheet.source || figure.artKey !== artKey)
@@ -285,23 +255,19 @@ export function createAgents(parent: THREE.Object3D): Agents {
       figure.staticImage = sheet.userData.petLayout === "image"
       figure.pet = !!sheet.userData.pet
       figure.baseScale = figure.body.scale.clone()
-      figure.height = displayHeight(sheet, pitch)
+      figure.height = displayHeight(sheet)
       figure.group.add(figure.body)
-      if (!!figure.feet !== !!sheet.userData.paper) {
-        if (figure.feet) { figure.group.remove(figure.feet); disposeMeshes(figure.feet) }
-        figure.feet = sheet.userData.paper ? paperFeet() : undefined
-        if (figure.feet) figure.group.add(figure.feet)
-      }
+
     }
     const fresh = figure === undefined
     if (!figure) {
       const body = petBody(sheet)
-      const height = displayHeight(sheet, pitch)
+      const height = displayHeight(sheet)
       const icon = statusIcon(looks.icons.hand)
       const group = new THREE.Group()
       group.add(body, icon)
-      const feet = sheet.userData.paper ? paperFeet() : undefined
-      if (feet) group.add(feet)
+      const feet = paperFeet()
+      group.add(feet)
       layer.add(group)
       const sparks = Array.from({ length: SPARKS_PER_AGENT }, (): Spark => {
         const sprite = spark()
@@ -399,8 +365,6 @@ export function createAgents(parent: THREE.Object3D): Agents {
     let lift = 0
     if (figure.walk) {
       column = WALK_CYCLE[Math.floor(clock * WALK_FPS) % WALK_CYCLE.length]!
-    } else if (figure.stamping !== undefined) {
-      column = figure.stamping < STAMP_S / 2 ? COLUMN.raisedArm : COLUMN.armForward
     } else if (style.motion === "work") {
       column = Math.floor(clock / WORK_BEAT) % 2 === 0 ? COLUMN.raisedArm : COLUMN.armForward
     } else if (style.motion === "jump") {
@@ -461,7 +425,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
     layer.remove(figure.group)
     figure.frame.dispose()
     figure.body.material.dispose()
-    if (figure.feet) disposeMeshes(figure.feet)
+    disposeMeshes(figure.feet)
     figure.icon.material.dispose()
     figure.bubble?.sprite.material.dispose()
     for (const { sprite } of figure.sparks) {
@@ -479,15 +443,12 @@ export function createAgents(parent: THREE.Object3D): Agents {
     tablets.delete(id)
   }
 
-  function tick(dt: number, speed: number, landings: Landing[]) {
-    const inspector = figures.get(INSPECTOR_ID)
-    if (inspector && landings.some((landing) => sameTile(landing.tile, inspector.bench))) inspector.stamping ??= 0
+  function tick(dt: number, speed: number) {
     for (const [id, figure] of figures) {
       figure.clock += dt
       figure.inStatus += dt
       if (figure.walk) advance(figure, dt * WALK_SPEED * speed)
       if (figure.glide && glide(figure.group, figure.glide, dt, speed)) figure.glide = undefined
-      if (figure.stamping !== undefined) figure.stamping = figure.stamping + dt < STAMP_S ? figure.stamping + dt : undefined
       if (figure.fading !== undefined) {
         figure.fading += dt
         if (figure.fading >= FADE_S) {
@@ -517,7 +478,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
       if (s.age >= s.life) {
         s.age = 0
         s.life = 0.25 + Math.random() * 0.3
-        s.sprite.position.set(x + (Math.random() - 0.5) * 0.3, BENCH_H + BOX_SIZE, z + (Math.random() - 0.5) * 0.3)
+        s.sprite.position.set(x + (Math.random() - 0.5) * 0.3, PAPER_BELT_H + BOX_SIZE, z + (Math.random() - 0.5) * 0.3)
         s.velocity.set((Math.random() - 0.5) * 1.4, 1 + Math.random() * 1.2, (Math.random() - 0.5) * 0.6)
         s.sprite.visible = true
       }
@@ -534,7 +495,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
   }
 
   function pick(raycaster: THREE.Raycaster): Candidate | undefined {
-    const clickable = [...figures.values()].filter((figure) => figure.agent.id !== INSPECTOR_ID && figure.fading === undefined)
+    const clickable = [...figures.values()].filter((figure) => figure.fading === undefined)
     return nearestOf(
       raycaster,
       clickable.map((figure) => [figure.agent.id, figure.body] as const),
@@ -584,14 +545,12 @@ function petBody(sheet: THREE.Texture): THREE.Sprite {
     body.material.map!.offset.set(0, 0)
     body.material.map!.repeat.set(1, 1)
   }
-  if (sheet.userData.paper) {
-    const height = (sheet.userData.height as number | undefined) ?? PAPER_AGENT_H
-    const aspect = (sheet.userData.aspectRatio as number | undefined) ?? 2 / 3
-    body.scale.set(height * aspect, height, 1)
-  }
+  const height = (sheet.userData.height as number | undefined) ?? PAPER_AGENT_H
+  const aspect = (sheet.userData.aspectRatio as number | undefined) ?? 2 / 3
+  body.scale.set(height * aspect, height, 1)
   return body
 }
 
-function displayHeight(sheet: THREE.Texture, pitch: number): number {
-  return sheet.userData.paper ? ((sheet.userData.height as number | undefined) ?? PAPER_AGENT_H) / Math.cos(pitch) : AGENT_H
+function displayHeight(sheet: THREE.Texture): number {
+  return ((sheet.userData.height as number | undefined) ?? PAPER_AGENT_H) / Math.cos(PAPER_PITCH)
 }

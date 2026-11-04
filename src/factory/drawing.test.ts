@@ -4,7 +4,6 @@ import { batchPaperDrawing, unbatchPaperDrawing, disposeMeshes } from "./drawing
 
 it("batches nearby repeated meshes while retaining distant culling groups and named slide pieces", () => {
   const root = new THREE.Group()
-  root.userData.paper = true
   const geometry = new THREE.BoxGeometry()
   const material = new THREE.MeshBasicMaterial()
   const pieces = [0, 1, 20].map((x, i) => {
@@ -36,12 +35,6 @@ it("batches nearby repeated meshes while retaining distant culling groups and na
   unbatchPaperDrawing(root)
   expect(pieces[0]!.position.x).toBe(2)
   geometry.dispose(); material.dispose()
-})
-
-it("leaves legacy drawings alone", () => {
-  const root = new THREE.Group()
-  batchPaperDrawing(root)
-  expect(root.children).toHaveLength(0)
 })
 
 it("releases drawing-owned shared geometry, palettes and floor textures exactly once", () => {

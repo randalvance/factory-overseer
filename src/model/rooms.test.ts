@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
 import { afterPlanning, directImplementation, exampleRooms, planningFirst } from "./roomExamples"
-import { migrateLegacyFactory } from "./roomMigration"
 import { validateRoomState } from "./roomValidation"
 import type { RoomFactoryState } from "./types"
 
@@ -121,35 +120,5 @@ describe("snapshot validation", () => {
     const before = structuredClone(original)
     expect(validateRoomState(original)).toEqual([])
     expect(original).toEqual(before)
-  })
-})
-
-describe("legacy migration", () => {
-  it("maps all legacy locations and includes late roles without changing the input", () => {
-    const legacy = {
-      agents: [{ id: "a", name: "A", role: "late", status: "working" as const }],
-      tasks: [
-        { id: "new", label: "New", at: "intake" as const },
-        { id: "active", label: "Active", at: { agent: "a" } },
-        { id: "review", label: "Review", at: "staging" as const },
-        { id: "done", label: "Done", at: "shipped" as const },
-      ],
-    }
-    const before = structuredClone(legacy)
-    const result = migrateLegacyFactory({ roles: ["implementer"] }, legacy)
-    expect(validateRoomState(result)).toEqual([])
-    expect(result.configuration.rooms.map((room) => room.id)).toEqual(["intake", "role:implementer", "role:late", "staging", "deployment"])
-    expect(result.snapshot.tasks.map((task) => task.at.roomId)).toEqual(["intake", "role:late", "staging", "deployment"])
-    expect(result.snapshot.humanRequests).toEqual([])
-    expect(legacy).toEqual(before)
-  })
-  it("supports an empty pipeline with staging disabled", () => {
-    const result = migrateLegacyFactory({ roles: [] }, { agents: [], tasks: [] }, false)
-    expect(result.configuration.transitions).toEqual([{ id: "forward:deployment", from: "intake", to: "deployment", outcome: "ready" }])
-  })
-  it("rejects missing holders, duplicate roles and staging that would lose work", () => {
-    expect(() => migrateLegacyFactory({ roles: [] }, { agents: [], tasks: [{ id: "t", label: "T", at: { agent: "gone" } }] })).toThrow("absent agent")
-    expect(() => migrateLegacyFactory({ roles: ["x", "x"] }, { agents: [], tasks: [] })).toThrow("unique")
-    expect(() => migrateLegacyFactory({ roles: [] }, { agents: [], tasks: [{ id: "t", label: "T", at: "staging" }] }, false)).toThrow("staging is disabled")
   })
 })

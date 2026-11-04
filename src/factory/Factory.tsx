@@ -1,33 +1,21 @@
-// The embeddable component: the pipeline, agents and tasks in as props, the
-// factory drawn in 3D. React owns only this shell; the view behind the
-// imperative handle does the drawing (ADR 0004). Each snapshot is laid out
-// additively on the last, so the floor never rearranges itself under the
-// overseer (ADR 0002); the boxes whose place changed ride the belts there
-// from wherever they are, and the agents who came and went since the last
-// snapshot walk in and fade. Only the overseer's Reorganize, asked for on the
-// handle the host gets once the factory is ready, lays the floor afresh. The
-// HUD over the canvas, the counts and the cards, is React too.
-
+// Internal React shell for the configured paper factory. The host supplies
+// snapshots; the view draws them and reports arrivals (ADR 0004).
 import { useEffect, useMemo, useRef, useState } from "react"
 import { roomSnapshotForView } from "~/model/roomRouting"
 import { layoutConfiguredRooms } from "~/floor/configuredRooms"
-import type { RoomFactoryState } from "~/model/types"
-import { layoutFloor, reorganizedFloor } from "~/floor/layout"
+import type { RoomFactoryState, Snapshot, Subject } from "~/model/types"
 import type { Motions } from "~/floor/motion"
 import type { Layout } from "~/floor/types"
 import { comingsAndGoings } from "~/floor/walk"
 import { type StatusStyleOverrides, resolveStatusStyles } from "~/model/status"
-import { type Trails, recordTrails } from "~/model/trails"
-import type { Agent, Pipeline, Snapshot, Subject, Task } from "~/model/types"
 import { Hud } from "./Hud"
-import type { Wardrobes } from "./sprites"
 import type { RoomThemeRegistry } from "~/model/roomThemes"
-export type { RoomThemeDefinition, RoomThemeRegistry, RoomModelAsset, RoomThemeAssets } from "~/model/roomThemes"
 import type { PetAssets } from "./petAssets"
-export type { PetAsset, PetAssets, PetAnimation, PetAnimations } from "./petAssets"
-import { type FactoryView, type Styling, createFactoryView } from "./view"
+import { type FactoryView, createFactoryView } from "./view"
 
 export interface FactoryProps {
+  /** Accepted configured-room state, supplied by RoomFactory. */
+  roomState: RoomFactoryState
   /** Directory before assets/, absolute or page-relative. Fixed for this mount; defaults to /. */
   assetBase?: string
   /** Host theme registry layered over the four paper presets. Replace immutably to update. */
@@ -35,85 +23,51 @@ export interface FactoryProps {
   /** Transparent pet images or 6×4 sheets selected by agent, role, then default. */
   petAssets?: PetAssets
   onRenderMetrics?: (metrics: import("./view").RenderMetrics) => void
-  /** Paper room environment; legacy retains the original assets. */
-  appearance?: "paper" | "legacy"
-  pipeline: Pipeline
-  /** Separated expandable rooms using the existing pipeline order. */
-  roomLayout?: boolean
-  /** Used by RoomFactory to render the configured graph. */
-  roomState?: RoomFactoryState
-  agents: Agent[]
-  tasks: Task[]
   /** Scales every belt and walk. 1 is about two tiles a second. */
   speed?: number
-  /** Whether boxes pass the inspector before they ship. On unless switched off, when the last bay ships straight into the container. */
-  staging?: boolean
-  /**
-   * The floor's width in tiles, fixed when the first snapshot is drawn: the
-   * line wraps into bands within it rather than run past it (ADR 0006). As
-   * wide as the first line needs when not given.
-   */
+  /** Floor width in tiles, fixed after the first snapshot; at least 24. */
   width?: number
-  /** How many lanes a bay holds, fixed like the width: three unless given. The next agent of the role takes a lane in an annex (ADR 0007). */
-  lanes?: number
-  /** What each status looks like, cell by cell over the defaults. Keep the same object between renders. */
+  /** Status visuals layered over the defaults. Keep the same object between renders. */
   statusStyles?: StatusStyleOverrides
-  /** The stock sheets each role's agents draw from, over the defaults. Keep the same object between renders. */
-  wardrobes?: Wardrobes
-  /** Called with each layout once drawn, and the motions played for it, for anything that shows the same floor another way. */
+  /** Each drawn layout and its planned task motions. */
   onLayout?: (layout: Layout, motions: Motions) => void
-  /** Called once with the handle when the first snapshot is drawn and the factory is ready. */
+  /** Called once when the first snapshot is drawn. */
   onReady?: (handle: FactoryHandle) => void
   /** A task finished riding its conveyor path. */
   onTaskLanded?: (taskId: string) => void
 }
 
-/** What the host asks of the factory once it is ready, beyond what the props say. */
+/** What the host asks of the factory beyond publishing snapshots. */
 export interface FactoryHandle {
-  /** Put an agent under the middle of the screen; or a task, and keep it there until the overseer pans, fits all or focuses elsewhere. */
+  /** Focus an agent, or follow a task until the overseer pans, fits all or focuses elsewhere. */
   focus(subject: Subject): void
   /** Open the subject card and focus it. */
   inspect(subject: Subject): void
-  /** Frame the floor's width, and the whole floor when it fits, as the view opened. */
+  /** Frame the paper rooms, their signs and deployment truck. Very deep maps remain pannable. */
   fitAll(): void
-  /**
-   * Lay the floor afresh as the overseer asks: compact, in pipeline order,
-   * every annex beside its role's bay, no vacant lane but one a box still
-   * rests at, the line wrapped anew within the floor width; and slide every
-   * station, belt and box to its new place in one pass. Nothing moves at any
-   * other time (ADR 0002).
-   */
+  /** Compact vacant stations and rooms, preserving active task rides. */
   reorganize(): void
 }
 
-export function Factory({ assetBase = "/", roomThemes, petAssets, onRenderMetrics, appearance = "paper", pipeline, agents, tasks, roomLayout = false, roomState, speed = 1, staging = true, width, lanes, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }: FactoryProps) {
+export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onRenderMetrics, speed = 1, width, statusStyles, onLayout, onReady, onTaskLanded }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
-  /** The props as last rendered, for the handle, which is called between renders. */
-  const latest = useRef({ pipeline, agents, tasks, staging, roomLayout, roomState, onRenderMetrics, appearance, petAssets, roomThemes, statusStyles, wardrobes, onLayout, onReady, onTaskLanded })
-  /** How many drawings have been asked of the view; only the latest counts once drawn. */
+  const snapshot = useMemo(() => roomSnapshotForView(roomState), [roomState])
+  const latest = useRef({ roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded })
   const asked = useRef(0)
-  /** How many snapshots the view has drawn; the first makes the factory ready. */
   const [drawn, setDrawn] = useState(0)
-  /** What the overseer clicked last, for its card. */
   const [picked, setPicked] = useState<Subject>()
-  /** Where every task has been this session, for the cards. */
-  const [trails, setTrails] = useState<Trails>({})
-  /** The tasks whose boxes are riding to where the snapshot puts them, until each lands. */
   const activeRides = useRef(new Set<string>())
   const [riding, setRiding] = useState<ReadonlySet<string>>(() => new Set())
   const styles = useMemo(() => resolveStatusStyles(statusStyles), [statusStyles])
 
   useEffect(() => {
-    latest.current = { pipeline, agents, tasks, staging, roomLayout, roomState, onRenderMetrics, appearance, petAssets, roomThemes, statusStyles, wardrobes, onLayout, onReady, onTaskLanded }
+    latest.current = { roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded }
   })
-
   useEffect(() => {
-    setTrails((before) => recordTrails(before, { agents, tasks }))
-    // A card whose agent or task has left the floor goes with it.
-    setPicked((before) => (before && !onFloor(before, { agents, tasks }) ? undefined : before))
-  }, [agents, tasks])
+    setPicked((before) => before && !onFloor(before, snapshot) ? undefined : before)
+  }, [snapshot])
 
   useEffect(() => {
     if (!mount.current) return
@@ -133,93 +87,55 @@ export function Factory({ assetBase = "/", roomThemes, petAssets, onRenderMetric
       },
     })
     view.current = created
-    return () => {
-      created.dispose()
-      view.current = null
-      asked.current++
-    }
+    return () => { created.dispose(); view.current = null; asked.current++ }
   }, [])
 
-  /** Report the layout once the view has drawn it, unless a later one has been asked for since. */
   function drawnBy(drawing: Promise<Motions>, layout: Layout, failure: string) {
     const call = ++asked.current
-    drawing
-      .then((motions) => {
-        if (call !== asked.current) return
-        latest.current.onLayout?.(layout, motions)
-        activeRides.current = new Set(motions.toPlay.map((motion) => motion.taskId))
-        setRiding(new Set(activeRides.current))
-        setDrawn((n) => n + 1)
-      })
-      .catch((error: unknown) => console.error(failure, error))
+    drawing.then((motions) => {
+      if (call !== asked.current) return
+      latest.current.onLayout?.(layout, motions)
+      activeRides.current = new Set(motions.toPlay.map((motion) => motion.taskId))
+      setRiding(new Set(activeRides.current))
+      setDrawn((n) => n + 1)
+    }).catch((error: unknown) => console.error(failure, error))
   }
 
-  useEffect(() => {
-    view.current?.setSpeed(speed)
-  }, [speed])
-
+  useEffect(() => { view.current?.setSpeed(speed) }, [speed])
   useEffect(() => {
     if (!view.current) return
-    const layout = roomState
-      ? layoutConfiguredRooms(roomState, previous.current, width, activeRides.current)
-      : layoutFloor(pipeline, { agents, tasks }, previous.current, { staging, width, lanes, roomLayout })
+    const layout = layoutConfiguredRooms(roomState, previous.current, width, activeRides.current)
     const traffic = comingsAndGoings(previous.current, layout)
     previous.current = layout
-    drawnBy(view.current.show(layout, roomState ? roomSnapshotForView(roomState) : { agents, tasks }, { ...styling(statusStyles, wardrobes), appearance, petAssets, roomThemes }, traffic), layout, "The factory could not be drawn")
-  }, [pipeline, agents, tasks, staging, width, lanes, roomLayout, roomState, appearance, petAssets, roomThemes, statusStyles, wardrobes])
+    drawnBy(view.current.show(layout, snapshot, { styles, petAssets, roomThemes }, traffic), layout, "The factory could not be drawn")
+  }, [roomState, snapshot, width, styles, petAssets, roomThemes])
 
   const handle = useRef<FactoryHandle>({
     focus(subject) {
       if ("agent" in subject) view.current?.focusAgent(subject.agent)
       else view.current?.followTask(subject.task)
     },
-    inspect(subject) {
-      setPicked(subject)
-      handle.current.focus(subject)
-    },
-    fitAll() {
-      view.current?.fitAll()
-    },
+    inspect(subject) { setPicked(subject); handle.current.focus(subject) },
+    fitAll() { view.current?.fitAll() },
     reorganize() {
-      const { pipeline, agents, tasks, staging, roomState, appearance, petAssets, roomThemes, statusStyles, wardrobes } = latest.current
+      const { roomState, petAssets, roomThemes, statusStyles } = latest.current
       if (!view.current || !previous.current) return
-      const layout = roomState
-        ? layoutConfiguredRooms(roomState, previous.current, previous.current.bounds.w, activeRides.current, true)
-        : reorganizedFloor(pipeline, { agents, tasks }, previous.current, { staging })
+      const layout = layoutConfiguredRooms(roomState, previous.current, previous.current.bounds.w, activeRides.current, true)
       previous.current = layout
-      drawnBy(view.current.reorganize(layout, roomState ? roomSnapshotForView(roomState) : { agents, tasks }, { ...styling(statusStyles, wardrobes), appearance, petAssets, roomThemes }), layout, "The factory could not be reorganized")
+      drawnBy(view.current.reorganize(layout, roomSnapshotForView(roomState), { styles: resolveStatusStyles(statusStyles), petAssets, roomThemes }), layout, "The factory could not be reorganized")
     },
   })
+  useEffect(() => { if (drawn === 1) latest.current.onReady?.(handle.current) }, [drawn])
 
-  useEffect(() => {
-    if (drawn === 1) latest.current.onReady?.(handle.current)
-  }, [drawn])
-
-  return (
-    <div className={`factory${appearance === "paper" && (roomLayout || roomState) ? " factory-paper" : ""}`}>
-      <div ref={mount} className="factory-canvas" role="img" aria-label="Factory floor" aria-description={roomState?.configuration.rooms.map((room) => room.billboard?.alt ? `${room.label}: ${room.billboard.alt}` : room.label).join("; ")} data-drawn={drawn} data-rooms={previous.current?.rooms?.length ?? 0} />
-      <Hud
-        snapshot={roomState ? roomSnapshotForView(roomState) : { agents, tasks }}
-        roomState={roomState}
-        trails={trails}
-        riding={riding}
-        styles={styles}
-        picked={picked}
-        ready={drawn > 0}
-        onClose={() => setPicked(undefined)}
-        onFitAll={() => handle.current.fitAll()}
-        onReorganize={() => handle.current.reorganize()}
-      />
-    </div>
-  )
+  return <div className="factory factory-paper">
+    <div ref={mount} className="factory-canvas" role="img" aria-label="Factory floor"
+      aria-description={roomState.configuration.rooms.map((room) => room.billboard?.alt ? `${room.label}: ${room.billboard.alt}` : room.label).join("; ")}
+      data-drawn={drawn} data-rooms={previous.current?.rooms?.length ?? 0} />
+    <Hud snapshot={snapshot} roomState={roomState} riding={riding} styles={styles} picked={picked} ready={drawn > 0}
+      onClose={() => setPicked(undefined)} onFitAll={() => handle.current.fitAll()} onReorganize={() => handle.current.reorganize()} />
+  </div>
 }
 
-/** Whether the snapshot still has the subject. */
 function onFloor(subject: Subject, snapshot: Snapshot): boolean {
   return "agent" in subject ? snapshot.agents.some((agent) => agent.id === subject.agent) : snapshot.tasks.some((task) => task.id === subject.task)
-}
-
-/** How the view is to show the agents, from the host's overrides. */
-function styling(statusStyles: StatusStyleOverrides | undefined, wardrobes: Wardrobes | undefined): Styling {
-  return { styles: resolveStatusStyles(statusStyles), wardrobes: wardrobes ?? {} }
 }

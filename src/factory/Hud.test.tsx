@@ -8,7 +8,7 @@ import { Hud } from "./Hud"
 
 function card(state: RoomFactoryState, picked: Subject) {
   return renderToStaticMarkup(<Hud roomState={state} snapshot={roomSnapshotForView(state)}
-    trails={{}} riding={new Set()} styles={DEFAULT_STATUS_STYLES} picked={picked} ready
+    riding={new Set()} styles={DEFAULT_STATUS_STYLES} picked={picked} ready
     onClose={() => {}} onFitAll={() => {}} onReorganize={() => {}} />)
 }
 

@@ -21,7 +21,7 @@ function fixture(count = 1, theme?: ResolvedRoomTheme) {
       }))), tasks: [], humanRequests: [],
   } }, undefined, 28)
   const scene = new THREE.Group()
-  drawRooms(layout, new THREE.Texture(), (name, piece) => { piece.name = name; scene.add(piece) }, true,
+  drawRooms(layout, (name, piece) => { piece.name = name; scene.add(piece) },
     theme ? new Map(layout.rooms!.map((room) => [room.id, theme])) : undefined)
   scene.updateMatrixWorld(true)
   return { layout, scene }
@@ -101,7 +101,7 @@ it("places host decoration at the checked rear slot and owns only its floor text
   model.name = "host-model"
   const assets = { model: vi.fn(() => model.clone()), floor: vi.fn(() => map), update: () => {}, dispose: () => {} }
   const scene = new THREE.Group()
-  drawRooms(layout, new THREE.Texture(), (name, piece) => { piece.name = name; scene.add(piece) }, true,
+  drawRooms(layout, (name, piece) => { piece.name = name; scene.add(piece) },
     new Map([[room.id, theme]]), assets)
   const floor = scene.getObjectByName(`room:${room.id}:floor`) as THREE.Mesh
   expect((floor.material as THREE.MeshLambertMaterial).map).toBe(map)

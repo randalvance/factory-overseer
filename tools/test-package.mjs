@@ -13,7 +13,8 @@ const run = (command, args, cwd = root) => execFileSync(command, args, { cwd, st
 try {
   const [pack] = JSON.parse(execFileSync("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", scratch], { encoding: "utf8" }))
   const files = new Set(pack.files.map((file) => file.path))
-  for (const file of ["lib/index.js", "lib/styles.css", "lib/types/index.d.ts", "LICENSE", "ASSETS.md", "public/assets/NOTICE.md", "public/assets/characters/ATTRIBUTION.md", "public/assets/models/room-themes/NOTICE.md", "public/assets/models/room-themes/provenance.json"]) assert(files.has(file), `Package is missing ${file}`)
+  assert(![...files].some((file) => /^public\/assets\/(?:characters|icons)\//.test(file)), "Paper package contains legacy pixel art")
+  for (const file of ["lib/index.js", "lib/styles.css", "lib/types/index.d.ts", "LICENSE", "ASSETS.md", "public/assets/NOTICE.md", "public/assets/models/room-themes/NOTICE.md", "public/assets/models/room-themes/provenance.json"]) assert(files.has(file), `Package is missing ${file}`)
   assert(![...files].some((file) => /^(?:src|e2e|tools|dist)\//.test(file)), "Package contains development or raw generation files")
   const consumer = join(scratch, "consumer")
   await cp("tests/package-consumer", consumer, { recursive: true })
@@ -25,7 +26,7 @@ try {
   run("bun", ["install", "--prefer-offline", "--ignore-scripts"], consumer)
   // This is outside the repository: no src/ imports, tsconfig aliases or Vite types.
   run("bunx", ["tsc", "--project", "tsconfig.json"], consumer)
-  run(process.execPath, ["--input-type=module", "-e", "import { Factory, RoomFactory } from 'factory-overseer'; if (typeof Factory !== 'function' || typeof RoomFactory !== 'function') throw new Error('Missing public components')"], consumer)
+  run(process.execPath, ["--input-type=module", "-e", "import * as api from 'factory-overseer'; if (typeof api.RoomFactory !== 'function' || 'Factory' in api) throw new Error('Expected only the paper factory component')"], consumer)
   await mkdir(join(consumer, "public/static/factory"), { recursive: true })
   await cp(join(consumer, "node_modules/factory-overseer/public/assets"), join(consumer, "public/static/factory/assets"), { recursive: true })
   run("bunx", ["vite", "build", "--base=/host/"], consumer)
@@ -62,15 +63,9 @@ try {
   const evidence = resolve("docs/screenshots/library-package")
   await mkdir(evidence, { recursive: true })
   await page.screenshot({ path: join(evidence, "rooms.png"), fullPage: true })
-  await page.getByRole("button", { name: "Switch appearance", exact: true }).click()
-  await expect(factory).toHaveAttribute("data-drawn", "1", { timeout: 45000 })
-  await expect(page.getByLabel("Counts")).toContainText("1 in flight")
-  await page.getByRole("button", { name: "Inspect", exact: true }).click()
-  await expect(page.getByRole("complementary", { name: "Card for Legacy package task" })).toContainText("Legacy worker")
-  await expect.poll(() => loaded.has(base + "characters/char_1.png")).toBe(true)
-  await page.screenshot({ path: join(evidence, "legacy.png"), fullPage: true })
+  assert(![...loaded].some((path) => /\/assets\/(?:characters|icons)\//.test(path)), "Paper factory requested legacy pixel art")
   assert.deepEqual(errors, [], "Consumer browser reported errors")
-  const report = { package: `${source.name}@${source.version}`, bytes: pack.size, unpackedBytes: pack.unpackedSize, files: files.size, checks: ["tarball installed outside repository", "strict NodeNext declarations without aliases or Vite types", "Node import without DOM", "consumer production build at /host/", "nested assets including all four furnishings", "RoomFactory attention and handle", "legacy Factory and sprite", "host CSS preserved", "no browser errors"] }
+  const report = { package: `${source.name}@${source.version}`, bytes: pack.size, unpackedBytes: pack.unpackedSize, files: files.size, runtimeArtFiles: [...files].filter((file) => /^public\/assets\/.*\.(?:png|svg|glb)$/.test(file)).length, checks: ["tarball installed outside repository", "strict NodeNext declarations without aliases or Vite types", "Node import without DOM", "consumer production build at /host/", "nested assets including all four furnishings", "RoomFactory attention and handle", "paper-only exports and assets", "no legacy character requests", "host CSS preserved", "no browser errors"] }
   await writeFile(join(evidence, "verification.json"), JSON.stringify(report, null, 2) + "\n")
   console.log(JSON.stringify(report, null, 2))
 } finally {

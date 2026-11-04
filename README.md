@@ -74,14 +74,12 @@ can return to that fitted scale. Very deep maps remain pannable.
 
 All task decisions in this example are explicit host actions. There is no
 random timer that resolves a human wait, completes a shared assignment or
-ships a task. The earlier seeded, beat-driven demo remains at `?layout=legacy`;
-the earlier room-growth example is at `?layout=rooms`. Use `?art=legacy` on
-the configured demo for the earlier appearance.
+ships a task. The configured paper factory is the only demo and library view.
 
 ## Embed the library
 
-The package exports `RoomFactory`, the legacy `Factory`, their props,
-`FactoryHandle`, room/transition/assignment/attention types, theme and pet
+The package exports `RoomFactory`, `RoomFactoryProps`, `FactoryHandle`,
+room/transition/assignment/attention types, theme and pet
 configuration, status styles, and layout/render-metric callback types. It is
 an ES module for React 19 hosts. React stays external; Three.js is a runtime
 dependency. The demo build remains separate from the library.
@@ -150,8 +148,7 @@ does not reset the host's page, body, controls or theme.
 URL, and adds a trailing slash if omitted. Keep it fixed for a mounted
 factory; remount to change it. Relative pet, billboard and theme URLs resolve
 under this directory. Explicit root-relative and absolute URLs stay as
-supplied; remote assets need appropriate CORS headers. A custom legacy
-`agent.sprite` URL is used as supplied, preserving the legacy contract.
+supplied; remote assets need appropriate CORS headers.
 
 Publish immutable state values to move work. Room transitions can branch,
 cycle for rework, or include additional host-defined roles. Deployment is
@@ -161,14 +158,15 @@ visual arrival, not completion of agent work.
 
 The [room contract](docs/room-contract.md) is the reference for types,
 validation, attention hooks, assignments, themes, billboard images, pets,
-render metrics and migration from the legacy `Pipeline` API. Existing hosts
-can import `Factory`, `Pipeline`, `Agent`, `Task` and `FactoryHandle` from the
-same package. Demo state and controls remain application code.
+render metrics and migration from the retired `Factory`/`Pipeline` API.
+Existing hosts must move to `RoomFactoryState` and `petAssets`; legacy
+components, pixel-character sheets and appearance switches are removed.
+Demo state and controls remain application code.
 
 [Package verification](docs/screenshots/library-package/README.md) exercises
 an installed tarball in an independent TypeScript app at `/host/`, with assets
-at `/host/static/factory/assets/`. It covers both components, attention,
-handles, bundled art and CSS isolation. Generated art retains the terms in
+at `/host/static/factory/assets/`. It covers `RoomFactory`, attention,
+handles, bundled paper art and CSS isolation. Generated art retains the terms in
 [ASSETS.md](ASSETS.md); a local archive does not change those terms.
 
 ## Art and performance
@@ -176,7 +174,7 @@ handles, bundled art and CSS isolation. Generated art retains the terms in
 The [four-prop gallery](http://localhost:3000/e2e/fixtures/theme-art.html)
 shows the lab cabinet, foundry press, parts organizer and paper cutter at the
 factory camera angle. Each uses one material, no model texture and at most
-2,000 triangles. The complete runtime pack is 896,368 bytes. Authored floors,
+2,000 triangles. The four furnishing GLBs total 896,368 bytes. Authored floors,
 walls, repeating belts and stations remain shared, compact meshes.
 
 The [asset brief](docs/design/room-theme-assets.md),
@@ -193,16 +191,17 @@ shadow map. Moving parcels do not update that static shadow map. The optional
 resource counts and estimated source texture bytes. It does not measure total
 GPU allocation, shadow-map storage or framebuffer memory.
 
-[Current normal/growth measurements](docs/screenshots/integrated-demo/README.md#performance)
+[Recorded normal/growth measurements](docs/screenshots/integrated-demo/README.md#performance)
 cover 20 agents/30 tasks and 100 agents/150 tasks at a fixed viewport. Large
 factories are pannable; these are visible-viewport measurements. Chromium
 software rendering is a repeatable regression reference, not hardware FPS.
 Earlier measurements remain in [paper evidence](docs/screenshots/paper/).
-To reproduce the current fixtures without overwriting that history:
+These records include the earlier comparison with the retired appearance.
+To measure the current paper fixtures without overwriting those records:
 
 ```bash
 devcontainer exec --workspace-folder . env \
-  PAPER_MEASURE_DIR=docs/screenshots/integrated-demo/performance \
+  PAPER_MEASURE_DIR=/tmp/factory-overseer-paper-measure \
   node tools/measure-paper.mjs
 ```
 

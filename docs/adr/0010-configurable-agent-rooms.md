@@ -1,5 +1,9 @@
 # Configurable agent rooms, with the host owning decisions
 
+> Current status: ADR 0012 completes adoption: `RoomFactory` is the sole public factory API,
+> and the legacy interface, migration adapter and appearance are retired.
+> The adoption sequence below is historical; the room contract remains active.
+
 The room contract replaces a linear pipeline with named rooms and directed
 transitions. Every room has one Role; membership is explicit through roomId,
 so two rooms may have the same Role. Exactly one room is Intake and one is

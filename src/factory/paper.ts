@@ -2,7 +2,7 @@ import * as THREE from "three"
 import { ROOM_THEME_SLOTS, type ResolvedRoomTheme } from "~/model/roomThemes"
 import { type Pieces, type PieceName, shareResource, replaceMaterials } from "./models"
 import { canvasTexture } from "./textures"
-import { LEGACY_BELT_H, PAPER_BELT_H, paperBeltSupport } from "./paperConveyors"
+import { BELT_DECK_H, PAPER_BELT_H, paperBeltSupport } from "./paperConveyors"
 import { createPaperJunctions, registerPaperJunctions } from "./paperJunctions"
 
 /** Small, reusable authored pieces. Layout, routing and sprite contracts stay separate. */
@@ -87,7 +87,7 @@ export function paperPieces(base: Pieces): Pieces {
       }
       return result
     })
-    if (name.startsWith("belt-")) piece.position.y += PAPER_BELT_H - LEGACY_BELT_H
+    if (name.startsWith("belt-")) piece.position.y += PAPER_BELT_H - BELT_DECK_H
     return piece
   }
   function themedBench(theme: ResolvedRoomTheme, accessory?: THREE.Object3D, suppliedAccent?: THREE.MeshLambertMaterial): THREE.Object3D {

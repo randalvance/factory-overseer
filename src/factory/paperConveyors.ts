@@ -4,7 +4,7 @@ import type { BeltTile } from "~/floor/types"
 import { tileKey } from "~/floor/tiles"
 
 /** The original GLB deck is a shallow slab; the paper deck stands level with desks. */
-export const LEGACY_BELT_H = .12
+export const BELT_DECK_H = .12
 export const PAPER_BELT_H = .85
 
 /** A pair of folded card supports for the primary piece of one belt tile.
@@ -14,7 +14,7 @@ export const PAPER_BELT_H = .85
 export function paperBeltSupport(name: BeltPieceName, floorY: number, geometry: THREE.BufferGeometry, card: THREE.Material, edge: THREE.Material): THREE.Group {
   const group = new THREE.Group()
   group.name = "paper-belt-support"
-  const legTop = PAPER_BELT_H - LEGACY_BELT_H
+  const legTop = PAPER_BELT_H - BELT_DECK_H
   const legHeight = legTop - floorY
   const corner = name.includes("corner")
   const turn = name.includes("right") ? -1 : 1

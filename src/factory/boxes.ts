@@ -89,7 +89,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
   function update(layout: Layout, tasks: Task[], motions: Motion[], pieces: Pieces, slid?: BoxTiles, blocked?: ReadonlySet<string>) {
     const taskById = new Map(tasks.map((task) => [task.id, task]))
     const motionOf = new Map(motions.map((motion) => [motion.taskId, motion]))
-    const heightOver = heightsOver(layout, pieces.paper)
+    const heightOver = heightsOver(layout)
     const over = (tile: Tile) => {
       const centre = tileCenter(tile)
       return new THREE.Vector3(centre.x, heightOver(tile) + BOX_SIZE / 2, centre.z)
@@ -123,7 +123,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
         floorBox.tile = placement.tile
         floorBox.spot = placement.spot
         floorBox.rest = rest
-        ;(floorBox.mesh.material as THREE.MeshLambertMaterial).map = boxFace(label, task?.color, pieces.cardboard)
+        ;(floorBox.mesh.material as THREE.MeshLambertMaterial).map = boxFace(label, task?.color)
       }
 
       const motion = motionOf.get(placement.taskId)
@@ -148,8 +148,8 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
     for (const taskId of boxes.keys()) if (!kept.has(taskId)) remove(taskId)
     const plateStood = plate?.position.clone()
     removePlate()
-    const truck = pieces.paper ? paperTruckPlacement(layout) : undefined
-    plate = truck ? truckCount(truck, restingInContainer()) : containerCount(layout.container, restingInContainer(), pieces.paper)
+    const truck = paperTruckPlacement(layout)
+    plate = truck ? truckCount(truck, restingInContainer()) : containerCount(layout.container, restingInContainer())
     group.add(plate)
     plateGlide = undefined
     if (slid && plateStood && !plateStood.equals(plate.position)) {

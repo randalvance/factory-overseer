@@ -1,7 +1,7 @@
 import * as THREE from "three"
 import type { Agent } from "~/model/types"
 
-/** Authored illustrated cutouts, sharing the legacy 6×4 pose grid. */
+/** Authored illustrated cutouts, using the 6×4 paper animation grid. */
 export const PAPER_AGENT_H = 2.3
 const CELL_W = 128
 const CELL_H = 192

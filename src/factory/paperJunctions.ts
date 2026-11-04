@@ -1,7 +1,7 @@
 import * as THREE from "three"
 import type { BeltTile, Direction } from "~/floor/types"
 import type { Pieces } from "./models"
-import { LEGACY_BELT_H, PAPER_BELT_H } from "./paperConveyors"
+import { BELT_DECK_H, PAPER_BELT_H } from "./paperConveyors"
 
 type Junction = Extract<BeltTile, { kind: "junction" }>
 type Own = <T extends THREE.BufferGeometry | THREE.Material>(resource: T) => T
@@ -45,9 +45,7 @@ export function registerPaperJunctions(pieces: Pieces, render: Renderer): void {
   renderers.set(pieces, render)
 }
 
-/** Optional seam: custom piece libraries and legacy scenes retain their own
- * original junctions. The paper library supplies the complete replacement.
- */
+/** The paper library supplies one complete junction module for its registered pieces. */
 export function paperJunctionFor(pieces: Pieces, tile: Junction, floorY: number): THREE.Group | undefined {
   return renderers.get(pieces)?.(tile, floorY)
 }
@@ -128,7 +126,7 @@ export function createPaperJunctions(own: Own): Renderer {
     let plate = plates.get(key)
     if (!plate) {
       plate = {
-        base: own(new THREE.ExtrudeGeometry(outline(ports, .45, .45), { depth: LEGACY_BELT_H, bevelEnabled: false }).rotateX(-Math.PI / 2)),
+        base: own(new THREE.ExtrudeGeometry(outline(ports, .45, .45), { depth: BELT_DECK_H, bevelEnabled: false }).rotateX(-Math.PI / 2)),
         surface: own(new THREE.ShapeGeometry(outline(ports, .4, .35)).rotateX(-Math.PI / 2)),
       }
       plates.set(key, plate)
@@ -138,7 +136,7 @@ export function createPaperJunctions(own: Own): Renderer {
     group.userData.junctionKind = paperJunctionKind(tile)
     group.userData.ports = ports
     const base = new THREE.Mesh(plate.base, cream)
-    base.name = "junction-deck"; base.position.y = PAPER_BELT_H - LEGACY_BELT_H
+    base.name = "junction-deck"; base.position.y = PAPER_BELT_H - BELT_DECK_H
     base.castShadow = true; base.receiveShadow = true
     const surface = new THREE.Mesh(plate.surface, green)
     surface.name = "junction-surface"; surface.position.y = PAPER_BELT_H + .001
@@ -149,7 +147,7 @@ export function createPaperJunctions(own: Own): Renderer {
       mesh.castShadow = true; mesh.receiveShadow = true; group.add(mesh)
       return mesh
     }
-    const legTop = PAPER_BELT_H - LEGACY_BELT_H
+    const legTop = PAPER_BELT_H - BELT_DECK_H
     for (const x of [-.32, .32]) for (const z of [-.32, .32]) {
       box("junction-leg", .12, legTop - floorY, .12, x, (floorY + legTop) / 2, z, cream)
       box("junction-foot", .22, .035, .22, x, floorY + .0175, z, edge)
