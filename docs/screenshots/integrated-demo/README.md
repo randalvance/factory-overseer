@@ -3,8 +3,8 @@
 The default localhost:3000 example combines both intake branches, planning
 questions, shared implementation, rework, review, optional QA and terminal
 deployment. Host controls change immutable snapshots; the renderer never
-chooses work or answers requests. The legacy seeded/beat runtime remains
-available separately.
+chooses work or answers requests. The paper factory is the sole demo and
+library view; the legacy seeded runtime has been removed.
 
 ## Review the complete flow
 
@@ -58,7 +58,10 @@ QA and final shipping. They reject browser errors and routing alerts.
 devcontainer exec --workspace-folder . bun run smoke e2e/integrated-demo.spec.ts --workers=1
 ```
 
-Validation on this checkpoint:
+Historical validation at the original #27 checkpoint follows. For the current
+paper-only result (455 unit tests and 33 browser scenarios), see the
+[library package checkpoint](../library-package/README.md#paper-only-checkpoint).
+The legacy checks below describe the retired implementation.
 
 - 518 unit tests pass across 49 files, including room histories, HUD attention,
   framing, zoom limits and paper-to-legacy camera transitions.
@@ -76,19 +79,19 @@ The browser regression command is:
 ```bash
 devcontainer exec --workspace-folder . bun run smoke \
   e2e/integrated-demo.spec.ts e2e/human-needed.spec.ts \
-  e2e/shared-work.spec.ts e2e/routes.spec.ts e2e/rooms.spec.ts \
+  e2e/shared-work.spec.ts e2e/routes.spec.ts \
   e2e/room-grid.spec.ts e2e/direct-dispatch.spec.ts \
   e2e/deployment-flow.spec.ts --workers=1
-devcontainer exec --workspace-folder . bun run smoke e2e/smoke.spec.ts \
-  --grep 'the demo opens|the overseer pans|the handle focuses' --workers=1
+devcontainer exec --workspace-folder . bun run smoke e2e/smoke.spec.ts --workers=1
 ```
 
 ## Performance
 
-The normal/growth fixture uses five configured rooms, 20 agents/30 tasks and
-100 agents/150 tasks. The paper version now supplies the same bundled pet
-assets as the default demo, plus all four generated furnishing presets.
-Legacy retains its original art. Results cover the current visible viewport,
+These historical normal/growth measurements used five configured rooms,
+20 agents/30 tasks and 100 agents/150 tasks. The paper version supplied the
+same bundled pet assets as the default demo, plus all four generated furnishing
+presets. The retired legacy fixture retained its original art for comparison.
+Results cover the measured visible viewport,
 not every station on a large map at once.
 
 The browser is Chromium through ANGLE/SwiftShader software WebGL,
@@ -98,7 +101,7 @@ triangles and texture bytes use the last sample. Other browser workloads are
 stopped during capture. Hardware frame-rate targets of 60 fps normal and
 30 fps growth remain unverified; software results do not establish either.
 
-Final measurements, captured after the framing fix, are in
+Checkpoint measurements, captured after the framing fix, are in
 [the raw report](performance/measurements.json).
 
 | Appearance | Agents / tasks | Mean frame interval | Approx. fps | Draw calls | Triangles | Estimated texture bytes |
@@ -122,11 +125,12 @@ large changes refresh them and may be slower. The current model pack has
 Each furnishing stays below 2,000 triangles and 1 MB; none is repeated per
 station. Shared paper textures still contribute to scene texture allocation.
 
-To reproduce with the demo running:
+To measure the current paper-only view with the demo running, write a new
+report outside this historical evidence directory:
 
 ```bash
 devcontainer exec --workspace-folder . env \
-  PAPER_MEASURE_DIR=docs/screenshots/integrated-demo/performance \
+  PAPER_MEASURE_DIR=/tmp/factory-overseer-paper-measure \
   node tools/measure-paper.mjs
 ```
 
