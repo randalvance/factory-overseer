@@ -11,6 +11,7 @@
     "3000": { "label": "demo", "onAutoForward": "notify" }
   },
   "appPort": [3000],
+  "initializeCommand": "touch \"${localEnv:HOME}/.gitconfig\"",
   "mounts": [
     "source=${localEnv:HOME}/.gitconfig,target=/home/node/.host-gitconfig,type=bind,readonly"
   ],
