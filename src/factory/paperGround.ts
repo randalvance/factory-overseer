@@ -56,9 +56,21 @@ function hash(x: number, z: number): number {
 export function paperGrassSites(layout: Layout, reserved: readonly Rect[] = []): GroundPoint[] {
   const bounds = { x: layout.bounds.x - DECORATION_MARGIN, y: layout.bounds.y - DECORATION_MARGIN,
     w: layout.bounds.w + DECORATION_MARGIN * 2, h: layout.bounds.h + DECORATION_MARGIN * 2 }
-  const occupied = rectangles(layout, reserved)
+  const firstRow = Math.floor(bounds.y), lastRow = Math.ceil(bounds.y + bounds.h) - 1
+  const occupiedByRow = new Map<number, Rect[]>()
+  for (const rect of rectangles(layout, reserved)) {
+    const first = Math.max(firstRow, Math.floor(rect.y - .38))
+    const last = Math.min(lastRow, Math.floor(rect.y + rect.h + .38))
+    for (let row = first; row <= last; row++) {
+      const occupied = occupiedByRow.get(row) ?? []
+      occupied.push(rect)
+      occupiedByRow.set(row, occupied)
+    }
+  }
   const sites: GroundPoint[] = []
-  for (let row = Math.floor(bounds.y); row < bounds.y + bounds.h; row++) {
+  for (let row = firstRow; row <= lastRow; row++) {
+    // Tufts stay inside their integer row; keep the exact footprint check below.
+    const occupied = occupiedByRow.get(row) ?? []
     for (let col = Math.floor(bounds.x); col < bounds.x + bounds.w; col++) {
       const seed = hash(col + 17, row + 31)
       if (seed > .23) continue

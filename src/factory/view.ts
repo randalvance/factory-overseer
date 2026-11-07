@@ -22,7 +22,7 @@ import { type Dressed, type Settling, createAgents } from "./agents"
 import { BELT_SPEED, createBoxes } from "./boxes"
 import { type CameraPose, PAPER_CAMERA_DISTANCE, PAPER_PITCH, ZOOM_MIN, clampToFloor, fitDiorama, fitDioramaLayout, panDiorama, paperFieldOfView, pinchBy, zoomBy, zoomStep } from "./camera"
 import { type Point, attachControls } from "./controls"
-import { batchPaperDrawing, unbatchPaperDrawing, disposeMeshes, drawFactory } from "./drawing"
+import { batchPaperDrawing, unbatchPaperDrawing, createBatchRetirement, disposeMeshes, drawFactory } from "./drawing"
 import { paperPieces } from "./paper"
 import { type Pieces, type BeltTextures, loadPieces } from "./models"
 import { nearer } from "./picking"
@@ -135,6 +135,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
 
   /** The belts' moving surfaces, once the pieces are loaded. */
   let belts: BeltTextures | undefined
+  const retiredBatches = createBatchRetirement()
   let drawing = new THREE.Group()
   scene.add(drawing)
   /** The pass from the drawing before to this one, while the floor slides. */
@@ -276,7 +277,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     if (sceneryPaintPending && !slide && shown && shownPieces) {
       // Asset completion repaints only scenery: never replay a ride, a walk, or a human hook.
       sceneryPaintPending = false
-      unbatchPaperDrawing(drawing)
+      retiredBatches.retire(unbatchPaperDrawing(drawing))
       scene.remove(drawing)
       disposeMeshes(drawing)
       drawing = drawFactory(shown, shownPieces, shownThemes, themeAssets, billboardAssets)
@@ -318,6 +319,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
         metricFrames = 0; metricTime = 0
       }
     }
+    retiredBatches.drain()
   })
 
   let generation = 0
@@ -376,9 +378,10 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
 
   /** Draw the layout in place of the one shown, everything standing where it now is at once, or gliding there as the drawing slides. */
   function draw(layout: Layout, snapshot: Snapshot, ready: Dressed & { themes: ReadonlyMap<string, ResolvedRoomTheme> }, traffic: ComingsAndGoings, settling: Settling): Motions {
+    const firstDrawing = shown === undefined
     floor = layout.bounds
     slide?.end()
-    unbatchPaperDrawing(drawing)
+    retiredBatches.retire(unbatchPaperDrawing(drawing))
     const stood = drawing
     belts = ready.pieces.belts
     shownPieces = ready.pieces
@@ -406,7 +409,8 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     shown = layout
     laidAfresh = false
     aimCamera()
-    if (visible) renderer.render(scene, camera)
+    // onReady sees the initial frame. Later snapshots render once, in the animation loop.
+    if (visible && firstDrawing) renderer.render(scene, camera)
     return motions
   }
 
@@ -427,6 +431,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     themeAssets.dispose()
     billboardAssets.dispose()
     paper?.dispose?.()
+    retiredBatches.dispose()
     renderer.dispose()
     canvas.remove()
   }

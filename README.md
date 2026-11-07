@@ -198,6 +198,9 @@ software rendering is a repeatable regression reference, not hardware FPS.
 A [native hardware baseline](docs/performance/2026-11-07-hardware/README.md)
 records verified Metal rendering on the reference Mac, repeated frame-cadence
 measurements, layout-change profiles and reproduction commands.
+The [layout-stall follow-up](docs/performance/2026-11-07-layout-stalls/README.md)
+records growth and Reorganize within the 50 ms frame-interval limit across
+three reference-device repetitions, while preserving steady cadence.
 Earlier measurements remain in [paper evidence](docs/screenshots/paper/).
 These records include the earlier comparison with the retired appearance.
 To measure the current paper fixtures without overwriting those records:

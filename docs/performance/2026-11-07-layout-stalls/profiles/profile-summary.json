@@ -1,0 +1,1593 @@
+{
+  "schemaVersion": 1,
+  "issue": 34,
+  "startedAt": "2026-11-07T05:43:13.971Z",
+  "status": "complete",
+  "settings": {
+    "warmupMs": 15000,
+    "actionMs": 5000,
+    "samplingIntervalUs": 1000,
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "dpr": 1
+  },
+  "source": {
+    "revision": "6ed72381672384436b96245eba4a0c64473a75b2",
+    "dirtyPaths": [
+      "M bun.lock",
+      " M e2e/paper.spec.ts",
+      " M src/factory/drawing.test.ts",
+      " M src/factory/drawing.ts",
+      " M src/factory/paperGround.ts",
+      " M src/factory/slide.ts",
+      " M src/factory/view.ts",
+      " M tools/measure-paper-hardware.mjs",
+      " M tools/profile-paper-actions.mjs",
+      "?? docs/performance/2026-11-07-layout-stalls/",
+      "?? tools/check-paper-layout-budget.mjs",
+      "?? tools/check-paper-layout-budget.test.mjs"
+    ],
+    "trackedDiffSha256": "7299e3861b7964520ab8d9b418b3a3a920e8761b83913f3d2e88639838e51d58"
+  },
+  "bundles": [
+    {
+      "url": "http://127.0.0.1:3101/assets/paper-Ba5F6-wD.js",
+      "file": "assets/paper-Ba5F6-wD.js",
+      "sha256": "97ee95d7c01dd5b8661747a7e4b782da85d72091516ef8e9ac3ad701883cc6ae",
+      "sourceMapFile": "assets/paper-Ba5F6-wD.js.map",
+      "sourceMapSha256": "8472db68bf4a2317d444bd1f275e8d9f5478cdae966c3b70bcaeca2db3a266c0"
+    }
+  ],
+  "profiles": [
+    {
+      "phase": "growth",
+      "action": "Grow to 100 agents",
+      "actionTiming": {
+        "startedAtPerformanceMs": 15924.100000023842,
+        "dispatchDurationMs": 0.09999999403953552,
+        "observedDurationMs": 4999.5999999940395
+      },
+      "rawProfile": "growth.cpuprofile",
+      "wallDurationMs": 5068.98,
+      "sampleCount": 4017,
+      "sampledMs": 5068.0410000000165,
+      "javascriptMs": 1455.870000000001,
+      "idleMs": 3496.236999999995,
+      "garbageCollectionMs": 14.147,
+      "unattributedMs": 101.78699999999999,
+      "topSelf": [
+        {
+          "function": "updateMatrixWorld",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 13071,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 316.3539999999999,
+          "inclusiveMs": 403.7769999999996
+        },
+        {
+          "function": "getParameters",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 7132,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 151.30200000000005,
+          "inclusiveMs": 152.55600000000004
+        },
+        {
+          "function": "(program)",
+          "source": "(runtime)",
+          "line": 0,
+          "column": -1,
+          "mapped": false,
+          "selfMs": 101.78699999999999,
+          "inclusiveMs": 101.78699999999999
+        },
+        {
+          "function": "multiplyMatrices",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 10564,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 98.66099999999997,
+          "inclusiveMs": 98.66099999999997
+        },
+        {
+          "function": "(anonymous)",
+          "source": "src/factory/view.ts",
+          "line": 305,
+          "column": 24,
+          "mapped": true,
+          "selfMs": 75.33799999999998,
+          "inclusiveMs": 75.33799999999998
+        },
+        {
+          "function": "getProgram",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 18033,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 75.03200000000002,
+          "inclusiveMs": 264.34599999999983
+        },
+        {
+          "function": "projectObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17696,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 63.519000000000034,
+          "inclusiveMs": 145.96799999999996
+        },
+        {
+          "function": "renderBufferDirect",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17023,
+          "column": 28,
+          "mapped": true,
+          "selfMs": 50.689,
+          "inclusiveMs": 608.0509999999992
+        },
+        {
+          "function": "intersectsFrustum",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 24299,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 39.798,
+          "inclusiveMs": 74.96800000000003
+        },
+        {
+          "function": "setProgram",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 18220,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 29.01600000000001,
+          "inclusiveMs": 449.02999999999963
+        },
+        {
+          "function": "getProgramCacheKey",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 7489,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 28.930000000000007,
+          "inclusiveMs": 36.086
+        },
+        {
+          "function": "renderObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17991,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 26.251,
+          "inclusiveMs": 567.9419999999994
+        },
+        {
+          "function": "bindVertexArray",
+          "source": "(runtime)",
+          "line": 0,
+          "column": -1,
+          "mapped": false,
+          "selfMs": 25.004000000000005,
+          "inclusiveMs": 25.004000000000005
+        },
+        {
+          "function": "getProgramInfoLog",
+          "source": "(runtime)",
+          "line": 0,
+          "column": -1,
+          "mapped": false,
+          "selfMs": 24.992,
+          "inclusiveMs": 24.992
+        },
+        {
+          "function": "copyArray",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 4860,
+          "column": 9,
+          "mapped": true,
+          "selfMs": 22.590999999999998,
+          "inclusiveMs": 22.590999999999998
+        },
+        {
+          "function": "arraysEqual",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 4846,
+          "column": 9,
+          "mapped": true,
+          "selfMs": 21.360999999999997,
+          "inclusiveMs": 21.360999999999997
+        },
+        {
+          "function": "needsUpdate",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 1759,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 20.886,
+          "inclusiveMs": 20.886
+        },
+        {
+          "function": "renderObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 9365,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 18.882,
+          "inclusiveMs": 129.255
+        },
+        {
+          "function": "(garbage collector)",
+          "source": "(runtime)",
+          "line": 0,
+          "column": -1,
+          "mapped": false,
+          "selfMs": 14.147,
+          "inclusiveMs": 14.147
+        },
+        {
+          "function": "sort",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 8004,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 14.092,
+          "inclusiveMs": 17.871
+        }
+      ],
+      "topInclusive": [
+        {
+          "function": "onAnimationFrame",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 16,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 1.254,
+          "inclusiveMs": 1398.595000000001
+        },
+        {
+          "function": "(anonymous)",
+          "source": "src/factory/view.ts",
+          "line": 262,
+          "column": 29,
+          "mapped": true,
+          "selfMs": 0.244,
+          "inclusiveMs": 1397.341000000001
+        },
+        {
+          "function": "render",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17464,
+          "column": 16,
+          "mapped": true,
+          "selfMs": 2.25,
+          "inclusiveMs": 1269.498999999998
+        },
+        {
+          "function": "renderBufferDirect",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17023,
+          "column": 28,
+          "mapped": true,
+          "selfMs": 50.689,
+          "inclusiveMs": 608.0509999999992
+        },
+        {
+          "function": "renderScene",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17814,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 0,
+          "inclusiveMs": 571.7139999999994
+        },
+        {
+          "function": "renderObjects",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17964,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 3.7720000000000002,
+          "inclusiveMs": 570.4529999999995
+        },
+        {
+          "function": "renderObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17991,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 26.251,
+          "inclusiveMs": 567.9419999999994
+        },
+        {
+          "function": "setProgram",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 18220,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 29.01600000000001,
+          "inclusiveMs": 449.02999999999963
+        },
+        {
+          "function": "updateMatrixWorld",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 13071,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 316.3539999999999,
+          "inclusiveMs": 403.7769999999996
+        },
+        {
+          "function": "getProgram",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 18033,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 75.03200000000002,
+          "inclusiveMs": 264.34599999999983
+        },
+        {
+          "function": "getParameters",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 7132,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 151.30200000000005,
+          "inclusiveMs": 152.55600000000004
+        },
+        {
+          "function": "projectObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17696,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 63.519000000000034,
+          "inclusiveMs": 145.96799999999996
+        },
+        {
+          "function": "render",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 8937,
+          "column": 15,
+          "mapped": true,
+          "selfMs": 1.254,
+          "inclusiveMs": 132.72499999999997
+        },
+        {
+          "function": "renderObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 9365,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 18.882,
+          "inclusiveMs": 129.255
+        },
+        {
+          "function": "(program)",
+          "source": "(runtime)",
+          "line": 0,
+          "column": -1,
+          "mapped": false,
+          "selfMs": 101.78699999999999,
+          "inclusiveMs": 101.78699999999999
+        },
+        {
+          "function": "multiplyMatrices",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 10564,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 98.66099999999997,
+          "inclusiveMs": 98.66099999999997
+        },
+        {
+          "function": "traverse",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 12976,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 4.851,
+          "inclusiveMs": 82.69599999999998
+        },
+        {
+          "function": "(anonymous)",
+          "source": "src/factory/view.ts",
+          "line": 305,
+          "column": 24,
+          "mapped": true,
+          "selfMs": 75.33799999999998,
+          "inclusiveMs": 75.33799999999998
+        },
+        {
+          "function": "intersectsFrustum",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 24299,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 39.798,
+          "inclusiveMs": 74.96800000000003
+        },
+        {
+          "function": "setValue",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 5925,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 7.552,
+          "inclusiveMs": 72.75300000000001
+        }
+      ],
+      "firstSecond": {
+        "wallDurationMs": 1000,
+        "sampleCount": 778,
+        "sampledMs": 1000,
+        "javascriptMs": 517.4469999999994,
+        "idleMs": 401.9730000000015,
+        "garbageCollectionMs": 8.848,
+        "unattributedMs": 71.732,
+        "topSelf": [
+          {
+            "function": "(program)",
+            "source": "(runtime)",
+            "line": 0,
+            "column": -1,
+            "mapped": false,
+            "selfMs": 71.732,
+            "inclusiveMs": 71.732
+          },
+          {
+            "function": "getParameters",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 7132,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 48.554000000000016,
+            "inclusiveMs": 49.808000000000014
+          },
+          {
+            "function": "updateMatrixWorld",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 13071,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 45.01500000000001,
+            "inclusiveMs": 55.853000000000016
+          },
+          {
+            "function": "renderBufferDirect",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17023,
+            "column": 28,
+            "mapped": true,
+            "selfMs": 30.591000000000008,
+            "inclusiveMs": 248.42999999999984
+          },
+          {
+            "function": "getProgramInfoLog",
+            "source": "(runtime)",
+            "line": 0,
+            "column": -1,
+            "mapped": false,
+            "selfMs": 24.992,
+            "inclusiveMs": 24.992
+          },
+          {
+            "function": "renderObject",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 9365,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 18.882,
+            "inclusiveMs": 129.255
+          },
+          {
+            "function": "getProgram",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 18033,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 18.846999999999998,
+            "inclusiveMs": 79.36699999999999
+          },
+          {
+            "function": "multiplyMatrices",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 10564,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 18.378999999999998,
+            "inclusiveMs": 18.378999999999998
+          },
+          {
+            "function": "(anonymous)",
+            "source": "src/factory/view.ts",
+            "line": 305,
+            "column": 24,
+            "mapped": true,
+            "selfMs": 16.338,
+            "inclusiveMs": 16.338
+          },
+          {
+            "function": "copyArray",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 4860,
+            "column": 9,
+            "mapped": true,
+            "selfMs": 16.316,
+            "inclusiveMs": 16.316
+          },
+          {
+            "function": "intersectsFrustum",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 24299,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 16.154999999999998,
+            "inclusiveMs": 35.114000000000004
+          },
+          {
+            "function": "setProgram",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 18220,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 15.195,
+            "inclusiveMs": 177.18399999999994
+          },
+          {
+            "function": "projectObject",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17696,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 15.026999999999997,
+            "inclusiveMs": 41.269999999999996
+          },
+          {
+            "function": "renderObject",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17991,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 12.408000000000001,
+            "inclusiveMs": 191.9579999999999
+          },
+          {
+            "function": "e",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 11954,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 12.303,
+            "inclusiveMs": 12.303
+          },
+          {
+            "function": "(garbage collector)",
+            "source": "(runtime)",
+            "line": 0,
+            "column": -1,
+            "mapped": false,
+            "selfMs": 8.848,
+            "inclusiveMs": 8.848
+          },
+          {
+            "function": "arraysEqual",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 4846,
+            "column": 9,
+            "mapped": true,
+            "selfMs": 8.774,
+            "inclusiveMs": 8.774
+          },
+          {
+            "function": "getProgramCacheKey",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 7489,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 7.532999999999999,
+            "inclusiveMs": 10.04
+          },
+          {
+            "function": "getDepthMaterial",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 9276,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 7.528999999999999,
+            "inclusiveMs": 7.528999999999999
+          },
+          {
+            "function": "intersectsSphere",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 26124,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 6.344999999999999,
+            "inclusiveMs": 11.37
+          }
+        ],
+        "topInclusive": [
+          {
+            "function": "onAnimationFrame",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 16,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 0,
+            "inclusiveMs": 472.6159999999994
+          },
+          {
+            "function": "(anonymous)",
+            "source": "src/factory/view.ts",
+            "line": 262,
+            "column": 29,
+            "mapped": true,
+            "selfMs": 0.244,
+            "inclusiveMs": 472.6159999999994
+          },
+          {
+            "function": "render",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17464,
+            "column": 16,
+            "mapped": true,
+            "selfMs": 0.999,
+            "inclusiveMs": 430.7869999999995
+          },
+          {
+            "function": "renderBufferDirect",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17023,
+            "column": 28,
+            "mapped": true,
+            "selfMs": 30.591000000000008,
+            "inclusiveMs": 248.42999999999984
+          },
+          {
+            "function": "renderScene",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17814,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 0,
+            "inclusiveMs": 193.2139999999999
+          },
+          {
+            "function": "renderObject",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17991,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 12.408000000000001,
+            "inclusiveMs": 191.9579999999999
+          },
+          {
+            "function": "renderObjects",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17964,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 1.256,
+            "inclusiveMs": 191.95299999999992
+          },
+          {
+            "function": "setProgram",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 18220,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 15.195,
+            "inclusiveMs": 177.18399999999994
+          },
+          {
+            "function": "render",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 8937,
+            "column": 15,
+            "mapped": true,
+            "selfMs": 1.254,
+            "inclusiveMs": 132.72499999999997
+          },
+          {
+            "function": "renderObject",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 9365,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 18.882,
+            "inclusiveMs": 129.255
+          },
+          {
+            "function": "getProgram",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 18033,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 18.846999999999998,
+            "inclusiveMs": 79.36699999999999
+          },
+          {
+            "function": "(program)",
+            "source": "(runtime)",
+            "line": 0,
+            "column": -1,
+            "mapped": false,
+            "selfMs": 71.732,
+            "inclusiveMs": 71.732
+          },
+          {
+            "function": "updateMatrixWorld",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 13071,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 45.01500000000001,
+            "inclusiveMs": 55.853000000000016
+          },
+          {
+            "function": "getParameters",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 7132,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 48.554000000000016,
+            "inclusiveMs": 49.808000000000014
+          },
+          {
+            "function": "setValue",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 5925,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 2.5140000000000002,
+            "inclusiveMs": 42.44400000000001
+          },
+          {
+            "function": "projectObject",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17696,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 15.026999999999997,
+            "inclusiveMs": 41.269999999999996
+          },
+          {
+            "function": "intersectsFrustum",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 24299,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 16.154999999999998,
+            "inclusiveMs": 35.114000000000004
+          },
+          {
+            "function": "show",
+            "source": "src/factory/view.ts",
+            "line": 356,
+            "column": 17,
+            "mapped": true,
+            "selfMs": 0,
+            "inclusiveMs": 34.797000000000004
+          },
+          {
+            "function": "draw",
+            "source": "src/factory/view.ts",
+            "line": 380,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 0,
+            "inclusiveMs": 34.797000000000004
+          },
+          {
+            "function": "setValueM4",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 5066,
+            "column": 9,
+            "mapped": true,
+            "selfMs": 5.026,
+            "inclusiveMs": 33.89200000000001
+          }
+        ]
+      }
+    },
+    {
+      "phase": "reorganize",
+      "action": "Reorganize",
+      "actionTiming": {
+        "startedAtPerformanceMs": 36103.10000002384,
+        "dispatchDurationMs": 5.5999999940395355,
+        "observedDurationMs": 5000.299999982119
+      },
+      "rawProfile": "reorganize.cpuprofile",
+      "wallDurationMs": 5072.969,
+      "sampleCount": 4002,
+      "sampledMs": 5071.846000000011,
+      "javascriptMs": 1401.476,
+      "idleMs": 3547.1279999999983,
+      "garbageCollectionMs": 12.530999999999999,
+      "unattributedMs": 110.711,
+      "topSelf": [
+        {
+          "function": "updateMatrixWorld",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 13071,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 314.05499999999967,
+          "inclusiveMs": 393.67699999999945
+        },
+        {
+          "function": "(program)",
+          "source": "(runtime)",
+          "line": 0,
+          "column": -1,
+          "mapped": false,
+          "selfMs": 110.711,
+          "inclusiveMs": 110.711
+        },
+        {
+          "function": "getParameters",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 7132,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 109.59700000000001,
+          "inclusiveMs": 112.11700000000002
+        },
+        {
+          "function": "multiplyMatrices",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 10564,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 93.26899999999999,
+          "inclusiveMs": 93.26899999999999
+        },
+        {
+          "function": "traverse",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 12976,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 79.479,
+          "inclusiveMs": 79.479
+        },
+        {
+          "function": "renderBufferDirect",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17023,
+          "column": 28,
+          "mapped": true,
+          "selfMs": 67.30499999999999,
+          "inclusiveMs": 539.2559999999991
+        },
+        {
+          "function": "getProgram",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 18033,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 63.196999999999996,
+          "inclusiveMs": 223.2049999999998
+        },
+        {
+          "function": "projectObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17696,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 51.284,
+          "inclusiveMs": 154.93400000000008
+        },
+        {
+          "function": "getProgramCacheKey",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 7489,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 37.834999999999994,
+          "inclusiveMs": 45.382999999999996
+        },
+        {
+          "function": "intersectsFrustum",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 24299,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 34.95400000000001,
+          "inclusiveMs": 85.03
+        },
+        {
+          "function": "renderObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 9365,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 27.383000000000006,
+          "inclusiveMs": 134.87899999999996
+        },
+        {
+          "function": "bindVertexArray",
+          "source": "(runtime)",
+          "line": 0,
+          "column": -1,
+          "mapped": false,
+          "selfMs": 27.269000000000005,
+          "inclusiveMs": 27.269000000000005
+        },
+        {
+          "function": "copyArray",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 4860,
+          "column": 9,
+          "mapped": true,
+          "selfMs": 26.167,
+          "inclusiveMs": 26.167
+        },
+        {
+          "function": "setProgram",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 18220,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 25.134,
+          "inclusiveMs": 354.6749999999998
+        },
+        {
+          "function": "releaseStatesOfObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 2196,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 24.79,
+          "inclusiveMs": 26.05
+        },
+        {
+          "function": "renderObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17991,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 22.614,
+          "inclusiveMs": 494.3989999999995
+        },
+        {
+          "function": "uniformMatrix4fv",
+          "source": "(runtime)",
+          "line": 0,
+          "column": -1,
+          "mapped": false,
+          "selfMs": 18.863,
+          "inclusiveMs": 18.863
+        },
+        {
+          "function": "arraysEqual",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 4846,
+          "column": 9,
+          "mapped": true,
+          "selfMs": 17.323999999999998,
+          "inclusiveMs": 17.323999999999998
+        },
+        {
+          "function": "setup",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 1623,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 15.064,
+          "inclusiveMs": 71.07600000000001
+        },
+        {
+          "function": "sort",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 8004,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 15.061,
+          "inclusiveMs": 19.983
+        }
+      ],
+      "topInclusive": [
+        {
+          "function": "(anonymous)",
+          "source": "src/factory/view.ts",
+          "line": 262,
+          "column": 29,
+          "mapped": true,
+          "selfMs": 5.960000000000001,
+          "inclusiveMs": 1357.5299999999995
+        },
+        {
+          "function": "onAnimationFrame",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 16,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 0,
+          "inclusiveMs": 1356.2439999999995
+        },
+        {
+          "function": "render",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17464,
+          "column": 16,
+          "mapped": true,
+          "selfMs": 0,
+          "inclusiveMs": 1197.8859999999963
+        },
+        {
+          "function": "renderBufferDirect",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17023,
+          "column": 28,
+          "mapped": true,
+          "selfMs": 67.30499999999999,
+          "inclusiveMs": 539.2559999999991
+        },
+        {
+          "function": "renderScene",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17814,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 0,
+          "inclusiveMs": 499.4309999999994
+        },
+        {
+          "function": "renderObjects",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17964,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 5.032,
+          "inclusiveMs": 499.4309999999994
+        },
+        {
+          "function": "renderObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17991,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 22.614,
+          "inclusiveMs": 494.3989999999995
+        },
+        {
+          "function": "updateMatrixWorld",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 13071,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 314.05499999999967,
+          "inclusiveMs": 393.67699999999945
+        },
+        {
+          "function": "setProgram",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 18220,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 25.134,
+          "inclusiveMs": 354.6749999999998
+        },
+        {
+          "function": "getProgram",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 18033,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 63.196999999999996,
+          "inclusiveMs": 223.2049999999998
+        },
+        {
+          "function": "projectObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 17696,
+          "column": 11,
+          "mapped": true,
+          "selfMs": 51.284,
+          "inclusiveMs": 154.93400000000008
+        },
+        {
+          "function": "renderObject",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 9365,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 27.383000000000006,
+          "inclusiveMs": 134.87899999999996
+        },
+        {
+          "function": "render",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 8937,
+          "column": 15,
+          "mapped": true,
+          "selfMs": 0,
+          "inclusiveMs": 134.87499999999994
+        },
+        {
+          "function": "getParameters",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 7132,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 109.59700000000001,
+          "inclusiveMs": 112.11700000000002
+        },
+        {
+          "function": "(program)",
+          "source": "(runtime)",
+          "line": 0,
+          "column": -1,
+          "mapped": false,
+          "selfMs": 110.711,
+          "inclusiveMs": 110.711
+        },
+        {
+          "function": "multiplyMatrices",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 10564,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 93.26899999999999,
+          "inclusiveMs": 93.26899999999999
+        },
+        {
+          "function": "intersectsFrustum",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 24299,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 34.95400000000001,
+          "inclusiveMs": 85.03
+        },
+        {
+          "function": "traverse",
+          "source": "node_modules/three/build/three.core.js",
+          "line": 12976,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 79.479,
+          "inclusiveMs": 79.479
+        },
+        {
+          "function": "setValue",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 5925,
+          "column": 1,
+          "mapped": true,
+          "selfMs": 1.255,
+          "inclusiveMs": 72.56000000000003
+        },
+        {
+          "function": "setup",
+          "source": "node_modules/three/build/three.module.js",
+          "line": 1623,
+          "column": 10,
+          "mapped": true,
+          "selfMs": 15.064,
+          "inclusiveMs": 71.07600000000001
+        }
+      ],
+      "firstSecond": {
+        "wallDurationMs": 1000,
+        "sampleCount": 762,
+        "sampledMs": 1000,
+        "javascriptMs": 469.331000000001,
+        "idleMs": 456.2369999999998,
+        "garbageCollectionMs": 7.509,
+        "unattributedMs": 66.92299999999999,
+        "topSelf": [
+          {
+            "function": "(program)",
+            "source": "(runtime)",
+            "line": 0,
+            "column": -1,
+            "mapped": false,
+            "selfMs": 66.92299999999999,
+            "inclusiveMs": 66.92299999999999
+          },
+          {
+            "function": "updateMatrixWorld",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 13071,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 46.26800000000181,
+            "inclusiveMs": 57.354000000001825
+          },
+          {
+            "function": "getParameters",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 7132,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 33.53200000000001,
+            "inclusiveMs": 33.53200000000001
+          },
+          {
+            "function": "renderBufferDirect",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17023,
+            "column": 28,
+            "mapped": true,
+            "selfMs": 29.646,
+            "inclusiveMs": 192.0209999999999
+          },
+          {
+            "function": "renderObject",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 9365,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 27.383000000000006,
+            "inclusiveMs": 134.87899999999996
+          },
+          {
+            "function": "releaseStatesOfObject",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 2196,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 24.79,
+            "inclusiveMs": 26.05
+          },
+          {
+            "function": "multiplyMatrices",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 10564,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 20.962999999999994,
+            "inclusiveMs": 20.962999999999994
+          },
+          {
+            "function": "copyArray",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 4860,
+            "column": 9,
+            "mapped": true,
+            "selfMs": 17.524,
+            "inclusiveMs": 17.524
+          },
+          {
+            "function": "projectObject",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17696,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 17.522,
+            "inclusiveMs": 43.93800000000001
+          },
+          {
+            "function": "traverse",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 12976,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 14.493,
+            "inclusiveMs": 14.493
+          },
+          {
+            "function": "uniformMatrix4fv",
+            "source": "(runtime)",
+            "line": 0,
+            "column": -1,
+            "mapped": false,
+            "selfMs": 12.564,
+            "inclusiveMs": 12.564
+          },
+          {
+            "function": "intersectsFrustum",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 24299,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 11.306000000000001,
+            "inclusiveMs": 38.95100000000001
+          },
+          {
+            "function": "distanceToPoint",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 20922,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 11.305999999999997,
+            "inclusiveMs": 17.583
+          },
+          {
+            "function": "setProgram",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 18220,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 11.296999999999997,
+            "inclusiveMs": 118.46400000000003
+          },
+          {
+            "function": "getProgram",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 18033,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 11.043999999999999,
+            "inclusiveMs": 57.144999999999996
+          },
+          {
+            "function": "getProgramCacheKey",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 7489,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 8.799,
+            "inclusiveMs": 10.061
+          },
+          {
+            "function": "e",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 11954,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 8.79,
+            "inclusiveMs": 12.572
+          },
+          {
+            "function": "getBindingState",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 1680,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 8.788,
+            "inclusiveMs": 8.788
+          },
+          {
+            "function": "setup",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 1623,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 7.532,
+            "inclusiveMs": 22.56
+          },
+          {
+            "function": "(garbage collector)",
+            "source": "(runtime)",
+            "line": 0,
+            "column": -1,
+            "mapped": false,
+            "selfMs": 7.509,
+            "inclusiveMs": 7.509
+          }
+        ],
+        "topInclusive": [
+          {
+            "function": "onAnimationFrame",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 16,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 0,
+            "inclusiveMs": 432.9240000000012
+          },
+          {
+            "function": "(anonymous)",
+            "source": "src/factory/view.ts",
+            "line": 262,
+            "column": 29,
+            "mapped": true,
+            "selfMs": 3.418,
+            "inclusiveMs": 432.9240000000012
+          },
+          {
+            "function": "render",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17464,
+            "column": 16,
+            "mapped": true,
+            "selfMs": 0,
+            "inclusiveMs": 368.27500000000157
+          },
+          {
+            "function": "renderBufferDirect",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17023,
+            "column": 28,
+            "mapped": true,
+            "selfMs": 29.646,
+            "inclusiveMs": 192.0209999999999
+          },
+          {
+            "function": "renderObject",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 9365,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 27.383000000000006,
+            "inclusiveMs": 134.87899999999996
+          },
+          {
+            "function": "render",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 8937,
+            "column": 15,
+            "mapped": true,
+            "selfMs": 0,
+            "inclusiveMs": 134.87499999999994
+          },
+          {
+            "function": "renderScene",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17814,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 0,
+            "inclusiveMs": 127.06100000000005
+          },
+          {
+            "function": "renderObjects",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17964,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 2.5149999999999997,
+            "inclusiveMs": 127.06100000000005
+          },
+          {
+            "function": "renderObject",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17991,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 2.509,
+            "inclusiveMs": 124.54600000000005
+          },
+          {
+            "function": "setProgram",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 18220,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 11.296999999999997,
+            "inclusiveMs": 118.46400000000003
+          },
+          {
+            "function": "(program)",
+            "source": "(runtime)",
+            "line": 0,
+            "column": -1,
+            "mapped": false,
+            "selfMs": 66.92299999999999,
+            "inclusiveMs": 66.92299999999999
+          },
+          {
+            "function": "updateMatrixWorld",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 13071,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 46.26800000000181,
+            "inclusiveMs": 57.354000000001825
+          },
+          {
+            "function": "getProgram",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 18033,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 11.043999999999999,
+            "inclusiveMs": 57.144999999999996
+          },
+          {
+            "function": "projectObject",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 17696,
+            "column": 11,
+            "mapped": true,
+            "selfMs": 17.522,
+            "inclusiveMs": 43.93800000000001
+          },
+          {
+            "function": "setValue",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 5925,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 0,
+            "inclusiveMs": 39.983000000000004
+          },
+          {
+            "function": "intersectsFrustum",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 24299,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 11.306000000000001,
+            "inclusiveMs": 38.95100000000001
+          },
+          {
+            "function": "setValueM4",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 5066,
+            "column": 9,
+            "mapped": true,
+            "selfMs": 6.129,
+            "inclusiveMs": 37.47299999999999
+          },
+          {
+            "function": "getParameters",
+            "source": "node_modules/three/build/three.module.js",
+            "line": 7132,
+            "column": 10,
+            "mapped": true,
+            "selfMs": 33.53200000000001,
+            "inclusiveMs": 33.53200000000001
+          },
+          {
+            "function": "drain",
+            "source": "src/factory/drawing.ts",
+            "line": 147,
+            "column": 4,
+            "mapped": true,
+            "selfMs": 1.2679999999999998,
+            "inclusiveMs": 31.13
+          },
+          {
+            "function": "dispose",
+            "source": "node_modules/three/build/three.core.js",
+            "line": 25911,
+            "column": 1,
+            "mapped": true,
+            "selfMs": 0.014,
+            "inclusiveMs": 29.862
+          }
+        ]
+      }
+    }
+  ],
+  "browser": {
+    "protocolVersion": "1.3",
+    "product": "Chrome/156.0.8078.80",
+    "revision": "@fb096c0011f9d50f0a264a9376420cdea9c421e3",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "jsVersion": "15.6.75.27"
+  },
+  "gpu": {
+    "devices": [
+      {
+        "vendorId": 4203,
+        "deviceId": 0,
+        "vendorString": "Google Inc. (Apple)",
+        "deviceString": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Version 27.2 (Build 26B123))",
+        "driverVendor": "Apple",
+        "driverVersion": "27.2"
+      }
+    ],
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Version 27.2 (Build 26B123))",
+    "vendor": "Google Inc. (Apple)",
+    "featureStatus": {
+      "2d_canvas": "enabled",
+      "direct_rendering_display_compositor": "disabled_off_ok",
+      "gpu_compositing": "enabled",
+      "multiple_raster_threads": "enabled_on",
+      "opengl": "enabled_on",
+      "rasterization": "enabled",
+      "raw_draw": "disabled_off_ok",
+      "skia_graphite": "enabled_on",
+      "trees_in_viz": "disabled_off",
+      "video_decode": "enabled",
+      "video_encode": "enabled",
+      "webgl": "enabled",
+      "webgpu": "enabled",
+      "webnn": "disabled_off"
+    }
+  },
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5 Max, Unspecified Version)",
+  "method": "Trusted page input invalidates the run; Fit all is invoked once before warm-up, and its pose is preserved through growth/Reorganize. Separate diagnostic run; CPU sampling perturbs timing. Self time assigns each sample delta to its leaf function; inclusive time assigns it to every distinct function on the sampled stack (recursive occurrences counted once). The firstSecond summary clips sample deltas at 1000 ms from CPU profile start; it includes a small pre-action CDP/evaluate/RAF scheduling interval. Original source locations use matching production source maps. JavaScript includes samples with a script frame on the stack; idle, GC and unattributed samples are reported separately. These are sampling estimates, not exact function durations, GPU execution measurements, or replacement baseline frame rates. Raw Chrome CPU profiles are retained.",
+  "finishedAt": "2026-11-07T05:43:55.257Z"
+}

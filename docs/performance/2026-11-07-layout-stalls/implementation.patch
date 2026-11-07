@@ -1,0 +1,164 @@
+diff --git a/src/factory/drawing.ts b/src/factory/drawing.ts
+index 39f81db..cf99110 100644
+--- a/src/factory/drawing.ts
++++ b/src/factory/drawing.ts
+@@ -128 +128,2 @@ export function batchPaperDrawing(root: THREE.Group) {
+-export function unbatchPaperDrawing(root: THREE.Group) {
++/** Restore the named pieces immediately; the view retires the detached instance buffers between frames. */
++export function unbatchPaperDrawing(root: THREE.Group): THREE.InstancedMesh[] {
+@@ -130 +131 @@ export function unbatchPaperDrawing(root: THREE.Group) {
+-  if (!data) return
++  if (!data) return []
+@@ -133,2 +134,2 @@ export function unbatchPaperDrawing(root: THREE.Group) {
+-  // Shared geometry/materials still belong to the original pieces.
+-  data.batch.traverse((object) => { if (object instanceof THREE.InstancedMesh) object.dispose() })
++  const meshes: THREE.InstancedMesh[] = []
++  data.batch.traverse((object) => { if (object instanceof THREE.InstancedMesh) meshes.push(object) })
+@@ -135,0 +137,25 @@ export function unbatchPaperDrawing(root: THREE.Group) {
++  return meshes
++}
++
++/** Retired batches share their geometry and materials with the drawing; only their instance buffers belong here. */
++export function createBatchRetirement() {
++  const pending = new Set<THREE.InstancedMesh>()
++  return {
++    retire(meshes: readonly THREE.InstancedMesh[]) {
++      for (const mesh of meshes) pending.add(mesh)
++    },
++    drain() {
++      const deadline = performance.now() + 2
++      for (const mesh of pending) {
++        pending.delete(mesh)
++        mesh.dispose()
++        if (performance.now() >= deadline) break
++      }
++    },
++    dispose() {
++      for (const mesh of pending) {
++        pending.delete(mesh)
++        mesh.dispose()
++      }
++    },
++  }
+diff --git a/src/factory/paperGround.ts b/src/factory/paperGround.ts
+index d993d8c..2501824 100644
+--- a/src/factory/paperGround.ts
++++ b/src/factory/paperGround.ts
+@@ -59 +59,11 @@ export function paperGrassSites(layout: Layout, reserved: readonly Rect[] = []):
+-  const occupied = rectangles(layout, reserved)
++  const firstRow = Math.floor(bounds.y), lastRow = Math.ceil(bounds.y + bounds.h) - 1
++  const occupiedByRow = new Map<number, Rect[]>()
++  for (const rect of rectangles(layout, reserved)) {
++    const first = Math.max(firstRow, Math.floor(rect.y - .38))
++    const last = Math.min(lastRow, Math.floor(rect.y + rect.h + .38))
++    for (let row = first; row <= last; row++) {
++      const occupied = occupiedByRow.get(row) ?? []
++      occupied.push(rect)
++      occupiedByRow.set(row, occupied)
++    }
++  }
+@@ -61 +71,3 @@ export function paperGrassSites(layout: Layout, reserved: readonly Rect[] = []):
+-  for (let row = Math.floor(bounds.y); row < bounds.y + bounds.h; row++) {
++  for (let row = firstRow; row <= lastRow; row++) {
++    // Tufts stay inside their integer row; keep the exact footprint check below.
++    const occupied = occupiedByRow.get(row) ?? []
+diff --git a/src/factory/slide.ts b/src/factory/slide.ts
+index 832c802..05ecb07 100644
+--- a/src/factory/slide.ts
++++ b/src/factory/slide.ts
+@@ -48,6 +47,0 @@ interface Moving {
+-/** A piece fading, every mesh of it on copies of its materials for the while. */
+-interface Fading {
+-  piece: THREE.Object3D
+-  meshes: FadingMesh[]
+-}
+-
+@@ -58 +51,0 @@ interface FadingMesh {
+-  copies: { material: THREE.Material; full: number }[]
+@@ -60,0 +54,3 @@ interface FadingMesh {
++/** Pieces fading together share one temporary copy of each original material. */
++type FadePalette = Map<THREE.Material, { material: THREE.Material; full: number }>
++
+@@ -76 +72,3 @@ export function startSlide(before: THREE.Group, next: THREE.Group): Slide {
+-  const appearing: Fading[] = []
++  const retired: THREE.Object3D[] = []
++  const appearing: FadingMesh[] = []
++  const fadeIn: FadePalette = new Map(), fadeOut: FadePalette = new Map()
+@@ -87,2 +85,3 @@ export function startSlide(before: THREE.Group, next: THREE.Group): Slide {
+-      // The piece has taken over from its namesake, which stays out of sight until the drawing before goes.
+-      namesake.visible = false
++      // Keep ownership for cleanup without traversing superseded pieces each frame.
++      namesake.removeFromParent()
++      retired.push(namesake)
+@@ -91 +90 @@ export function startSlide(before: THREE.Group, next: THREE.Group): Slide {
+-      appearing.push(onOwnMaterials(piece))
++      appearing.push(...onFadeMaterials(piece, fadeIn))
+@@ -94 +93 @@ export function startSlide(before: THREE.Group, next: THREE.Group): Slide {
+-  const leaving = [...stood.values()].map(onOwnMaterials)
++  const leaving = [...stood.values()].flatMap((piece) => onFadeMaterials(piece, fadeOut))
+@@ -104,2 +103,2 @@ export function startSlide(before: THREE.Group, next: THREE.Group): Slide {
+-    for (const { meshes } of appearing) for (const { copies } of meshes) for (const copy of copies) copy.material.opacity = copy.full * t
+-    for (const { meshes } of leaving) for (const { copies } of meshes) for (const copy of copies) copy.material.opacity = copy.full * (1 - t)
++    for (const copy of fadeIn.values()) copy.material.opacity = copy.full * t
++    for (const copy of fadeOut.values()) copy.material.opacity = copy.full * (1 - t)
+@@ -112,7 +111,2 @@ export function startSlide(before: THREE.Group, next: THREE.Group): Slide {
+-    for (const fading of [...appearing, ...leaving]) {
+-      for (const { mesh, shared, copies } of fading.meshes) {
+-        mesh.material = shared
+-        for (const { material } of copies) material.dispose()
+-      }
+-    }
+-    disposeMeshes(before)
++    for (const { mesh, shared } of [...appearing, ...leaving]) mesh.material = shared
++    for (const palette of [fadeIn, fadeOut]) for (const { material } of palette.values()) material.dispose()
+@@ -119,0 +114,2 @@ export function startSlide(before: THREE.Group, next: THREE.Group): Slide {
++    for (const piece of retired) before.add(piece)
++    disposeMeshes(before)
+@@ -147,2 +143,2 @@ function planeSize(piece: THREE.Object3D): { x: number; y: number } | undefined
+-/** Put every mesh under the piece on copies of its materials to fade on, since the belt surface and the like are shared across a drawing. */
+-function onOwnMaterials(piece: THREE.Object3D): Fading {
++/** Fade without changing shared originals; entering and leaving pieces use separate palettes. */
++function onFadeMaterials(piece: THREE.Object3D, palette: FadePalette): FadingMesh[] {
+@@ -154,3 +150,8 @@ function onOwnMaterials(piece: THREE.Object3D): Fading {
+-      const copy = material.clone()
+-      copy.transparent = true
+-      return { material: copy, full: material.opacity }
++      let copy = palette.get(material)
++      if (!copy) {
++        const fading = material.clone()
++        fading.transparent = true
++        copy = { material: fading, full: material.opacity }
++        palette.set(material, copy)
++      }
++      return copy
+@@ -159 +160 @@ function onOwnMaterials(piece: THREE.Object3D): Fading {
+-    meshes.push({ mesh: object, shared, copies })
++    meshes.push({ mesh: object, shared })
+@@ -161 +162 @@ function onOwnMaterials(piece: THREE.Object3D): Fading {
+-  return { piece, meshes }
++  return meshes
+diff --git a/src/factory/view.ts b/src/factory/view.ts
+index 6809260..2b96b54 100644
+--- a/src/factory/view.ts
++++ b/src/factory/view.ts
+@@ -25 +25 @@ import { type Point, attachControls } from "./controls"
+-import { batchPaperDrawing, unbatchPaperDrawing, disposeMeshes, drawFactory } from "./drawing"
++import { batchPaperDrawing, unbatchPaperDrawing, createBatchRetirement, disposeMeshes, drawFactory } from "./drawing"
+@@ -137,0 +138 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
++  const retiredBatches = createBatchRetirement()
+@@ -279 +280 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
+-      unbatchPaperDrawing(drawing)
++      retiredBatches.retire(unbatchPaperDrawing(drawing))
+@@ -320,0 +322 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
++    retiredBatches.drain()
+@@ -378,0 +381 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
++    const firstDrawing = shown === undefined
+@@ -381 +384 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
+-    unbatchPaperDrawing(drawing)
++    retiredBatches.retire(unbatchPaperDrawing(drawing))
+@@ -409 +412,2 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
+-    if (visible) renderer.render(scene, camera)
++    // onReady sees the initial frame. Later snapshots render once, in the animation loop.
++    if (visible && firstDrawing) renderer.render(scene, camera)
+@@ -429,0 +434 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
++    retiredBatches.dispose()
