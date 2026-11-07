@@ -186,6 +186,29 @@ references it, or update all references in the same snapshot. Do not reuse
 task or agent IDs for different entities during a mounted session. Shipped
 is terminal for a task ID; to represent new work, use a new ID.
 
+### The main agent
+
+A snapshot may name the host's own agent, the one it runs everything
+through, as `mainAgent`: a `MainAgent`, which is an `Agent` with no room.
+It takes no station and never holds a task; its pet roams the open paper
+between the rooms, pausing beside doors, in front of benches, at the hopper
+and by the truck, and the counts include it. Its id shares the agents'
+namespace and must not be one of theirs. While its status is `working` it
+stops where it is and plays its working clip; while a human request names
+it in `agentIds`, from any room, or its status is `waiting`, it stops and
+asks for attention; `offline` dims it where it stands. Assignments may not
+name it. The view decides where it walks; the host only says what it is
+doing. Clicking it opens its card like any agent's, with its whereabouts in
+place of a room. Omit `mainAgent` to show no such agent; replace it with the
+same id to change its status.
+
+```ts
+snapshot: {
+  agents, tasks, humanRequests,
+  mainAgent: { id: "jarvis", name: "Jarvis", role: "main agent", status: "idle" },
+}
+```
+
 ## Human attention
 
 RoomSnapshot.humanRequests contains active HumanAttentionRequest values.
@@ -346,6 +369,14 @@ Pet selection uses agent ID, role, then the configured default. Supply new
 immutable asset props to replace art without changing agent/task IDs.
 Missing pet images fall back to the bundled cat; a drawn pet remains if
 that fallback also cannot load.
+
+The main agent wears `petAssets.main`, or the bundled Jarvis sheet
+(`assets/pets/jarvis-sheet.png`, a painted puppy 2.67 tiles tall) when the
+host supplies none; an asset named for its id or role still comes first,
+and the shared `default` never dresses it. The bundled Jarvis sheet was
+generated with Qwen Image 2.1 on Comfy Cloud for Primepaw; it is excluded
+from the code's MIT licence and travels with its
+[provenance record](../public/assets/pets/jarvis-sheet.provenance.json).
 
 A static image is displayed whole and travels with its agent; it does not
 need an animation atlas. Working pets tap and lean; pets asking for a human

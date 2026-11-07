@@ -24,11 +24,13 @@ export interface PetAsset {
   animations?: PetAnimations
 }
 
-/** Host-owned art: agent overrides role, then the shared default. */
+/** Host-owned art: agent overrides role, then the shared default; the main agent has a slot of its own. */
 export interface PetAssets {
   default?: PetAsset
   byRole?: Readonly<Record<string, PetAsset>>
   byAgent?: Readonly<Record<string, PetAsset>>
+  /** Worn by the main agent, the one that roams the floor, unless an agent or role asset names it. */
+  main?: PetAsset
 }
 
 /** Example assets can be replaced by any host-served transparent image URLs. */
@@ -37,6 +39,8 @@ export const DEFAULT_PET_ANIMATIONS: Readonly<PetAnimations> = {
   attention: { frames: [5, 0], fps: 3.2 },
 }
 const bundledPet = (name: string): PetAsset => ({ src: `assets/pets/${name}-sheet.svg`, layout: "sheet", animations: DEFAULT_PET_ANIMATIONS })
+/** Jarvis, the paper cut-out puppy: a painted sheet whose standing pose fills 86% of its 256×320 cell, feet on the cell's ground line. */
+const JARVIS: PetAsset = { src: "assets/pets/jarvis-sheet.png", layout: "sheet", height: 2.67, animations: DEFAULT_PET_ANIMATIONS }
 export const DEFAULT_PET_ASSETS: Readonly<PetAssets> = {
   default: bundledPet("cat"),
   byRole: {
@@ -46,14 +50,20 @@ export const DEFAULT_PET_ASSETS: Readonly<PetAssets> = {
     reviewer: bundledPet("owl"),
     deployer: bundledPet("fox"),
   },
+  main: JARVIS,
 }
 
 type Wearer = Pick<Agent, "id" | "role">
 
-/** Host assets override bundled pets by agent, role, then component default. */
-export function petAssetFor(agent: Wearer, assets?: PetAssets): PetAsset {
-  return assets?.byAgent?.[agent.id] ?? assets?.byRole?.[agent.role] ?? assets?.default
-    ?? DEFAULT_PET_ASSETS.byRole?.[agent.role] ?? DEFAULT_PET_ASSETS.default!
+/**
+ * Host assets override bundled pets by agent, role, then component default.
+ * The main agent wears the host's main asset, else the bundled puppy, unless
+ * a host asset names it by id or role.
+ */
+export function petAssetFor(agent: Wearer, assets?: PetAssets, main = false): PetAsset {
+  const named = assets?.byAgent?.[agent.id] ?? assets?.byRole?.[agent.role]
+  if (main) return named ?? assets?.main ?? DEFAULT_PET_ASSETS.main!
+  return named ?? assets?.default ?? DEFAULT_PET_ASSETS.byRole?.[agent.role] ?? DEFAULT_PET_ASSETS.default!
 }
 
 export function petDimensions(asset: PetAsset, width: number, height: number) {

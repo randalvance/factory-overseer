@@ -26,3 +26,14 @@ it("uses task participants or room members for requests without explicit agents 
   ]
   expect(roomSnapshotForView(state).humanNeededAgentIds).toEqual(["impl-a", "impl-b", "planner"])
 })
+
+it("carries the main agent to the view only when the host has one, and lets a request target it", () => {
+  const state: RoomFactoryState = structuredClone({ configuration: exampleRooms, snapshot: afterPlanning })
+  expect("mainAgent" in roomSnapshotForView(state)).toBe(false)
+  state.snapshot.mainAgent = { id: "jarvis", name: "Jarvis", role: "main", status: "idle" }
+  state.snapshot.humanRequests = [{ id: "help", roomId: "intake", agentIds: ["jarvis"], kind: "help", message: "Which repository?" }]
+  const view = roomSnapshotForView(state)
+  expect(view.mainAgent).toEqual(state.snapshot.mainAgent)
+  expect(view.humanNeededAgentIds).toEqual(["jarvis"])
+  expect(view.agents.map((agent) => agent.id)).not.toContain("jarvis")
+})

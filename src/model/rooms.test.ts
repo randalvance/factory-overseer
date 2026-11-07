@@ -107,6 +107,24 @@ describe("snapshot validation", () => {
     expect(messages(value)).toContain("Unknown task")
     expect(messages(value)).toContain("Unknown agent; retain offline agents while referenced")
   })
+  it("accepts a main agent in no room, lets requests name it from any room, and keeps it off tasks and out of the agents' ids", () => {
+    const value = state()
+    value.snapshot.mainAgent = { id: "jarvis", name: "Jarvis", role: "main", status: "working" }
+    expect(validateRoomState(value)).toEqual([])
+    value.snapshot.humanRequests[0]!.agentIds = ["jarvis"]
+    expect(validateRoomState(value)).toEqual([])
+    value.snapshot.humanRequests.push({ id: "jarvis:help", roomId: "implementation", agentIds: ["jarvis", "jarvis"], kind: "help", message: "Which repository?" })
+    expect(messages(value)).toEqual(["Duplicate agent"])
+    value.snapshot.humanRequests.pop()
+    value.snapshot.tasks[0]!.at = { kind: "room", roomId: "planning", assignment: { agentIds: ["jarvis"], completedAgentIds: [] } }
+    expect(messages(value)).toContain("The main agent holds no task")
+    value.snapshot.tasks[0]!.at = { kind: "room", roomId: "planning" }
+    value.snapshot.humanRequests[0]!.agentIds = ["planner"]
+    value.snapshot.mainAgent = { id: "planner", name: "Jarvis", role: "main", status: "idle" }
+    expect(validateRoomState(value)).toEqual([{ path: "snapshot.mainAgent.id", message: "Duplicate ID" }])
+    value.snapshot.mainAgent = { id: " ", name: "Jarvis", role: "", status: "idle" }
+    expect(validateRoomState(value).map((error) => error.path)).toEqual(["snapshot.mainAgent.id", "snapshot.mainAgent.role"])
+  })
   it.each([NaN, Infinity, -0.1, 1.1])("rejects invalid progress %s", (progress) => {
     const value = state()
     value.snapshot.tasks[0]!.progress = progress

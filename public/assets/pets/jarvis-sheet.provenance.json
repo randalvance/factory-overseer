@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "description": "Provenance for generated art. Preserve this record with jarvis-sheet.png, including when copying it to a host's asset server. This record does not grant additional rights.",
+  "repository": "https://github.com/randalvance/factory-overseer",
+  "terms": {
+    "comfy": "https://comfy.org/terms-of-service/"
+  },
+  "assets": [
+    {
+      "id": "jarvis",
+      "file": "jarvis-sheet.png",
+      "sha256": "5b9522f2e52240def3d50abc9c735b9091f19ddda65bda3471876d953e705b25",
+      "bytes": 1408087,
+      "pixels": { "width": 1536, "height": 1280 },
+      "layout": "Six 256 x 320 pose cells by four facings",
+      "license": "Provider terms apply; excluded from repository MIT license.",
+      "source": {
+        "provider": "Comfy Cloud",
+        "model": "Qwen Image 2.1",
+        "madeFor": "Primepaw, where Jarvis is the main agent"
+      },
+      "recordedTerms": {
+        "providerTermsUrl": "https://comfy.org/terms-of-service/",
+        "modelTermsUrl": null,
+        "redistributionRights": "The Qwen Image 2.1 model terms and the Comfy job were not recorded when the sheet was generated. No unrestricted/MIT redistribution grant is asserted; confirm the applicable terms before redistributing the sheet."
+      }
+    }
+  ]
+}

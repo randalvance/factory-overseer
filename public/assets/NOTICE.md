@@ -7,13 +7,14 @@ with `assetBase="/factory-overseer/"`.
 
 ## Inventory and terms
 
-Paths below are relative to this directory. There are 22 runtime art files;
+Paths below are relative to this directory. There are 23 runtime art files;
 notices and provenance records are additional files.
 
 | Files | Count | Source and terms |
 | --- | ---: | --- |
 | `billboards/*.svg` | 7 | Six paper room/example graphics and one pixel crate graphic authored for Factory Overseer, MIT under the notice below. |
 | `pets/*.svg` | 10 | Five animal illustrations and their five pose sheets authored for Factory Overseer, MIT under the notice below. |
+| `pets/jarvis-sheet.png` | 1 | Jarvis, the paper puppy the main agent wears, generated with Qwen Image 2.1 on Comfy Cloud for Primepaw; **excluded from MIT**. Preserve [its provenance record](pets/jarvis-sheet.provenance.json). Provider terms apply. |
 | `models/pieces.glb` | 1 | Floor, belt, workstation and hall pieces authored for Factory Overseer with Blender, MIT under the notice below. Embedded textures are authored with the pieces. |
 | `models/room-themes/*.glb` | 4 | Generated room furnishings; **excluded from MIT**. Preserve [their notice](models/room-themes/NOTICE.md) and [provenance record](models/room-themes/provenance.json). Provider terms apply. |
 
@@ -23,14 +24,15 @@ models and pet sheets keep their own terms.
 
 The generated concept images, raw provider meshes, source workflows and
 billing records are retained in the repository, not included in this runtime
-asset tree. The generated-art notice records the existing distribution
+asset tree. The generated-art notices record the existing distribution
 limitation; inclusion in a local package does not grant an MIT sublicense or
-assert unrestricted redistribution rights for those four GLBs.
+assert unrestricted redistribution rights for those four GLBs or the Jarvis
+pose sheet.
 
 ## MIT notice for project-authored art
 
 This notice covers the authored files identified as MIT above. It does not
-cover the four generated room-theme GLBs.
+cover the four generated room-theme GLBs or the generated Jarvis pose sheet.
 
 ```
 MIT License

@@ -56,7 +56,13 @@ for the focused acceptance command, current screenshots and measured limits.
    implementation. Enable **Include QA room** to insert a configurable step
    between review and deployment. Select QA in **Room** and **Add agent** to
    staff it.
-5. In **Rooms and appearance**, select Implementation and add agents.
+5. In **Main agent**, choose **Add Jarvis**: the host's main agent, a paper
+   puppy with no station, strolls the open paper between the rooms and
+   pauses by their doors and benches. Set **Jarvis is** to **Working** to
+   have it work where it stands, or **Asking for help** to have it wave until
+   you answer in **Human attention**; **Inspect Jarvis** opens its card, which
+   says where it is going.
+6. In **Rooms and appearance**, select Implementation and add agents.
    Agents 1–3 fill the first row, 4–6 the second, and 7 starts the third.
    Try **Theme**, **Room graphic**, **Unstaff planning** and **Remove bypass**.
    Use **Fit all** after growth; **Reorganize** compacts vacant stations.

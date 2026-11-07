@@ -42,6 +42,17 @@ export interface RoomAgent extends Agent {
   roomId: string
 }
 
+/**
+ * The host's own agent, the one it runs everything through. It belongs to
+ * no room and takes no station: its pet roams the floor between the rooms
+ * and pauses by them, and works or asks for a human where it stands when
+ * its status, or a request naming it, says so. It never holds a task.
+ */
+export interface MainAgent extends Agent {
+  /** Its id shares the agents' namespace and must not be one of theirs. */
+  id: string
+}
+
 /** One logical task, one box. The first member is its visual anchor. */
 export interface TaskAssignment {
   agentIds: string[]
@@ -75,6 +86,8 @@ export interface RoomSnapshot {
   /** Array order is queue order, including unassigned tasks waiting in a room. */
   tasks: RoomTask[]
   humanRequests: HumanAttentionRequest[]
+  /** The host's main agent, roaming the floor; none when the host has no such agent to show. */
+  mainAgent?: MainAgent
 }
 
 /** Validate configuration and state together before accepting an update. */
