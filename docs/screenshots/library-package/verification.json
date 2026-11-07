@@ -1,9 +1,9 @@
 {
   "package": "factory-overseer@0.0.0",
-  "bytes": 1545316,
-  "unpackedBytes": 2569040,
-  "files": 106,
-  "runtimeArtFiles": 22,
+  "bytes": 2958091,
+  "unpackedBytes": 3999261,
+  "files": 110,
+  "runtimeArtFiles": 23,
   "checks": [
     "tarball installed outside repository",
     "strict NodeNext declarations without aliases or Vite types",

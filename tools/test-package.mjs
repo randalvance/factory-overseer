@@ -14,7 +14,7 @@ try {
   const [pack] = JSON.parse(execFileSync("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", scratch], { encoding: "utf8" }))
   const files = new Set(pack.files.map((file) => file.path))
   assert(![...files].some((file) => /^public\/assets\/(?:characters|icons)\//.test(file)), "Paper package contains legacy pixel art")
-  for (const file of ["lib/index.js", "lib/styles.css", "lib/types/index.d.ts", "LICENSE", "ASSETS.md", "public/assets/NOTICE.md", "public/assets/models/room-themes/NOTICE.md", "public/assets/models/room-themes/provenance.json"]) assert(files.has(file), `Package is missing ${file}`)
+  for (const file of ["lib/index.js", "lib/styles.css", "lib/types/index.d.ts", "LICENSE", "ASSETS.md", "public/assets/NOTICE.md", "public/assets/models/room-themes/NOTICE.md", "public/assets/models/room-themes/provenance.json", "public/assets/pets/jarvis-sheet.provenance.json"]) assert(files.has(file), `Package is missing ${file}`)
   assert(![...files].some((file) => /^(?:src|e2e|tools|dist)\//.test(file)), "Package contains development or raw generation files")
   const consumer = join(scratch, "consumer")
   await cp("tests/package-consumer", consumer, { recursive: true })

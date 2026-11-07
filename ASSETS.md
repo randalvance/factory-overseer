@@ -12,7 +12,7 @@ assets from a host app. The package also includes this document and `LICENSE`.
 | `public/assets/models/room-themes/` | Four generated paper furnishings, one per room theme | Provider terms apply; excluded from MIT. [Notice and distribution limitation](public/assets/models/room-themes/NOTICE.md), [portable provenance](public/assets/models/room-themes/provenance.json). |
 | `public/assets/billboards/` | Five paper room graphics, a custom paper rocket and a 32 px pixel crate example | Original SVG artwork authored for this project. MIT with the code. |
 | `public/assets/pets/` | Five paper-cut animal illustrations and their five pose sheets (corgi, rabbit, cat, owl, fox) | Authored SVG artwork for this project. MIT with the code. |
-| `public/assets/pets/jarvis-sheet.png` | Jarvis, the paper cut-out puppy the main agent wears: a 1536 × 1280 pose sheet of six 256 × 320 cells by four facings | Drawn with Qwen Image 2.1 on Comfy Cloud for Primepaw, where Jarvis is the main agent. MIT with the code. |
+| `public/assets/pets/jarvis-sheet.png` | Jarvis, the paper cut-out puppy the main agent wears: a 1536 × 1280 pose sheet of six 256 × 320 cells by four facings | Generated with Qwen Image 2.1 on Comfy Cloud for Primepaw, where Jarvis is the main agent. Provider terms apply; excluded from MIT. [Portable provenance](public/assets/pets/jarvis-sheet.provenance.json). |
 
 Host pet art can be a static image or a six-column, four-facing pose sheet.
 The pet asset contract supports configurable dimensions and animation clips;
@@ -114,8 +114,9 @@ images retain their own license terms.
 ## Package inventory
 
 The runtime tree contains 23 art files: seven billboard graphics, ten pet
-illustration/pose SVGs, the Jarvis pose sheet PNG, the base pieces GLB and four generated furnishing GLBs. It also includes a portable authored-art MIT
-notice and generated-art notices and provenance. The retired pixel-character
+illustration/pose SVGs, the generated Jarvis pose sheet PNG, the base pieces
+GLB and four generated furnishing GLBs. It also includes a portable
+authored-art MIT notice and generated-art notices and provenance. The retired pixel-character
 sheets are no longer included. No raw provider meshes, generated concepts,
 workflow records or billing files are shipped in the library package.
 

@@ -374,8 +374,9 @@ The main agent wears `petAssets.main`, or the bundled Jarvis sheet
 (`assets/pets/jarvis-sheet.png`, a painted puppy 2.67 tiles tall) when the
 host supplies none; an asset named for its id or role still comes first,
 and the shared `default` never dresses it. The bundled Jarvis sheet was
-drawn with Qwen Image 2.1 on Comfy Cloud for Primepaw and ships under the
-code's MIT licence.
+generated with Qwen Image 2.1 on Comfy Cloud for Primepaw; it is excluded
+from the code's MIT licence and travels with its
+[provenance record](../public/assets/pets/jarvis-sheet.provenance.json).
 
 A static image is displayed whole and travels with its agent; it does not
 need an animation atlas. Working pets tap and lean; pets asking for a human
