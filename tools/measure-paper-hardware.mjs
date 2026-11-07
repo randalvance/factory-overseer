@@ -44,7 +44,9 @@ const source = {
   lockfileSha256: hash(await readFile("bun.lock")),
   untracked: await Promise.all(untracked.map(async (path) => ({ path, sha256: hash(await readFile(path)) }))),
 }
-const report = { schemaVersion: 1, issue: 33, startedAt: new Date().toISOString(), status: "running", settings, device, source, runs: [] }
+const issue = Number(process.env.PAPER_ISSUE ?? 33)
+if (!Number.isSafeInteger(issue) || issue < 1) throw new Error("PAPER_ISSUE must be a positive integer")
+const report = { schemaVersion: 1, issue, startedAt: new Date().toISOString(), status: "running", settings, device, source, runs: [] }
 const save = () => writeFile(join(outputDir, "measurements.json"), JSON.stringify(report, null, 2) + "\n")
 await save()
 

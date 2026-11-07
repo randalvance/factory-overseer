@@ -45,18 +45,14 @@ interface Moving {
   scaleTo: THREE.Vector3
 }
 
-/** A piece fading, every mesh of it on copies of its materials for the while. */
-interface Fading {
-  piece: THREE.Object3D
-  meshes: FadingMesh[]
-}
-
 interface FadingMesh {
   mesh: THREE.Mesh
   /** What it wore, to go back to. */
   shared: THREE.Material | THREE.Material[]
-  copies: { material: THREE.Material; full: number }[]
 }
+
+/** Pieces fading together share one temporary copy of each original material. */
+type FadePalette = Map<THREE.Material, { material: THREE.Material; full: number }>
 
 export interface Slide {
   /** Carry the pass dt seconds on at the given speed. True once it is over. */
@@ -73,7 +69,9 @@ export interface Slide {
 export function startSlide(before: THREE.Group, next: THREE.Group): Slide {
   const stood = new Map(before.children.map((piece) => [piece.name, piece]))
   const moving: Moving[] = []
-  const appearing: Fading[] = []
+  const retired: THREE.Object3D[] = []
+  const appearing: FadingMesh[] = []
+  const fadeIn: FadePalette = new Map(), fadeOut: FadePalette = new Map()
   for (const piece of next.children) {
     const namesake = stood.get(piece.name)
     if (namesake) {
@@ -84,14 +82,15 @@ export function startSlide(before: THREE.Group, next: THREE.Group): Slide {
         scaleFrom: piece.scale.clone().multiply(stretch(namesake, piece)),
         scaleTo: piece.scale.clone(),
       })
-      // The piece has taken over from its namesake, which stays out of sight until the drawing before goes.
-      namesake.visible = false
+      // Keep ownership for cleanup without traversing superseded pieces each frame.
+      namesake.removeFromParent()
+      retired.push(namesake)
       stood.delete(piece.name)
     } else {
-      appearing.push(onOwnMaterials(piece))
+      appearing.push(...onFadeMaterials(piece, fadeIn))
     }
   }
-  const leaving = [...stood.values()].map(onOwnMaterials)
+  const leaving = [...stood.values()].flatMap((piece) => onFadeMaterials(piece, fadeOut))
   let elapsed = 0
   let over = false
   at(0)
@@ -101,22 +100,19 @@ export function startSlide(before: THREE.Group, next: THREE.Group): Slide {
       piece.position.lerpVectors(from, to, t)
       piece.scale.lerpVectors(scaleFrom, scaleTo, t)
     }
-    for (const { meshes } of appearing) for (const { copies } of meshes) for (const copy of copies) copy.material.opacity = copy.full * t
-    for (const { meshes } of leaving) for (const { copies } of meshes) for (const copy of copies) copy.material.opacity = copy.full * (1 - t)
+    for (const copy of fadeIn.values()) copy.material.opacity = copy.full * t
+    for (const copy of fadeOut.values()) copy.material.opacity = copy.full * (1 - t)
   }
 
   function end() {
     if (over) return
     over = true
     at(1)
-    for (const fading of [...appearing, ...leaving]) {
-      for (const { mesh, shared, copies } of fading.meshes) {
-        mesh.material = shared
-        for (const { material } of copies) material.dispose()
-      }
-    }
-    disposeMeshes(before)
+    for (const { mesh, shared } of [...appearing, ...leaving]) mesh.material = shared
+    for (const palette of [fadeIn, fadeOut]) for (const { material } of palette.values()) material.dispose()
     before.removeFromParent()
+    for (const piece of retired) before.add(piece)
+    disposeMeshes(before)
   }
 
   return {
@@ -144,19 +140,24 @@ function planeSize(piece: THREE.Object3D): { x: number; y: number } | undefined 
   return { x: width, y: height }
 }
 
-/** Put every mesh under the piece on copies of its materials to fade on, since the belt surface and the like are shared across a drawing. */
-function onOwnMaterials(piece: THREE.Object3D): Fading {
+/** Fade without changing shared originals; entering and leaving pieces use separate palettes. */
+function onFadeMaterials(piece: THREE.Object3D, palette: FadePalette): FadingMesh[] {
   const meshes: FadingMesh[] = []
   piece.traverse((object) => {
     if (!(object instanceof THREE.Mesh)) return
     const shared = object.material as THREE.Material | THREE.Material[]
     const copies = (Array.isArray(shared) ? shared : [shared]).map((material) => {
-      const copy = material.clone()
-      copy.transparent = true
-      return { material: copy, full: material.opacity }
+      let copy = palette.get(material)
+      if (!copy) {
+        const fading = material.clone()
+        fading.transparent = true
+        copy = { material: fading, full: material.opacity }
+        palette.set(material, copy)
+      }
+      return copy
     })
     object.material = Array.isArray(shared) ? copies.map((copy) => copy.material) : copies[0]!.material
-    meshes.push({ mesh: object, shared, copies })
+    meshes.push({ mesh: object, shared })
   })
-  return { piece, meshes }
+  return meshes
 }

@@ -28,7 +28,9 @@ await mkdir(outputDir, { recursive: true })
 if ((await readdir(outputDir)).length) throw new Error("PAPER_MEASURE_DIR must be empty")
 const hash = (value) => createHash("sha256").update(value).digest("hex")
 const git = (...args) => execFileSync("git", args, { encoding: "utf8" })
-const report = { schemaVersion: 1, issue: 33, startedAt: new Date().toISOString(), status: "running", settings,
+const issue = Number(process.env.PAPER_ISSUE ?? 33)
+if (!Number.isSafeInteger(issue) || issue < 1) throw new Error("PAPER_ISSUE must be a positive integer")
+const report = { schemaVersion: 1, issue, startedAt: new Date().toISOString(), status: "running", settings,
   source: { revision: git("rev-parse", "HEAD").trim(), dirtyPaths: git("status", "--porcelain=v1").trim().split("\n").filter(Boolean),
     trackedDiffSha256: hash(git("diff", "--binary", "HEAD")) }, bundles: [], profiles: [] }
 const save = () => writeFile(join(outputDir, "profile-summary.json"), JSON.stringify(report, null, 2) + "\n")

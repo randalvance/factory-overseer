@@ -125,12 +125,38 @@ export function batchPaperDrawing(root: THREE.Group) {
   root.userData.batch = { batch, hidden }
 }
 
-export function unbatchPaperDrawing(root: THREE.Group) {
+/** Restore the named pieces immediately; the view retires the detached instance buffers between frames. */
+export function unbatchPaperDrawing(root: THREE.Group): THREE.InstancedMesh[] {
   const data = root.userData.batch as { batch: THREE.Group; hidden: THREE.Object3D[] } | undefined
-  if (!data) return
+  if (!data) return []
   for (const piece of data.hidden) piece.visible = true
   root.remove(data.batch)
-  // Shared geometry/materials still belong to the original pieces.
-  data.batch.traverse((object) => { if (object instanceof THREE.InstancedMesh) object.dispose() })
+  const meshes: THREE.InstancedMesh[] = []
+  data.batch.traverse((object) => { if (object instanceof THREE.InstancedMesh) meshes.push(object) })
   delete root.userData.batch
+  return meshes
+}
+
+/** Retired batches share their geometry and materials with the drawing; only their instance buffers belong here. */
+export function createBatchRetirement() {
+  const pending = new Set<THREE.InstancedMesh>()
+  return {
+    retire(meshes: readonly THREE.InstancedMesh[]) {
+      for (const mesh of meshes) pending.add(mesh)
+    },
+    drain() {
+      const deadline = performance.now() + 2
+      for (const mesh of pending) {
+        pending.delete(mesh)
+        mesh.dispose()
+        if (performance.now() >= deadline) break
+      }
+    },
+    dispose() {
+      for (const mesh of pending) {
+        pending.delete(mesh)
+        mesh.dispose()
+      }
+    },
+  }
 }
