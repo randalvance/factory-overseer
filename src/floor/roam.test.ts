@@ -28,7 +28,7 @@ describe("the open paper", () => {
   const layout = layoutConfiguredRooms(staffed(), undefined, 28)
   const ground = roamingGround(layout)
 
-  it("keeps clear of every room, belt and the truck, and takes in the row in front of the floor where the road runs", () => {
+  it("keeps clear of every room, belt and the truck, and stays within the floor's rows, the road and the row before it included", () => {
     for (const tile of tiles(ground)) {
       for (const room of layout.rooms!) expect(inRect(tile, room.rect), `${tileKey(tile)} is inside ${room.id}`).toBe(false)
       for (const belt of layout.belts) for (const laid of belt.tiles) expect(tileKey(laid)).not.toBe(tileKey(tile))
@@ -36,10 +36,12 @@ describe("the open paper", () => {
       expect(tile.x).toBeGreaterThanOrEqual(0)
       expect(tile.x).toBeLessThan(layout.bounds.w)
       expect(tile.y).toBeGreaterThanOrEqual(0)
-      expect(tile.y).toBeLessThanOrEqual(layout.bounds.h)
+      expect(tile.y).toBeLessThan(layout.bounds.h)
     }
     expect(ground.open.has(tileKey({ x: 0, y: 0 }))).toBe(true)
-    expect(ground.open.has(tileKey({ x: 14, y: layout.bounds.h }))).toBe(true)
+    expect(ground.open.has(tileKey({ x: 14, y: layout.shippingDock!.streetY }))).toBe(true)
+    expect(ground.open.has(tileKey({ x: 14, y: layout.bounds.h - 1 }))).toBe(true)
+    expect(ground.open.has(tileKey({ x: 14, y: layout.bounds.h }))).toBe(false)
     const planning = layout.rooms!.find((room) => room.id === "room:planning")!
     expect(ground.open.has(tileKey({ x: planning.rect.x - 1, y: planning.rect.y + 1 }))).toBe(true)
     expect(ground.open.has(tileKey(planning.door))).toBe(false)
