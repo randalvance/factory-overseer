@@ -38,6 +38,8 @@ export interface Snapshot {
   /** Room projection: one logical task, associated with every participant. */
   assignments?: Record<string, import("./rooms").TaskAssignment>
   agents: Agent[]
+  /** The host's main agent, at no station: its pet roams the floor between the rooms. */
+  mainAgent?: Agent
   /** Among tasks at one agent, array order is queue order. */
   tasks: Task[]
 }
@@ -46,6 +48,6 @@ export interface Snapshot {
 export type Subject = { agent: string } | { task: string }
 
 // Room-based host contract; legacy types above remain supported.
-export type { RoomTheme, RoomBillboard, Room, RoomTransition, RoomConfiguration, RoomAgent, TaskAssignment, RoomTaskLocation, RoomTask, HumanAttentionRequest, OnHumanNeeded, RoomSnapshot, RoomFactoryState } from "./rooms"
+export type { RoomTheme, RoomBillboard, Room, RoomTransition, RoomConfiguration, RoomAgent, MainAgent, TaskAssignment, RoomTaskLocation, RoomTask, HumanAttentionRequest, OnHumanNeeded, RoomSnapshot, RoomFactoryState } from "./rooms"
 
 export type { RoomThemeDefinition, RoomThemeRegistry, RoomModelAsset, RoomThemeAssets, BuiltinRoomTheme } from "./roomThemes"

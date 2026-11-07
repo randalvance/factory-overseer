@@ -7,6 +7,7 @@ import type { RoomFactoryState, Snapshot, Subject } from "~/model/types"
 import type { Motions } from "~/floor/motion"
 import type { Layout } from "~/floor/types"
 import { comingsAndGoings } from "~/floor/walk"
+import type { Whereabouts } from "~/floor/roam"
 import { type StatusStyleOverrides, resolveStatusStyles } from "~/model/status"
 import { Hud } from "./Hud"
 import type { RoomThemeRegistry } from "~/model/roomThemes"
@@ -58,6 +59,7 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
   const asked = useRef(0)
   const [drawn, setDrawn] = useState(0)
   const [picked, setPicked] = useState<Subject>()
+  const [roaming, setRoaming] = useState<{ id: string; whereabouts: Whereabouts }>()
   const activeRides = useRef(new Set<string>())
   const [riding, setRiding] = useState<ReadonlySet<string>>(() => new Set())
   const styles = useMemo(() => resolveStatusStyles(statusStyles), [statusStyles])
@@ -75,6 +77,7 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
       assetBase: assetBase.replace(/\/?$/, "/"),
       onRenderMetrics: onRenderMetrics ? (metrics) => latest.current.onRenderMetrics?.(metrics) : undefined,
       onClick: setPicked,
+      onRoam: (id, whereabouts) => setRoaming({ id, whereabouts }),
       onLanded: (taskId) => {
         activeRides.current.delete(taskId)
         latest.current.onTaskLanded?.(taskId)
@@ -131,11 +134,12 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
     <div ref={mount} className="factory-canvas" role="img" aria-label="Factory floor"
       aria-description={roomState.configuration.rooms.map((room) => room.billboard?.alt ? `${room.label}: ${room.billboard.alt}` : room.label).join("; ")}
       data-drawn={drawn} data-rooms={previous.current?.rooms?.length ?? 0} />
-    <Hud snapshot={snapshot} roomState={roomState} riding={riding} styles={styles} picked={picked} ready={drawn > 0}
+    <Hud snapshot={snapshot} roomState={roomState} riding={riding} styles={styles} picked={picked} ready={drawn > 0} roaming={roaming}
       onClose={() => setPicked(undefined)} onFitAll={() => handle.current.fitAll()} onReorganize={() => handle.current.reorganize()} />
   </div>
 }
 
 function onFloor(subject: Subject, snapshot: Snapshot): boolean {
-  return "agent" in subject ? snapshot.agents.some((agent) => agent.id === subject.agent) : snapshot.tasks.some((task) => task.id === subject.task)
+  return "agent" in subject ? snapshot.agents.some((agent) => agent.id === subject.agent) || snapshot.mainAgent?.id === subject.agent :
+    snapshot.tasks.some((task) => task.id === subject.task)
 }

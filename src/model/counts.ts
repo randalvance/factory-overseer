@@ -12,9 +12,9 @@ export interface Counts {
   shipped: number
 }
 
-/** The header's tally of a snapshot: its agents, and its tasks by whether they are in flight, awaiting review or shipped. */
+/** The header's tally of a snapshot: its agents, the main agent among them, and its tasks by whether they are in flight, awaiting review or shipped. */
 export function counts(snapshot: Snapshot): Counts {
-  const tally: Counts = { agents: snapshot.agents.length, inFlight: 0, awaitingReview: 0, shipped: 0 }
+  const tally: Counts = { agents: snapshot.agents.length + (snapshot.mainAgent ? 1 : 0), inFlight: 0, awaitingReview: 0, shipped: 0 }
   for (const task of snapshot.tasks) {
     if (task.at === "staging") tally.awaitingReview++
     else if (task.at === "shipped") tally.shipped++

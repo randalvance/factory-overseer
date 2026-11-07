@@ -6,7 +6,7 @@ import { HumanAttentionPanel, type HumanAnswer } from "./HumanAttentionPanel"
 import { changeParticipant, implementationReady } from "./sharedWork"
 import { destination } from "./roomDispatch"
 import { needsHuman, requestHuman, resolveHuman } from "./humanAttention"
-import type { HumanAttentionRequest, RoomFactoryState, RoomTask } from "~/model/types"
+import type { HumanAttentionRequest, MainAgent, RoomFactoryState, RoomTask } from "~/model/types"
 import { exampleRooms } from "~/model/roomExamples"
 import { ROOM_THEMES, type RoomThemeRegistry } from "~/model/roomThemes"
 
@@ -27,6 +27,11 @@ function opening(): RoomFactoryState {
     },
   }
 }
+
+/** The demo host's main agent: Jarvis, the paper puppy, who roams the floor between the rooms. */
+const JARVIS: MainAgent = { id: "jarvis", name: "Jarvis", role: "main agent", status: "idle" }
+/** What the demo has Jarvis doing: roaming, working where it stands, or asking the human for help. */
+type JarvisMode = "roaming" | "working" | "asking"
 
 /** A host example for #21: controls change snapshots; the renderer never decides work. */
 export function RoutingDemo() {
@@ -189,6 +194,35 @@ export function RoutingDemo() {
     setAnswers((before) => [...before, { requestId: request.id, question: request.message, response }])
     setState((before) => resolveHuman(before, request.id, followUp))
   }
+  const jarvis = state.snapshot.mainAgent
+  const jarvisAsking = jarvis !== undefined && state.snapshot.humanRequests.some((request) => request.agentIds.includes(jarvis.id))
+  const jarvisMode: JarvisMode = jarvisAsking ? "asking" : jarvis?.status === "working" ? "working" : "roaming"
+  function addJarvis() {
+    setState((before) => before.snapshot.mainAgent ? before : { ...before, snapshot: { ...before.snapshot, mainAgent: JARVIS } })
+  }
+  /** Jarvis leaves, and any request of its own goes with it. */
+  function removeJarvis() {
+    setState((before) => {
+      const main = before.snapshot.mainAgent
+      if (!main) return before
+      const { mainAgent: _gone, ...snapshot } = before.snapshot
+      return { ...before, snapshot: { ...snapshot, humanRequests: snapshot.humanRequests.filter((request) => !request.agentIds.includes(main.id)) } }
+    })
+  }
+  /** Have Jarvis roam, work where it stands, or ask for help; a request of its own ends unless it keeps asking. */
+  function setJarvis(mode: JarvisMode) {
+    setState((before) => {
+      const main = before.snapshot.mainAgent
+      if (!main) return before
+      const asking = before.snapshot.humanRequests.find((request) => request.agentIds.includes(main.id))
+      let after = asking && mode !== "asking" ? resolveHuman(before, asking.id) : before
+      if (mode === "asking" && !asking) {
+        after = requestHuman(after, { id: `human-${++requestSequence.current}`, roomId: "intake", agentIds: [main.id], kind: "help", message: "Which repository should the next feature go in?" })
+      }
+      const status = mode === "working" ? "working" as const : mode === "roaming" ? "idle" as const : after.snapshot.mainAgent!.status
+      return { ...after, snapshot: { ...after.snapshot, mainAgent: { ...after.snapshot.mainAgent!, status } } }
+    })
+  }
   const waitingForHuman = needsHuman(state, selected)
   const shared = sharedTasks.has(selected) && task.at.kind === "room" && task.at.roomId === "implementation"
   const assignment = task.at.kind === "room" ? task.at.assignment : undefined
@@ -231,6 +265,18 @@ export function RoutingDemo() {
           <button onClick={() => setState((before) => ({ ...before, configuration: { ...before.configuration, transitions: hasBypass ?
             before.configuration.transitions.filter((edge) => edge.id !== "skip-plan") :
             [...before.configuration.transitions, { id: "skip-plan", from: "intake", to: "implementation", outcome: "ready" }] } }))}>{hasBypass ? "Remove bypass" : "Restore bypass"}</button>
+          </div>
+        </details>
+        <details className="demo-control-group" open={controlsInitiallyOpen}>
+          <summary>Main agent</summary>
+          <div className="demo-cluster">
+          <button onClick={jarvis ? removeJarvis : addJarvis}>{jarvis ? "Remove Jarvis" : "Add Jarvis"}</button>
+          <label>Jarvis is <select aria-label="Jarvis is" value={jarvisMode} disabled={!jarvis} onChange={(event) => setJarvis(event.target.value as JarvisMode)}>
+            <option value="roaming">Roaming</option>
+            <option value="working">Working</option>
+            <option value="asking">Asking for help</option>
+          </select></label>
+          <button onClick={() => handle?.inspect({ agent: JARVIS.id })} disabled={!handle || !jarvis}>Inspect Jarvis</button>
           </div>
         </details>
         <details className="demo-control-group" open={controlsInitiallyOpen}>
