@@ -11,7 +11,7 @@ devcontainer exec --workspace-folder . bun run smoke e2e/jarvis.spec.ts --worker
   from the road's end toward a spot by a room, seen from behind, its card
   saying where it is going. Which room it picks is its own choice each run.
 - `jarvis-paused.png`: Jarvis pausing at the spot it walked to, facing the
-  camera, its card saying so; in this capture, in front of the Planning
+  camera, its card saying so; in this capture, in front of the Deployment
   benches.
 
 The spec also captures `jarvis-working.png` and `jarvis-asking.png` under
