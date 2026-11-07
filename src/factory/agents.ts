@@ -183,7 +183,7 @@ interface Roam {
   spot?: Spot
   /** Seconds left of its pause before it sets out again. */
   pause: number
-  /** Whether it is free to roam: idle, rather than working, asking for a human or offline. */
+  /** Whether it is free to roam: by its status, not working, asking for a human or offline. */
   free: boolean
 }
 
@@ -327,7 +327,8 @@ export function createAgents(parent: THREE.Object3D, options: AgentsOptions = {}
   function roam(agent: Agent, roaming: Roaming, looks: StatusLooks) {
     const { ground, origin, sheet, needsHuman, style, bubble: text, settling } = roaming
     const { figure, fresh } = dressed(agent, sheet, origin, looks)
-    const free = !needsHuman && style.motion === "stand" && agent.status !== "offline"
+    // By what the host says it is doing, not by how a status is styled: a host may draw working as standing still.
+    const free = !needsHuman && agent.status !== "working" && agent.status !== "offline"
     const open = (tile: Tile) => ground.open.has(tileKey(tile))
     const there = (spot: Spot) => ground.spots.some((other) => other.kind === spot.kind && other.roomId === spot.roomId && sameTile(other.tile, spot.tile))
     let roam = figure.roam
