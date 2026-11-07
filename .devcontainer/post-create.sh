@@ -14,10 +14,28 @@ if [ -f "$HOME/.host-gitconfig" ]; then
 fi
 git -C / config --global --add safe.directory "$PWD"
 if [ -f "$PWD/.git" ]; then
-  gitdir=$(sed -n 's/^gitdir: //p' "$PWD/.git")
-  if [ -n "$gitdir" ]; then
+  gitdir=$(sed -n 's/^gitdir:[[:space:]]*//p' "$PWD/.git")
+  case "$gitdir" in
+    "") ;;
+    /*) ;;
+    *) gitdir="$PWD/$gitdir" ;;
+  esac
+  if [ -n "$gitdir" ] && [ -d "$gitdir" ]; then
+    gitdir=$(cd "$gitdir" && pwd -P)
     git -C / config --global --add safe.directory "$gitdir"
-    git -C / config --global --add safe.directory "$(dirname "$(dirname "$gitdir")")"
+    commondir="$gitdir/../.."
+    if [ -f "$gitdir/commondir" ]; then
+      raw_common=$(sed -n '1p' "$gitdir/commondir")
+      case "$raw_common" in
+        "") ;;
+        /*) commondir="$raw_common" ;;
+        *) commondir="$gitdir/$raw_common" ;;
+      esac
+    fi
+    if [ -d "$commondir" ]; then
+      commondir=$(cd "$commondir" && pwd -P)
+      git -C / config --global --add safe.directory "$commondir"
+    fi
   fi
 fi
 

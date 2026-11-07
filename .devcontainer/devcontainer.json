@@ -14,10 +14,11 @@
   "initializeCommand": [
     "node",
     "-e",
-    "const fs = require('node:fs'), os = require('node:os'), path = require('node:path'); for (const dir of new Set([process.env.HOME, os.homedir()].filter(Boolean))) fs.closeSync(fs.openSync(path.join(dir, '.gitconfig'), 'a'))"
+    "const fs = require('node:fs'), os = require('node:os'), path = require('node:path'); const target = process.argv[1]; const home = process.env.HOME || process.env.USERPROFILE || os.homedir(); const src = home ? path.join(home, '.gitconfig') : ''; fs.mkdirSync(path.dirname(target), { recursive: true }); if (src && fs.existsSync(src)) fs.copyFileSync(src, target); else fs.writeFileSync(target, '');",
+    "${localWorkspaceFolder}/.scratch/host-gitconfig"
   ],
   "mounts": [
-    "source=${localEnv:HOME}/.gitconfig,target=/home/node/.host-gitconfig,type=bind,readonly"
+    "source=${localWorkspaceFolder}/.scratch/host-gitconfig,target=/home/node/.host-gitconfig,type=bind,readonly"
   ],
   "remoteEnv": {
     "GH_TOKEN": "${localEnv:GH_TOKEN}"

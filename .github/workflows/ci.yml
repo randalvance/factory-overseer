@@ -23,10 +23,10 @@ jobs:
           persist-credentials: false
 
       - name: Install Dev Container CLI
-        run: npm install -g @devcontainers/cli
+        run: npm install -g @devcontainers/cli@0.87.0
 
       - name: Start devcontainer
-        run: devcontainer up --workspace-folder .
+        run: devcontainer up --mount-git-worktree-common-dir --workspace-folder .
 
       - name: Typecheck
         run: devcontainer exec --workspace-folder . bun run typecheck
