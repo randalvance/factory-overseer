@@ -45,8 +45,8 @@ const STEP_COST = 2
 const TURN_COST = 1
 
 /**
- * The open paper of a layout: every tile within the floor, and the row in
- * front of it where the road runs, that no room, belt or truck is on. Rooms
+ * The open paper of a layout: every tile within the floor, the road and the
+ * row before it included, that no room, belt or truck is on. Rooms
  * are walls to their edge, the hopper's yard included; belts are never
  * crossed; the truck's whole body is kept clear.
  */
@@ -72,7 +72,7 @@ export function roamingGround(layout: Layout): Ground {
     if (layout.staging) block(layout.staging.rect)
   }
   const open = new Set<string>()
-  for (let y = bounds.y; y <= bounds.y + bounds.h; y++) {
+  for (let y = bounds.y; y < bounds.y + bounds.h; y++) {
     for (let x = bounds.x; x < bounds.x + bounds.w; x++) {
       const key = tileKey({ x, y })
       if (!blocked.has(key)) open.add(key)
@@ -118,14 +118,14 @@ function spotsOn(layout: Layout, open: ReadonlySet<string>): Spot[] {
   return spots
 }
 
-/** The road's west end, the row in front of the floor from the west, the far corner, or any open tile. */
+/** The road's west end, the floor's front row from the west, the far corner, or any open tile. */
 function entryOn(layout: Layout, open: ReadonlySet<string>): Tile | undefined {
   const { bounds } = layout
-  const rows = [layout.shippingDock?.streetY, bounds.y + bounds.h, bounds.y].filter((y): y is number => y !== undefined)
+  const rows = [layout.shippingDock?.streetY, bounds.y + bounds.h - 1, bounds.y].filter((y): y is number => y !== undefined)
   for (const y of rows) {
     for (let x = bounds.x; x < bounds.x + bounds.w; x++) if (open.has(tileKey({ x, y }))) return { x, y }
   }
-  for (let y = bounds.y; y <= bounds.y + bounds.h; y++) {
+  for (let y = bounds.y; y < bounds.y + bounds.h; y++) {
     for (let x = bounds.x; x < bounds.x + bounds.w; x++) if (open.has(tileKey({ x, y }))) return { x, y }
   }
   return undefined
