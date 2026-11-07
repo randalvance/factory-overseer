@@ -11,7 +11,11 @@
     "3000": { "label": "demo", "onAutoForward": "notify" }
   },
   "appPort": [3000],
-  "initializeCommand": "touch \"${localEnv:HOME}/.gitconfig\"",
+  "initializeCommand": [
+    "node",
+    "-e",
+    "const fs = require('node:fs'), os = require('node:os'), path = require('node:path'); for (const dir of new Set([process.env.HOME, os.homedir()].filter(Boolean))) fs.closeSync(fs.openSync(path.join(dir, '.gitconfig'), 'a'))"
+  ],
   "mounts": [
     "source=${localEnv:HOME}/.gitconfig,target=/home/node/.host-gitconfig,type=bind,readonly"
   ],
