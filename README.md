@@ -195,6 +195,9 @@ GPU allocation, shadow-map storage or framebuffer memory.
 cover 20 agents/30 tasks and 100 agents/150 tasks at a fixed viewport. Large
 factories are pannable; these are visible-viewport measurements. Chromium
 software rendering is a repeatable regression reference, not hardware FPS.
+A [native hardware baseline](docs/performance/2026-11-07-hardware/README.md)
+records verified Metal rendering on the reference Mac, repeated frame-cadence
+measurements, layout-change profiles and reproduction commands.
 Earlier measurements remain in [paper evidence](docs/screenshots/paper/).
 These records include the earlier comparison with the retired appearance.
 To measure the current paper fixtures without overwriting those records:
