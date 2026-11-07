@@ -123,18 +123,3 @@ function drawPet(ctx: CanvasRenderingContext2D, p: Palette, pose: number, facing
   ellipse(33, pose === 5 ? 48 : pose === 3 ? 117 : 144, 8, 13, p.coat)
   ellipse(95, pose === 4 ? 126 : 144, 8, 13, p.coat)
 }
-
-/** White folded support tabs give the front-facing illustration a physical base. */
-export function paperFeet(): THREE.Group {
-  const group = new THREE.Group()
-  const material = new THREE.MeshLambertMaterial({ color: 0xf5ead5, side: THREE.DoubleSide })
-  const tab = new THREE.Mesh(new THREE.PlaneGeometry(.76, .32), material)
-  tab.rotation.x = -Math.PI / 2
-  tab.position.set(0, .025, .06)
-  group.add(tab)
-  const fold = new THREE.Mesh(new THREE.PlaneGeometry(.76, .16), material)
-  fold.rotation.x = -Math.PI / 4
-  fold.position.set(0, .08, -.08)
-  group.add(fold)
-  return group
-}

@@ -37,7 +37,7 @@ import { type Facing, sheetFrame } from "./sprites"
 import { PAPER_PITCH } from "./camera"
 import { PAPER_BELT_H } from "./paperConveyors"
 import { PAPER_GROUND_Y } from "./paperGround"
-import { createPaperCharacters, PAPER_AGENT_H, paperFeet } from "./paperCharacters"
+import { createPaperCharacters, PAPER_AGENT_H } from "./paperCharacters"
 import { type TabletLook, tabletTexture } from "./tablets"
 import type { PetAnimations } from "./petAssets"
 import { petBodyPose, petFrame, petMotionState } from "./petMotion"
@@ -138,7 +138,6 @@ interface Figure {
   group: THREE.Group
   body: THREE.Sprite
   height: number
-  feet: THREE.Group
   artKey?: string
   staticImage: boolean
   pet: boolean
@@ -421,8 +420,7 @@ export function createAgents(parent: THREE.Object3D, options: AgentsOptions = {}
     const body = petBody(sheet)
     const icon = statusIcon(looks.icons.hand)
     const group = new THREE.Group()
-    const feet = paperFeet()
-    group.add(body, icon, feet)
+    group.add(body, icon)
     layer.add(group)
     const sparks = Array.from({ length: SPARKS_PER_AGENT }, (): Spark => {
       const sprite = spark()
@@ -435,7 +433,6 @@ export function createAgents(parent: THREE.Object3D, options: AgentsOptions = {}
       group,
       body,
       height: displayHeight(sheet),
-      feet,
       artKey,
       staticImage: sheet.userData.petLayout === "image",
       pet: !!sheet.userData.pet,
@@ -607,7 +604,6 @@ export function createAgents(parent: THREE.Object3D, options: AgentsOptions = {}
     layer.remove(figure.group)
     figure.frame.dispose()
     figure.body.material.dispose()
-    disposeMeshes(figure.feet)
     figure.icon.material.dispose()
     figure.bubble?.sprite.material.dispose()
     for (const { sprite } of figure.sparks) {
