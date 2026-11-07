@@ -197,6 +197,7 @@ export function RoutingDemo() {
   const jarvis = state.snapshot.mainAgent
   const jarvisAsking = jarvis !== undefined && state.snapshot.humanRequests.some((request) => request.agentIds.includes(jarvis.id))
   const jarvisMode: JarvisMode = jarvisAsking ? "asking" : jarvis?.status === "working" ? "working" : "roaming"
+  /** Jarvis joins the floor, once. */
   function addJarvis() {
     setState((before) => before.snapshot.mainAgent ? before : { ...before, snapshot: { ...before.snapshot, mainAgent: JARVIS } })
   }
@@ -211,13 +212,15 @@ export function RoutingDemo() {
   }
   /** Have Jarvis roam, work where it stands, or ask for help; a request of its own ends unless it keeps asking. */
   function setJarvis(mode: JarvisMode) {
+    // Taken here, not in the updater, which React may run twice; an unused id is harmless.
+    const requestId = `human-${++requestSequence.current}`
     setState((before) => {
       const main = before.snapshot.mainAgent
       if (!main) return before
       const asking = before.snapshot.humanRequests.find((request) => request.agentIds.includes(main.id))
       let after = asking && mode !== "asking" ? resolveHuman(before, asking.id) : before
       if (mode === "asking" && !asking) {
-        after = requestHuman(after, { id: `human-${++requestSequence.current}`, roomId: "intake", agentIds: [main.id], kind: "help", message: "Which repository should the next feature go in?" })
+        after = requestHuman(after, { id: requestId, roomId: "intake", agentIds: [main.id], kind: "help", message: "Which repository should the next feature go in?" })
       }
       const status = mode === "working" ? "working" as const : mode === "roaming" ? "idle" as const : after.snapshot.mainAgent!.status
       return { ...after, snapshot: { ...after.snapshot, mainAgent: { ...after.snapshot.mainAgent!, status } } }

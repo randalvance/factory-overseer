@@ -6,6 +6,7 @@ import { tileKey } from "./tiles"
 import type { Layout, Tile } from "./types"
 import { type Ground, nearestOpen, nextStroll, reachable, roamingGround, strollPath } from "./roam"
 
+/** The example rooms with perRoom idle agents in every room but intake, and no work. */
 function staffed(perRoom = 1): RoomFactoryState {
   return {
     configuration: structuredClone(exampleRooms),

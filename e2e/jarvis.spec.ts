@@ -47,10 +47,10 @@ test("Jarvis roams the floor, pauses by rooms, works and asks for help where it 
   await expect(card).toContainText("Roaming the floor")
   await expect(card).toContainText("main agent")
   await expect(card).toContainText("Walking to the", { timeout: 20000 })
-  await page.waitForTimeout(700)
+  // Read where it is headed at once: a short stroll can end before the screenshot.
+  const destination = (await card.locator("dd").filter({ hasText: "Walking to" }).textContent())!.replace("Walking to ", "")
   await page.getByRole("button", { name: "Fit all", exact: true }).click()
   await page.screenshot({ path: `${screenshots}/jarvis-walking.png` })
-  const destination = (await card.locator("dd").filter({ hasText: "Walking to" }).textContent())!.replace("Walking to ", "")
   await expect(card).toContainText(`Pausing at ${destination}`, { timeout: 60000 })
   await page.screenshot({ path: `${screenshots}/jarvis-paused.png` })
   // And on to another room once the pause is over.

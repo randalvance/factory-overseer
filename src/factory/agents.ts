@@ -214,6 +214,7 @@ interface Posting {
   settling?: Settling
 }
 
+/** The figures on the floor: room agents at their stations and the main agent roaming the open paper. */
 export function createAgents(parent: THREE.Object3D, options: AgentsOptions = {}): Agents {
   const figures = new Map<string, Figure>()
   const paperCast = createPaperCharacters()
@@ -390,6 +391,7 @@ export function createAgents(parent: THREE.Object3D, options: AgentsOptions = {}
     }
   }
 
+  /** Report a roaming figure's whereabouts to the host, if it listens. */
   function tell(figure: Figure, whereabouts: Whereabouts) {
     options.onRoam?.(figure.agent.id, whereabouts)
   }
