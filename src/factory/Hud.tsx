@@ -7,6 +7,7 @@ import { counts } from "~/model/counts"
 import { type AgentStatus, type StatusStyle, bubbleText } from "~/model/status"
 import { recordRoomTrails, type RoomTrails, type RoomTrailStop } from "~/model/roomTrails"
 import { humanRequestAgentIds } from "~/model/roomRouting"
+import type { Whereabouts } from "~/floor/roam"
 import type { HumanAttentionRequest, RoomFactoryState, RoomTask, Snapshot, Subject } from "~/model/types"
 
 export interface HudProps {
@@ -18,6 +19,8 @@ export interface HudProps {
   styles: Readonly<Record<AgentStatus, StatusStyle>>
   /** What the overseer clicked, for its card. */
   picked: Subject | undefined
+  /** Where the main agent is going or pausing, for its card. */
+  roaming?: { id: string; whereabouts: Whereabouts }
   /** Whether the factory has drawn its first snapshot, which the buttons wait for. */
   ready: boolean
   onClose: () => void
@@ -26,7 +29,7 @@ export interface HudProps {
 }
 
 /** The header with the counts and the Fit all and Reorganize buttons, and the card for what the overseer clicked, if anything. */
-export function Hud({ snapshot, roomState, riding, styles, picked, ready, onClose, onFitAll, onReorganize }: HudProps) {
+export function Hud({ snapshot, roomState, riding, styles, picked, ready, roaming, onClose, onFitAll, onReorganize }: HudProps) {
   const tally = counts(snapshot)
   const [roomTrails, setRoomTrails] = useState<RoomTrails>({})
   useEffect(() => {
@@ -50,7 +53,8 @@ export function Hud({ snapshot, roomState, riding, styles, picked, ready, onClos
           </button>
         </span>
       </header>
-      {picked && "agent" in picked && <AgentCard id={picked.agent} roomState={roomState} snapshot={snapshot} styles={styles} onClose={onClose} />}
+      {picked && "agent" in picked && <AgentCard id={picked.agent} roomState={roomState} snapshot={snapshot} styles={styles}
+        whereabouts={roaming?.id === picked.agent ? roaming.whereabouts : undefined} onClose={onClose} />}
       {picked && "task" in picked && (
         <BoxCard roomState={roomState} roomTrail={roomTrails[picked.task]} taskId={picked.task} riding={riding.has(picked.task)} onClose={onClose} />
       )}
@@ -58,21 +62,24 @@ export function Hud({ snapshot, roomState, riding, styles, picked, ready, onClos
   )
 }
 
-/** An agent's name, role, status, activity and the task on its bench. Nothing once the agent has left. */
+/** An agent's name, role, status, activity and the task on its bench; the main agent's whereabouts on the floor instead of a room. Nothing once the agent has left. */
 function AgentCard({
   id,
   roomState,
   snapshot,
   styles,
+  whereabouts,
   onClose,
 }: {
   id: string
   roomState: RoomFactoryState
   snapshot: Snapshot
   styles: Readonly<Record<AgentStatus, StatusStyle>>
+  whereabouts: Whereabouts | undefined
   onClose: () => void
 }) {
-  const agent = snapshot.agents.find((a) => a.id === id)
+  const main = snapshot.mainAgent?.id === id ? snapshot.mainAgent : undefined
+  const agent = snapshot.agents.find((a) => a.id === id) ?? main
   if (!agent) return null
   const roomAgent = roomState.snapshot.agents.find((agent) => agent.id === id)
   const requests = roomState.snapshot.humanRequests.filter((request) => humanRequestAgentIds(roomState.snapshot, request).includes(id)) ?? []
@@ -80,6 +87,7 @@ function AgentCard({
   return (
     <Card title={agent.name} onClose={onClose}>
       {roomAgent && <><dt>Room</dt><dd>{roomState.configuration.rooms.find((room) => room.id === roomAgent.roomId)?.label ?? roomAgent.roomId}</dd></>}
+      {main && <><dt>Room</dt><dd>Roaming the floor</dd><dt>Whereabouts</dt><dd>{whereaboutsText(whereabouts, roomState)}</dd></>}
       <dt>Role</dt>
       <dd>{agent.role}</dd>
       <dt>Status</dt>
@@ -147,6 +155,16 @@ function Card({ title, onClose, children }: { title: string; onClose: () => void
       <dl>{children}</dl>
     </aside>
   )
+}
+
+/** Where the main agent is, by the label of the room whose door, benches or hopper it is at or going to. */
+function whereaboutsText(whereabouts: Whereabouts | undefined, state: RoomFactoryState): string {
+  if (!whereabouts || whereabouts.kind === "standing") return "Standing on the paper"
+  const { spot } = whereabouts
+  const label = state.configuration.rooms.find((room) => room.id === spot.roomId)?.label ?? spot.roomId
+  const place = spot.kind === "door" ? `the ${label} door` : spot.kind === "bench" ? `the ${label} benches` :
+    spot.kind === "hopper" ? `the ${label} hopper` : "the delivery truck"
+  return whereabouts.kind === "walking" ? `Walking to ${place}` : `Pausing at ${place}`
 }
 
 function roomPlace(task: RoomTask, state: RoomFactoryState): string {

@@ -29,6 +29,12 @@ export function validateRoomState({ configuration, snapshot }: RoomFactoryState)
   const agents = index(snapshot.agents, "snapshot.agents")
   const tasks = index(snapshot.tasks, "snapshot.tasks")
   index(snapshot.humanRequests, "snapshot.humanRequests")
+  const mainAgent = snapshot.mainAgent
+  if (mainAgent) {
+    nonempty(mainAgent.id, "snapshot.mainAgent.id")
+    if (agents.has(mainAgent.id)) error("snapshot.mainAgent.id", "Duplicate ID")
+    nonempty(mainAgent.role, "snapshot.mainAgent.role")
+  }
 
   for (const kind of ["intake", "deployment"] as const) {
     if (configuration.rooms.filter((room) => room.kind === kind).length !== 1) {
@@ -62,13 +68,15 @@ export function validateRoomState({ configuration, snapshot }: RoomFactoryState)
     else if (room.role !== agent.role) error(`snapshot.agents[${i}].role`, "Agent role must match its room")
   })
 
-  function members(ids: string[], roomId: string, path: string) {
+  /** The agents a list names, each once, each in the room; the main agent, in no room, may be asked for attention from any. */
+  function members(ids: string[], roomId: string, path: string, mainAgentWelcome = false) {
     const seen = new Set<string>()
     ids.forEach((id, i) => {
       if (seen.has(id)) error(`${path}[${i}]`, "Duplicate agent")
       seen.add(id)
       const agent = agents.get(id)
-      if (!agent) error(`${path}[${i}]`, "Unknown agent; retain offline agents while referenced")
+      if (!agent && mainAgentWelcome && mainAgent && id === mainAgent.id) return
+      if (!agent) error(`${path}[${i}]`, mainAgent && id === mainAgent.id ? "The main agent holds no task" : "Unknown agent; retain offline agents while referenced")
       else if (agent.roomId !== roomId) error(`${path}[${i}]`, "Agent belongs to another room")
     })
   }
@@ -99,7 +107,7 @@ export function validateRoomState({ configuration, snapshot }: RoomFactoryState)
     const path = `snapshot.humanRequests[${i}]`
     if (!rooms.has(request.roomId)) error(`${path}.roomId`, "Unknown room")
     nonempty(request.message, `${path}.message`)
-    members(request.agentIds, request.roomId, `${path}.agentIds`)
+    members(request.agentIds, request.roomId, `${path}.agentIds`, true)
     if (request.taskId !== undefined) {
       const task = tasks.get(request.taskId)
       if (!task) error(`${path}.taskId`, "Unknown task")

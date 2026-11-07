@@ -25,6 +25,10 @@ describe("the header counts", () => {
     expect(counts(snapshot)).toEqual({ agents: 3, inFlight: 5, awaitingReview: 1, shipped: 2 })
   })
 
+  it("counts the main agent among the agents", () => {
+    expect(counts({ ...snapshot, mainAgent: { id: "jarvis", name: "Jarvis", role: "main", status: "idle" } }).agents).toBe(4)
+  })
+
   it("counts nothing on an empty floor", () => {
     expect(counts({ agents: [], tasks: [] })).toEqual({ agents: 0, inFlight: 0, awaitingReview: 0, shipped: 0 })
   })

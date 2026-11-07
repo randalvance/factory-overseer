@@ -19,6 +19,17 @@ describe("host pet assets", () => {
     expect(petAssetFor(agent, { byAgent: { alex: { src: "alex.png" } } })).toEqual(DEFAULT_PET_ASSETS.byRole!.planner)
   })
 
+  it("dresses the main agent in the host's main asset, else the bundled puppy, unless an agent or role asset names it", () => {
+    const jarvis = { id: "jarvis", role: "main" }
+    expect(petAssetFor(jarvis, undefined, true)).toEqual(DEFAULT_PET_ASSETS.main)
+    expect(DEFAULT_PET_ASSETS.main).toMatchObject({ src: "assets/pets/jarvis-sheet.png", layout: "sheet", height: 2.67 })
+    expect(petAssetFor(jarvis, { default: { src: "default.png" } }, true)).toEqual(DEFAULT_PET_ASSETS.main)
+    expect(petAssetFor(jarvis, { main: { src: "main.png" } }, true).src).toBe("main.png")
+    expect(petAssetFor(jarvis, { main: { src: "main.png" }, byRole: { main: { src: "role.png" } } }, true).src).toBe("role.png")
+    expect(petAssetFor(jarvis, { main: { src: "main.png" }, byAgent: { jarvis: { src: "agent.png" } } }, true).src).toBe("agent.png")
+    expect(petAssetFor(jarvis, { main: { src: "main.png" } }).src).toBe(DEFAULT_PET_ASSETS.default!.src)
+  })
+
   it("uses image or frame dimensions and ignores nonpositive/nonfinite overrides", () => {
     expect(petDimensions({ src: "pet.png" }, 256, 320)).toEqual({ height: 2.3, aspectRatio: .8 })
     expect(petDimensions({ src: "sheet.png", layout: "sheet" }, 768, 768).aspectRatio).toBeCloseTo(2 / 3)

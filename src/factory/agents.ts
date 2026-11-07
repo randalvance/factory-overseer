@@ -6,11 +6,14 @@
 // and tablet glides to where its
 // station now is, in step with the floor. Nothing here is laid out: every
 // agent stands where the layout puts its station, and the floor core says
-// who comes and goes.
+// who comes and goes. The one exception has no station: the host's main
+// agent roams the open paper between the rooms, pausing by them, on strolls
+// the floor core plans and this layer only walks.
 
 import * as THREE from "three"
 import { stationed } from "~/floor/layout"
-import { directionBetween } from "~/floor/tiles"
+import { type Ground, type Spot, type Whereabouts, nearestOpen, nextStroll, roamingGround } from "~/floor/roam"
+import { directionBetween, sameTile, tileKey } from "~/floor/tiles"
 import type { Direction, Layout, Station, Tile } from "~/floor/types"
 import type { ComingsAndGoings } from "~/floor/walk"
 import { type AgentStatus, type StatusIcon, type StatusStyle, bubbleText } from "~/model/status"
@@ -33,6 +36,7 @@ import {
 import { type Facing, sheetFrame } from "./sprites"
 import { PAPER_PITCH } from "./camera"
 import { PAPER_BELT_H } from "./paperConveyors"
+import { PAPER_GROUND_Y } from "./paperGround"
 import { createPaperCharacters, PAPER_AGENT_H, paperFeet } from "./paperCharacters"
 import { type TabletLook, tabletTexture } from "./tablets"
 import type { PetAnimations } from "./petAssets"
@@ -57,6 +61,11 @@ export interface Dressed {
   pieces: Pieces
 }
 
+export interface AgentsOptions {
+  /** Called as the main agent sets out for a spot, gets there, or comes to a stop short of one. */
+  onRoam?: (id: string, whereabouts: Whereabouts) => void
+}
+
 export interface Agents {
   /**
    * Stand every agent the layout has a station for at it, in its sheet,
@@ -65,12 +74,14 @@ export interface Agents {
    * and any other figure without a station or a sheet, fade. The tablets of
    * benches no longer laid out go. While the floor slides, as the overseer's
    * Reorganize has it, every figure and tablet already there glides to its
-   * station instead of standing there at once.
+   * station instead of standing there at once. The snapshot's main agent,
+   * which has no station, roams the open paper instead.
    */
   update(layout: Layout, snapshot: Snapshot, dressed: Dressed, traffic: ComingsAndGoings, settling?: Settling): void
   /**
    * Carry every walk, fade, pose, jump, spark and tablet dt seconds on.
-   * Walks are scaled with the belts; a status plays in real seconds.
+   * Walks are scaled with the belts; a status, and the main agent's stroll,
+   * play in real seconds.
    */
   tick(dt: number, speed: number): void
   /** The nearest figure on the ray, by agent id. A figure fading out is past clicking. */
@@ -103,6 +114,10 @@ const WALK_SPEED = 3
 const WALK_FPS = 8
 /** Seconds an agent that has left takes to fade. */
 const FADE_S = 1
+/** Tiles the main agent strolls in a second, in real time: an amble, however fast the belts run. */
+const ROAM_SPEED = 1.7
+/** Seconds the main agent pauses at a spot, at the least and at the most. */
+const PAUSE_S = { least: 1.5, most: 4 }
 /** The sheet row that faces the way an agent steps. */
 const FACING: Record<Direction, Facing> = { e: "right", w: "left", s: "down", n: "up" }
 /** Sheets and icons are cut out at half alpha. */
@@ -153,6 +168,35 @@ interface Figure {
   fading?: number
   /** Its way to its station while the floor slides. */
   glide?: Glide
+  /** The main agent's roaming; no other figure has it. */
+  roam?: Roam
+}
+
+/** Where the main agent may walk and where it is: on a stroll to a spot, or pausing, or held where it stands. */
+interface Roam {
+  ground: Ground
+  /** The tile it stands on, or set out from. */
+  at: Tile
+  /** The spot it is going to, its way there, and how far along it is in tiles, while it strolls. */
+  stroll?: { spot: Spot; path: Tile[]; progress: number }
+  /** The spot it is at, once there. */
+  spot?: Spot
+  /** Seconds left of its pause before it sets out again. */
+  pause: number
+  /** Whether it is free to roam: idle, rather than working, asking for a human or offline. */
+  free: boolean
+}
+
+/** Where the main agent roams and how it looks for one snapshot. */
+interface Roaming {
+  ground: Ground
+  /** Where it stands when there is no open paper at all. */
+  origin: Tile
+  sheet: THREE.Texture
+  needsHuman: boolean
+  style: StatusStyle
+  bubble: string | null
+  settling: Settling
 }
 
 /** Where a figure stands and how it looks for one snapshot. */
@@ -171,7 +215,7 @@ interface Posting {
   settling?: Settling
 }
 
-export function createAgents(parent: THREE.Object3D): Agents {
+export function createAgents(parent: THREE.Object3D, options: AgentsOptions = {}): Agents {
   const figures = new Map<string, Figure>()
   const paperCast = createPaperCharacters()
   const tablets = new Map<string, { piece: TabletPiece; glide?: Glide }>()
@@ -227,6 +271,18 @@ export function createAgents(parent: THREE.Object3D): Agents {
       benches.add(station.id)
     }
 
+    const main = snapshot.mainAgent
+    if (main) {
+      const sheet = pets.get(main.id) ?? paperCast.sheet(main)
+      const needsHuman = humanNeeded.has(main.id) || main.status === "waiting"
+      const baseStyle = looks.styles[main.status] ?? looks.styles.idle
+      const style = needsHuman ? { ...baseStyle, icon: "hand" as const } : baseStyle
+      const bubble = needsHuman ? looks.styles.waiting.bubble : bubbleText(main.status, main.activity, looks.styles)
+      const roaming = { ground: roamingGround(layout), origin: { x: layout.bounds.x, y: layout.bounds.y }, sheet, needsHuman, style, bubble, settling }
+      roam(main, roaming, looks)
+      standing.add(main.id)
+    }
+
     for (const id of traffic.departures) {
       const figure = figures.get(id)
       if (figure) figure.fading ??= 0
@@ -242,67 +298,8 @@ export function createAgents(parent: THREE.Object3D): Agents {
    */
   function stand(agent: Agent, posting: Posting, looks: StatusLooks) {
     const { station, sheet, needsHuman = false, style, bubble: text, hasBox = false, wayIn, settling = "stand" } = posting
-    let figure = figures.get(agent.id)
-    const artKey = sheet.userData.petKey as string | undefined
-    const redressed = figure !== undefined && (figure.frame.source !== sheet.source || figure.artKey !== artKey)
-    if (figure && redressed) {
-      // Change the image in place, keeping an arrival walk or room glide alive.
-      figure.group.remove(figure.body)
-      figure.frame.dispose(); figure.body.material.dispose()
-      figure.body = petBody(sheet)
-      figure.frame = figure.body.material.map!
-      figure.artKey = artKey
-      figure.staticImage = sheet.userData.petLayout === "image"
-      figure.pet = !!sheet.userData.pet
-      figure.baseScale = figure.body.scale.clone()
-      figure.height = displayHeight(sheet)
-      figure.group.add(figure.body)
-
-    }
-    const fresh = figure === undefined
-    if (!figure) {
-      const body = petBody(sheet)
-      const height = displayHeight(sheet)
-      const icon = statusIcon(looks.icons.hand)
-      const group = new THREE.Group()
-      group.add(body, icon)
-      const feet = paperFeet()
-      group.add(feet)
-      layer.add(group)
-      const sparks = Array.from({ length: SPARKS_PER_AGENT }, (): Spark => {
-        const sprite = spark()
-        sprite.visible = false
-        layer.add(sprite)
-        return { sprite, velocity: new THREE.Vector3(), age: 0, life: 0 }
-      })
-      figure = {
-        agent,
-        group,
-        body,
-        height,
-        feet,
-        artKey,
-        staticImage: sheet.userData.petLayout === "image",
-        pet: !!sheet.userData.pet,
-        baseScale: body.scale.clone(),
-        needsHuman,
-        frame: body.material.map!,
-        icon,
-        sparks,
-        sparking: false,
-        bench: station.bench,
-        home: new THREE.Vector3(),
-        style,
-        inStatus: 0,
-        clock: Math.random() * 60,
-        facing: "down",
-      }
-      if (wayIn && !redressed && wayIn.length > 1) figure.walk = { wayIn, progress: 0 }
-      figures.set(agent.id, figure)
-    } else if (figure.agent.status !== agent.status) {
-      figure.inStatus = 0
-    }
-
+    const { figure, fresh } = dressed(agent, sheet, station.bench, looks)
+    if (fresh && wayIn && wayIn.length > 1) figure.walk = { wayIn, progress: 0 }
     const { x, z } = tileCenter(station.agentTile)
     figure.home.set(x, 0, z)
     if (settling === "glide" && !fresh && !figure.group.position.equals(figure.home)) {
@@ -314,12 +311,156 @@ export function createAgents(parent: THREE.Object3D): Agents {
       if (figure.walk) advance(figure, 0)
       else figure.group.position.copy(figure.home)
     }
+    figure.bench = station.bench
+    figure.sparking = style.motion === "work" && hasBox && !needsHuman
+    restyle(figure, agent, style, needsHuman, text, looks)
+  }
+
+  /**
+   * Put the main agent on the open paper: one new to the floor at the road's
+   * end, setting out for a spot; one already there where it is, its stroll
+   * kept while every tile of it is still open and its spot still there, else
+   * stopped on the nearest open tile, glided to while the floor slides. It
+   * roams only while idle; working, asking for a human or offline, it holds
+   * still where it is once its step is done.
+   */
+  function roam(agent: Agent, roaming: Roaming, looks: StatusLooks) {
+    const { ground, origin, sheet, needsHuman, style, bubble: text, settling } = roaming
+    const { figure, fresh } = dressed(agent, sheet, origin, looks)
+    const free = !needsHuman && style.motion === "stand" && agent.status !== "offline"
+    const open = (tile: Tile) => ground.open.has(tileKey(tile))
+    const there = (spot: Spot) => ground.spots.some((other) => other.kind === spot.kind && other.roomId === spot.roomId && sameTile(other.tile, spot.tile))
+    let roam = figure.roam
+    if (!roam || fresh) {
+      roam = figure.roam = { ground, at: ground.entry ?? origin, pause: 0, free }
+      figure.walk = undefined
+      figure.glide = undefined
+      figure.facing = "down"
+      figure.group.position.copy(groundCenter(roam.at))
+      tell(figure, { kind: "standing" })
+      if (free) setOut(figure)
+    } else {
+      roam.ground = ground
+      roam.free = free
+      const { stroll } = roam
+      if (stroll && (!stroll.path.every(open) || !there(stroll.spot))) {
+        // The paper changed under its stroll: it stops where it is.
+        const here = stroll.path[Math.min(Math.round(stroll.progress), stroll.path.length - 1)]!
+        roam.stroll = undefined
+        roam.spot = undefined
+        roam.at = nearestOpen(ground, here) ?? here
+        roam.pause = pauseLength()
+        settle(figure, settling)
+        tell(figure, { kind: "standing" })
+      } else if (!stroll && !open(roam.at)) {
+        roam.at = nearestOpen(ground, roam.at) ?? roam.at
+        roam.spot = undefined
+        settle(figure, settling)
+        tell(figure, { kind: "standing" })
+      } else if (!stroll && roam.spot && !there(roam.spot)) {
+        roam.spot = undefined
+        tell(figure, { kind: "standing" })
+      }
+    }
+    figure.sparking = false
+    restyle(figure, agent, style, needsHuman, text, looks)
+  }
+
+  /** Stand the main agent on its tile, or glide it there while the floor slides. */
+  function settle(figure: Figure, settling: Settling) {
+    const at = groundCenter(figure.roam!.at)
+    figure.facing = "down"
+    if (settling === "glide" && !figure.group.position.equals(at)) figure.glide = startGlide(figure.group, at)
+    else {
+      figure.glide = undefined
+      figure.group.position.copy(at)
+    }
+  }
+
+  /** Send the main agent off to another spot, if a walk can reach one; else it waits a while and tries again. */
+  function setOut(figure: Figure) {
+    const roam = figure.roam!
+    const next = nextStroll(roam.ground, roam.at, Math.random())
+    if (next && next.path.length > 1) {
+      roam.stroll = { spot: next.spot, path: next.path, progress: 0 }
+      roam.spot = undefined
+      tell(figure, { kind: "walking", spot: next.spot })
+    } else {
+      roam.pause = pauseLength()
+    }
+  }
+
+  function tell(figure: Figure, whereabouts: Whereabouts) {
+    options.onRoam?.(figure.agent.id, whereabouts)
+  }
+
+  /**
+   * The agent's figure in its sheet: the one it has, redressed in place when
+   * its sheet changed, an arrival walk or room glide kept alive; or a new one.
+   */
+  function dressed(agent: Agent, sheet: THREE.Texture, bench: Tile, looks: StatusLooks): { figure: Figure; fresh: boolean } {
+    let figure = figures.get(agent.id)
+    const artKey = sheet.userData.petKey as string | undefined
+    if (figure && (figure.frame.source !== sheet.source || figure.artKey !== artKey)) {
+      figure.group.remove(figure.body)
+      figure.frame.dispose(); figure.body.material.dispose()
+      figure.body = petBody(sheet)
+      figure.frame = figure.body.material.map!
+      figure.artKey = artKey
+      figure.staticImage = sheet.userData.petLayout === "image"
+      figure.pet = !!sheet.userData.pet
+      figure.baseScale = figure.body.scale.clone()
+      figure.height = displayHeight(sheet)
+      figure.group.add(figure.body)
+    }
+    if (figure) {
+      if (figure.agent.status !== agent.status) figure.inStatus = 0
+      return { figure, fresh: false }
+    }
+    const body = petBody(sheet)
+    const icon = statusIcon(looks.icons.hand)
+    const group = new THREE.Group()
+    const feet = paperFeet()
+    group.add(body, icon, feet)
+    layer.add(group)
+    const sparks = Array.from({ length: SPARKS_PER_AGENT }, (): Spark => {
+      const sprite = spark()
+      sprite.visible = false
+      layer.add(sprite)
+      return { sprite, velocity: new THREE.Vector3(), age: 0, life: 0 }
+    })
+    figure = {
+      agent,
+      group,
+      body,
+      height: displayHeight(sheet),
+      feet,
+      artKey,
+      staticImage: sheet.userData.petLayout === "image",
+      pet: !!sheet.userData.pet,
+      baseScale: body.scale.clone(),
+      needsHuman: false,
+      frame: body.material.map!,
+      icon,
+      sparks,
+      sparking: false,
+      bench,
+      home: new THREE.Vector3(),
+      style: looks.styles.idle,
+      inStatus: 0,
+      clock: Math.random() * 60,
+      facing: "down",
+    }
+    figures.set(agent.id, figure)
+    return { figure, fresh: true }
+  }
+
+  /** Give the figure its status's look, icon and bubble, all of it shown, and pose it. */
+  function restyle(figure: Figure, agent: Agent, style: StatusStyle, needsHuman: boolean, text: string | null, looks: StatusLooks) {
     figure.fading = undefined
     figure.agent = agent
-    figure.bench = station.bench
     figure.style = style
     figure.needsHuman = needsHuman
-    figure.sparking = style.motion === "work" && hasBox && !needsHuman
     dim(figure, 1)
     if (style.icon !== "none" && figure.icon.material.map !== looks.icons[style.icon]) {
       figure.icon.material.map = looks.icons[style.icon]
@@ -345,12 +486,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
     if (!walk) return
     const last = walk.wayIn.length - 1
     walk.progress = Math.min(walk.progress + steps, last)
-    const i = Math.min(Math.floor(walk.progress), last - 1)
-    const from = tileCenter(walk.wayIn[i]!)
-    const to = tileCenter(walk.wayIn[i + 1]!)
-    const t = walk.progress - i
-    figure.group.position.set(from.x + (to.x - from.x) * t, 0, from.z + (to.z - from.z) * t)
-    figure.facing = FACING[directionBetween(walk.wayIn[i]!, walk.wayIn[i + 1]!) ?? "s"]
+    along(figure, walk.wayIn, walk.progress, 0)
     if (walk.progress >= last) {
       figure.walk = undefined
       figure.facing = "down"
@@ -358,12 +494,57 @@ export function createAgents(parent: THREE.Object3D): Agents {
     }
   }
 
+  /** Put the figure progress tiles along the path, between tile centres, at height y, facing the way of its step. */
+  function along(figure: Figure, path: Tile[], progress: number, y: number) {
+    const last = path.length - 1
+    const i = Math.min(Math.floor(progress), last - 1)
+    const from = tileCenter(path[i]!)
+    const to = tileCenter(path[i + 1]!)
+    const t = Math.min(progress - i, 1)
+    figure.group.position.set(from.x + (to.x - from.x) * t, y, from.z + (to.z - from.z) * t)
+    figure.facing = FACING[directionBetween(path[i]!, path[i + 1]!) ?? "s"]
+  }
+
+  /**
+   * Carry the main agent's stroll dt seconds on, or its pause, and send it
+   * out again when the pause is over. Held, it finishes the step it is on
+   * and stops there, to set out again from that tile once free.
+   */
+  function wander(figure: Figure, dt: number) {
+    const roam = figure.roam!
+    if (figure.glide) return
+    const { stroll } = roam
+    if (stroll) {
+      const last = stroll.path.length - 1
+      const until = roam.free ? last : Math.min(last, Math.ceil(stroll.progress))
+      stroll.progress = Math.min(stroll.progress + dt * ROAM_SPEED, until)
+      along(figure, stroll.path, stroll.progress, PAPER_GROUND_Y)
+      if (stroll.progress < until) return
+      roam.at = stroll.path[until]!
+      roam.stroll = undefined
+      roam.pause = pauseLength()
+      figure.facing = "down"
+      figure.group.position.copy(groundCenter(roam.at))
+      if (until === last) {
+        roam.spot = stroll.spot
+        tell(figure, { kind: "pausing", spot: stroll.spot })
+      } else {
+        roam.spot = undefined
+        tell(figure, { kind: "standing" })
+      }
+    } else if (roam.free) {
+      roam.pause -= dt
+      if (roam.pause <= 0) setOut(figure)
+    }
+  }
+
   /** Put the figure as its status has it at this moment of its clock, or mid-step while it walks in. */
   function pose(figure: Figure) {
     const { style, clock, inStatus } = figure
+    const walking = figure.walk !== undefined || figure.roam?.stroll !== undefined
     let column = style.pose === "hurt" ? COLUMN.hurt : COLUMN.stand
     let lift = 0
-    if (figure.walk) {
+    if (walking) {
       column = WALK_CYCLE[Math.floor(clock * WALK_FPS) % WALK_CYCLE.length]!
     } else if (style.motion === "work") {
       column = Math.floor(clock / WORK_BEAT) % 2 === 0 ? COLUMN.raisedArm : COLUMN.armForward
@@ -371,7 +552,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
       lift = JUMP_H * Math.abs(Math.sin((Math.PI * clock) / JUMP_PERIOD))
       if (style.pose !== "hurt") column = lift > JUMP_H / 2 ? COLUMN.step : COLUMN.stand
     }
-    const movement = petMotionState(!!figure.walk, figure.needsHuman, style.motion === "work")
+    const movement = petMotionState(walking, figure.needsHuman, style.motion === "work")
     if (figure.pet) {
       column = petFrame(movement, clock, figure.frame.userData.petAnimations as PetAnimations | undefined) ?? column
       const motion = petBodyPose(movement, clock, figure.staticImage)
@@ -381,7 +562,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
       figure.body.position.x = motion.offsetX
       figure.body.material.rotation = motion.roll
       figure.body.scale.set(figure.baseScale.x * motion.scaleX, figure.baseScale.y * motion.scaleY, figure.baseScale.z)
-    } else if (figure.needsHuman && !figure.walk) {
+    } else if (figure.needsHuman && !walking) {
       column = Math.floor(clock * 3.2) % 2 ? COLUMN.stand : COLUMN.raisedArm
     }
     if (!figure.staticImage) {
@@ -449,6 +630,7 @@ export function createAgents(parent: THREE.Object3D): Agents {
       figure.inStatus += dt
       if (figure.walk) advance(figure, dt * WALK_SPEED * speed)
       if (figure.glide && glide(figure.group, figure.glide, dt, speed)) figure.glide = undefined
+      if (figure.roam && figure.fading === undefined) wander(figure, dt)
       if (figure.fading !== undefined) {
         figure.fading += dt
         if (figure.fading >= FADE_S) {
@@ -514,6 +696,17 @@ export function createAgents(parent: THREE.Object3D): Agents {
   }
 
   return { update, tick, pick, positionOf, dispose }
+}
+
+/** The middle of a tile of the open paper, on the ground outside the rooms. */
+function groundCenter(tile: Tile): THREE.Vector3 {
+  const { x, z } = tileCenter(tile)
+  return new THREE.Vector3(x, PAPER_GROUND_Y, z)
+}
+
+/** How long the main agent pauses this time. */
+function pauseLength(): number {
+  return PAUSE_S.least + Math.random() * (PAUSE_S.most - PAUSE_S.least)
 }
 
 /** Show the figure at a fraction of its status's opacity: all of it, or less as it fades. */

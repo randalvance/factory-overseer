@@ -7,13 +7,14 @@ with `assetBase="/factory-overseer/"`.
 
 ## Inventory and terms
 
-Paths below are relative to this directory. There are 22 runtime art files;
+Paths below are relative to this directory. There are 23 runtime art files;
 notices and provenance records are additional files.
 
 | Files | Count | Source and terms |
 | --- | ---: | --- |
 | `billboards/*.svg` | 7 | Six paper room/example graphics and one pixel crate graphic authored for Factory Overseer, MIT under the notice below. |
 | `pets/*.svg` | 10 | Five animal illustrations and their five pose sheets authored for Factory Overseer, MIT under the notice below. |
+| `pets/jarvis-sheet.png` | 1 | Jarvis, the paper puppy the main agent wears, drawn with Qwen Image 2.1 on Comfy Cloud for Primepaw, MIT under the notice below. |
 | `models/pieces.glb` | 1 | Floor, belt, workstation and hall pieces authored for Factory Overseer with Blender, MIT under the notice below. Embedded textures are authored with the pieces. |
 | `models/room-themes/*.glb` | 4 | Generated room furnishings; **excluded from MIT**. Preserve [their notice](models/room-themes/NOTICE.md) and [provenance record](models/room-themes/provenance.json). Provider terms apply. |
 

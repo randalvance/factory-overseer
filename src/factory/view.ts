@@ -17,6 +17,7 @@ import { type Motions, motionsFor } from "~/floor/motion"
 import type { Layout, Rect } from "~/floor/types"
 import { type AgentStatus, type StatusStyle } from "~/model/status"
 import { comingsAndGoings, type ComingsAndGoings } from "~/floor/walk"
+import type { Whereabouts } from "~/floor/roam"
 import type { Agent, Snapshot, Subject } from "~/model/types"
 import { type Dressed, type Settling, createAgents } from "./agents"
 import { BELT_SPEED, createBoxes } from "./boxes"
@@ -83,6 +84,8 @@ export interface FactoryViewOptions {
   onClick?: (picked: Subject | undefined) => void
   /** Called with the task whose box has just come to rest at the end of its ride. */
   onLanded?: (taskId: string) => void
+  /** Called with where the main agent is going or pausing as that changes. */
+  onRoam?: (id: string, whereabouts: Whereabouts) => void
 }
 
 /** The longest step the clock may take between frames, so a tab coming back does not leap. */
@@ -142,7 +145,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   let disposed = false
   const waitingForSlide: (() => void)[] = []
   const finishSlideWaits = () => waitingForSlide.splice(0).forEach((done) => done())
-  const agents = createAgents(scene)
+  const agents = createAgents(scene, { onRoam: options.onRoam })
   const boxes = createBoxes(scene)
   let speed = 1
   /** The box the camera keeps under the middle of the screen, until the overseer pans. */
@@ -332,7 +335,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   async function dressed(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<(Dressed & { themes: ReadonlyMap<string, ResolvedRoomTheme> }) | undefined> {
     const call = ++generation
     const [pets, pieces] = await Promise.all([
-      petsOf(layout, snapshot.agents, styling.petAssets, petTextures),
+      petsOf(layout, snapshot, styling.petAssets, petTextures),
       loadPieces(`${assetBase}assets/models/pieces.glb`),
     ])
     if (disposed || call !== generation) return undefined
@@ -450,14 +453,19 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   }
 }
 
-/** Load a pet for every agent with a station; failed loads use the drawn paper fallback. */
+/** Load a pet for every agent with a station, and the main agent's; failed loads use the drawn paper fallback. */
 async function petsOf(
   layout: Layout,
-  agents: Agent[],
+  snapshot: Pick<Snapshot, "agents" | "mainAgent">,
   petAssets: PetAssets | undefined,
   pets: ReturnType<typeof createPetTextures>,
 ): Promise<Map<string, THREE.Texture>> {
-  const standing = stationed(layout, agents).flatMap(({ agent }) => agent ? [agent] : [])
-  const textures = await Promise.all(standing.map((agent) => pets.get(petAssetFor(agent, petAssets))))
+  const standing: Agent[] = stationed(layout, snapshot.agents).flatMap(({ agent }) => agent ? [agent] : [])
+  const wearing = standing.map((agent) => petAssetFor(agent, petAssets))
+  if (snapshot.mainAgent) {
+    standing.push(snapshot.mainAgent)
+    wearing.push(petAssetFor(snapshot.mainAgent, petAssets, true))
+  }
+  const textures = await Promise.all(wearing.map((asset) => pets.get(asset)))
   return new Map(standing.flatMap((agent, i) => textures[i] ? [[agent.id, textures[i]!]] : []))
 }

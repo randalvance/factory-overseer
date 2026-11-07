@@ -86,6 +86,13 @@ _Avoid_: Offline, unassigned
 A worker represented by a pet, with a role and membership in one room.
 _Avoid_: Bot, character, session
 
+**Main Agent**:
+The host's own agent, the one it runs everything through. It belongs to no
+room and takes no station: its pet roams the floor between the rooms, works
+or asks for a human where it stands, and never holds a task. A snapshot has
+at most one.
+_Avoid_: Orchestrator, supervisor, root agent
+
 **Role**:
 The kind of work an agent does, such as implementer, reviewer or QA. Every
 agent has exactly one role.
@@ -245,6 +252,22 @@ _Avoid_: Wardrobe, character index
 The bundled pet artwork available to agents without a host override.
 _Avoid_: Wardrobe, agent roster
 
+**Open Paper**:
+The tiles outside every room, belt and the truck, the road and the gaps
+between the rooms included, where the main agent may walk.
+_Avoid_: Lawn, grass, free tiles
+
+**Spot**:
+A tile of the open paper the main agent pauses at: beside a room's door,
+in front of a bench column, before the hopper or by the delivery truck.
+_Avoid_: Station, waypoint
+
+**Stroll**:
+The main agent's walk from where it is to a spot, over the open paper, going
+straight for as long as it can; after a pause there it strolls to a spot by
+another room.
+_Avoid_: Way in, ride, patrol
+
 **Bubble**:
 The text over an agent's head showing its activity or a status default.
 _Avoid_: Billboard, tooltip
@@ -281,5 +304,6 @@ _Avoid_: Vacant, deleted
 
 **Control Panel**:
 The example host's controls for routing tasks, answering human requests,
-reporting completion, changing rooms and choosing art.
+reporting completion, changing rooms, choosing art, and adding the main
+agent and saying what it is doing.
 _Avoid_: Factory HUD, automatic runtime

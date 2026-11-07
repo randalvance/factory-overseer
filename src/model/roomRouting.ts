@@ -55,6 +55,7 @@ export function roomSnapshotForView(state: RoomFactoryState): Snapshot {
   return {
     humanNeededAgentIds: [...humanNeededAgentIds],
     agents: state.snapshot.agents,
+    ...(state.snapshot.mainAgent ? { mainAgent: state.snapshot.mainAgent } : {}),
     assignments: Object.fromEntries(state.snapshot.tasks.flatMap((task) =>
       task.at.kind === "room" && task.at.assignment ? [[task.id, task.at.assignment]] : [])),
     tasks: state.snapshot.tasks.map((task) => ({
