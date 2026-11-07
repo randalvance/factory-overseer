@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install Dev Container CLI
+        run: npm install -g @devcontainers/cli@0.87.0
+
+      - name: Start devcontainer
+        run: devcontainer up --mount-git-worktree-common-dir --workspace-folder .
+
+      - name: Typecheck
+        run: devcontainer exec --workspace-folder . bun run typecheck
+
+      - name: Unit tests
+        run: devcontainer exec --workspace-folder . bun run test
+
+      - name: Production demo build
+        run: devcontainer exec --workspace-folder . bun run build
+
+      - name: Package verification
+        run: devcontainer exec --workspace-folder . bun run test:package
