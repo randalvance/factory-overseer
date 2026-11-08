@@ -30,6 +30,14 @@ update fails validation. `RoomFactory` is the sole public factory component.
 onHumanNeeded is optional. It reports accepted active requests to your host;
 the factory never supplies an answer or decides when to resume work.
 
+onPick is optional. It is called on every click on the floor with the
+`Subject` the click picked: `{ agent: id }` for an agent or the main agent,
+`{ task: id }` for a task's box, or `undefined` for open floor. The factory
+still opens or closes its own card, and clicking a box still follows it.
+The handle's `inspect` and `focus` do not call it, because the host asked
+for those itself. Like onTaskLanded, it reports what the overseer saw; it
+never moves work.
+
 ## Package integration and demo acceptance
 
 Import `RoomFactory`, `RoomFactoryProps`, `FactoryHandle`, room types,
