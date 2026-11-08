@@ -11,6 +11,8 @@ import { themesForLayout } from "./themesForLayout"
 import { createRoomThemeAssets } from "./roomThemeAssets"
 import { createRoomBillboardAssets } from "./roomBillboardAssets"
 import { PAPER_GRASS_COLOR } from "./paperGround"
+import { paperBiome } from "./paperBiomes"
+import type { Biome } from "~/model/biomes"
 import { createPaperSurfaces } from "./paperMaterial"
 import { roomGeometryChanged, stationed } from "~/floor/layout"
 import { type Motions, motionsFor } from "~/floor/motion"
@@ -27,7 +29,8 @@ import { batchPaperDrawing, unbatchPaperDrawing, createBatchRetirement, disposeM
 import { paperPieces } from "./paper"
 import { type Pieces, type BeltTextures, loadPieces } from "./models"
 import { nearer } from "./picking"
-import { BOX_SIZE, halo } from "./pieces"
+import { BOX_SIZE, halo, hopperBounds, hopperGlow, hopperRim } from "./pieces"
+import { type HopperDragState, attachHopperDrop } from "./hopperDrop"
 import { type Slide, startSlide } from "./slide"
 import { createPetTextures, petAssetFor, type PetAssets } from "./petAssets"
 
@@ -65,6 +68,8 @@ export interface Styling {
   petAssets?: PetAssets
   /** What each status looks like, resolved. */
   styles: Readonly<Record<AgentStatus, StatusStyle>>
+  /** The outdoor paper around the rooms; grass when not given. */
+  biome?: Biome
 }
 
 export interface RenderMetrics {
@@ -86,7 +91,20 @@ export interface FactoryViewOptions {
   onLanded?: (taskId: string) => void
   /** Called with where the main agent is going or pausing as that changes. */
   onRoam?: (id: string, whereabouts: Whereabouts) => void
+  /** Lets a host's HTML5 drag be let go over the hopper. Without it the hopper takes no drags. */
+  hopperDrop?: HopperDropOptions
 }
+
+/** How the hopper takes a host's drags. */
+export interface HopperDropOptions {
+  /** Whether a drag carrying these data types may be let go over the hopper. */
+  accepts(types: readonly string[]): boolean
+  /** An accepted drag was let go over the hopper. Its data can be read only during this call. */
+  drop(dataTransfer: DataTransfer): void
+}
+
+/** A snapshot's sheets and pieces, with the themes and the biome it is drawn in. */
+type Ready = Dressed & { themes: ReadonlyMap<string, ResolvedRoomTheme>; biome: Biome }
 
 /** The longest step the clock may take between frames, so a tab coming back does not leap. */
 const MAX_FRAME_S = 0.1
@@ -102,6 +120,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   const billboardAssets = createRoomBillboardAssets(() => { sceneryPaintPending = true }, assetBase)
   let shownThemes: ReadonlyMap<string, ResolvedRoomTheme> | undefined
   let shownPieces: Pieces | undefined
+  let shownBiome: Biome = "grass"
   const canvas = document.createElement("canvas")
   mount.append(canvas)
 
@@ -156,6 +175,10 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   const ring = halo()
   scene.add(ring)
   const raycaster = new THREE.Raycaster()
+  /** Lit around the hopper's rim while a host's drag is armed over the canvas, and brighter over the hopper. */
+  const glow = hopperGlow()
+  scene.add(glow)
+  let hopperDrag: HopperDragState = "none"
 
   /** Cache the fitted zoom only on initial framing and explicit Fit all. */
   function fitPose() {
@@ -207,6 +230,31 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     raycaster.setFromCamera(new THREE.Vector2((point.x / viewport.width) * 2 - 1, 1 - (point.y / viewport.height) * 2), camera)
     return nearer(boxes.pick(raycaster), agents.pick(raycaster))
   }
+
+  /** Whether the ray through a point of the canvas passes through the hopper. */
+  function overHopper(point: Point): boolean {
+    if (!shown || !visible) return false
+    raycaster.setFromCamera(new THREE.Vector2((point.x / viewport.width) * 2 - 1, 1 - (point.y / viewport.height) * 2), camera)
+    return raycaster.ray.intersectsBox(hopperBounds(shown.intake))
+  }
+
+  /** Light the hopper's rim for the drag as it now is. */
+  function lightHopper(state: HopperDragState) {
+    hopperDrag = state
+    mount.dataset.hopperDrag = state
+    glow.visible = state !== "none" && shown !== undefined
+    if (!shown) return
+    const rim = hopperRim(shown.intake)
+    glow.position.set(rim.x, rim.y + .06, rim.z)
+  }
+
+  const detachHopperDrop = options.hopperDrop ? attachHopperDrop(canvas, {
+    accepts: (types) => shown !== undefined && options.hopperDrop!.accepts(types),
+    over: overHopper,
+    changed: lightHopper,
+    drop: (dataTransfer) => options.hopperDrop!.drop(dataTransfer),
+  }) : () => {}
+  if (options.hopperDrop) mount.dataset.hopperDrag = "none"
 
   /** The point under an agent's feet or a box's underside, where it is this frame. */
   function underfoot(subject: Subject): THREE.Vector3 | undefined {
@@ -283,7 +331,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
       retiredBatches.retire(unbatchPaperDrawing(drawing))
       scene.remove(drawing)
       disposeMeshes(drawing)
-      drawing = drawFactory(shown, shownPieces, shownThemes, themeAssets, billboardAssets)
+      drawing = drawFactory(shown, shownPieces, shownThemes, themeAssets, billboardAssets, shownBiome)
       paperSurfaces.apply(drawing)
       batchPaperDrawing(drawing)
       scene.add(drawing)
@@ -300,6 +348,11 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
       else following = undefined
     }
     placeRing()
+    if (glow.visible) {
+      // Armed, the rim glows faintly; over the hopper it brightens and breathes.
+      const material = glow.material as THREE.MeshBasicMaterial
+      material.opacity = hopperDrag === "over" ? .75 + .2 * Math.sin(time / 160) : .3
+    }
     if (visible) {
       renderer.render(scene, camera)
       if (options.onRenderMetrics && ++metricFrames >= 30) {
@@ -334,7 +387,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   let laidAfresh = false
 
   /** The sheets, icons and pieces a snapshot needs, or nothing once a newer one has been asked for while they loaded. */
-  async function dressed(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<(Dressed & { themes: ReadonlyMap<string, ResolvedRoomTheme> }) | undefined> {
+  async function dressed(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Ready | undefined> {
     const call = ++generation
     const [pets, pieces] = await Promise.all([
       petsOf(layout, snapshot, styling.petAssets, petTextures),
@@ -352,7 +405,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     paper ??= paperPieces(pieces)
     const themes = themesForLayout(layout, styling.roomThemes)
     themeAssets.update(themes.values())
-    return { themes, pets, styles: styling.styles, pieces: paper }
+    return { themes, pets, styles: styling.styles, pieces: paper, biome: styling.biome ?? "grass" }
 
   }
 
@@ -380,7 +433,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   }
 
   /** Draw the layout in place of the one shown, everything standing where it now is at once, or gliding there as the drawing slides. */
-  function draw(layout: Layout, snapshot: Snapshot, ready: Dressed & { themes: ReadonlyMap<string, ResolvedRoomTheme> }, traffic: ComingsAndGoings, settling: Settling): Motions {
+  function draw(layout: Layout, snapshot: Snapshot, ready: Ready, traffic: ComingsAndGoings, settling: Settling): Motions {
     const firstDrawing = shown === undefined
     floor = layout.bounds
     slide?.end()
@@ -389,8 +442,11 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     belts = ready.pieces.belts
     shownPieces = ready.pieces
     shownThemes = ready.themes
+    shownBiome = ready.biome
+    // Past the ground's far edge the clear colour carries the biome on.
+    renderer.setClearColor(paperBiome(ready.biome).ground)
     billboardAssets.update(layout.routing?.configuration.rooms.map((room) => room.billboard) ?? [])
-    drawing = drawFactory(layout, ready.pieces, ready.themes, themeAssets, billboardAssets)
+    drawing = drawFactory(layout, ready.pieces, ready.themes, themeAssets, billboardAssets, ready.biome)
     sceneryPaintPending = false
     paperSurfaces.apply(drawing)
     scene.add(drawing)
@@ -410,6 +466,8 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     if (settling !== "glide") batchPaperDrawing(drawing)
     renderer.shadowMap.needsUpdate = true
     shown = layout
+    // A drag held over the canvas keeps its light on the hopper where it now stands.
+    if (hopperDrag !== "none") lightHopper(hopperDrag)
     laidAfresh = false
     aimCamera()
     // onReady sees the initial frame. Later snapshots render once, in the animation loop.
@@ -424,9 +482,11 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     renderer.setAnimationLoop(null)
     observer.disconnect()
     detachControls()
+    detachHopperDrop()
     slide?.end()
     disposeMeshes(drawing)
     disposeMeshes(ring)
+    disposeMeshes(glow)
     agents.dispose()
     petTextures.dispose()
     paperSurfaces.dispose()

@@ -84,6 +84,27 @@ body,
   cursor: default;
 }
 
+.demo-drag-chips {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+/* Chips the overseer drags onto the outdoor hopper to queue a task there. */
+.demo-drag-chip {
+  font-size: 0.8rem;
+  color: #39464d;
+  background: #fff3c9;
+  border: 1px dashed #c9a24a;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  cursor: grab;
+  user-select: none;
+}
+
+.demo-drag-chip:active {
+  cursor: grabbing;
+}
+
 .demo-note {
   margin: 0;
   padding: 0.5rem 1rem;

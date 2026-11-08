@@ -16,6 +16,7 @@ import { paperRoad, paperRoadFootprint } from "./paperRoad"
 import { paperTruck, paperTruckPlacement } from "./paperTruck"
 import { beltName, carriesRework } from "~/floor/belts"
 import type { Layout } from "~/floor/types"
+import type { Biome } from "~/model/biomes"
 import { type Pieces, isShared } from "./models"
 import { tileKey } from "~/floor/tiles"
 import { trimPaperBeltAtBenches } from "./paperConveyors"
@@ -29,7 +30,7 @@ import { beltTile, bench, containerWalls, door, hopper, pallet } from "./pieces"
  * how far along it is; a bench for its station; a wall for its room; and so
  * on. The same name in the next drawing is the same piece, slid there.
  */
-export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets, billboards?: BillboardAssets): THREE.Group {
+export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets, billboards?: BillboardAssets, biome: Biome = "grass"): THREE.Group {
   const group = new THREE.Group()
   const add = (name: string, piece: THREE.Object3D) => {
     piece.name = name
@@ -38,8 +39,8 @@ export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap
   const truckPlacement = paperTruckPlacement(layout)
   const road = paperRoadFootprint(layout)
   const reserved = [...(truckPlacement ? [truckPlacement.footprint] : []), ...(road ? [road] : [])]
-  add("floor", drawPaperGround(layout, reserved))
-  add("paper-trees", drawPaperTrees(layout, reserved))
+  add("floor", drawPaperGround(layout, reserved, biome))
+  add("paper-trees", drawPaperTrees(layout, reserved, biome))
   const roadPiece = paperRoad(layout)
   if (roadPiece) add("paper-road", roadPiece)
   drawRooms(layout, add, themes, assets, billboards)

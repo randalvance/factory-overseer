@@ -398,8 +398,8 @@ still takes precedence while an agent arrives at its station. Attention
 badges, shared-task labels, picking and arrival movement remain active.
 Pet artwork never changes the host's workflow state.
 
-Paper grass covers the outdoor ground and continues beyond the visible
-scene. Folded tufts leave belts and the loading road clear. Each room has a
+Paper grass covers the outdoor ground by default and continues beyond the
+visible scene. Folded tufts leave belts and the loading road clear. Each room has a
 paper floor pattern chosen by its theme. The demo uses planning graph tiles,
 implementation planks, review checkerboard and deployment loading panels.
 A paper delivery truck waits outside the deployment door; it is
@@ -408,6 +408,25 @@ scenery and does not automatically ship tasks. The host still reports
 frames the rooms and truck, while grass and road continue beyond the view.
 The loading area stays clear as rooms grow or Reorganize.
 
+### Outdoor biome
+
+The optional `biome` prop chooses the outdoor paper around the rooms. It
+is a string so hosts can pass a stored setting directly. `BIOMES` lists
+the known names and `BIOME_LABELS` gives a label for each:
+
+| `biome` | Ground | Grove |
+| --- | --- | --- |
+| `"grass"` (default) | Green cardstock with folded grass tufts | Leafy folded-card trees on kraft trunks |
+| `"desert"` | Sand cardstock with sparse dry scrub | Ribbed paper saguaro cacti on low sand mounds |
+| `"snow"` | White cardstock with cool drifts and frosted tufts | The same trees under white snow caps |
+
+Every biome is procedural: vertex colours and a generated grain texture,
+with no art files and nothing under `assetBase`. Trees stand on the same
+sites in every biome and stay out of Fit All. Rooms, belts, the hopper,
+the road and the truck keep their look. Changing the prop redraws the
+outdoors in place. Tasks, rides and the camera are unaffected. An unknown
+name draws grass and logs a console warning.
+
 ### Outdoor intake and shipping
 
 The configured `kind: "intake"` entry remains required as the logical source
@@ -415,6 +434,33 @@ for task locations and transitions. In paper mode it draws as an outdoor
 hopper with one outgoing belt, without a room enclosure or default agent.
 The demo branches downstream to planning or implementation. Hosts can still
 supply intake agents or incoming transitions when their workflow requires it.
+
+#### Dropping tasks on the hopper
+
+Pass `onHopperDrop` to make the hopper a drop target for the host's own
+HTML5 drags, such as a task card dragged out of a host list. Without it
+the hopper takes no drags. `acceptsHopperDrag(types)` decides which drags
+count, by their `DataTransfer.types`. It defaults to every drag; give your
+drag a custom type so files or links dragged over the page are left alone.
+
+While an accepted drag is over the floor, the hopper's rim glows faintly
+and the drop cursor says no. Over the hopper, the rim brightens and the
+cursor offers a copy. The canvas's container exposes this state as
+`data-hopper-drag`, set to `none`, `armed` or `over`. Letting go over the
+hopper calls `onHopperDrop` with a `HopperDrop`:
+
+```ts
+interface HopperDrop {
+  roomId: string                            // the configured intake room
+  data: Readonly<Record<string, string>>    // every string type, read at the drop
+  dataTransfer: DataTransfer                // for files; readable only during the call
+}
+```
+
+The factory queues nothing itself (ADR 0014). To queue the task, publish
+a snapshot with it at `{ kind: "room", roomId }`; its box drops out of the
+hopper onto the pile like any other new task. A drop elsewhere on the
+floor, or a drag the host does not accept, calls nothing.
 
 Deployment keeps its logical ID when a task becomes `shipped`. The visual
 ride continues from the deployment room’s left-side conveyor into the parked

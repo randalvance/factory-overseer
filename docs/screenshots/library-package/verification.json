@@ -1,8 +1,8 @@
 {
   "package": "factory-overseer@0.0.0",
-  "bytes": 2958091,
-  "unpackedBytes": 3999261,
-  "files": 110,
+  "bytes": 2965541,
+  "unpackedBytes": 4017717,
+  "files": 114,
   "runtimeArtFiles": 23,
   "checks": [
     "tarball installed outside repository",

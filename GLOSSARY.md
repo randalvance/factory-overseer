@@ -40,7 +40,9 @@ shown as an outdoor hopper.
 _Avoid_: Spawn, inbox
 
 **Hopper**:
-The funnel over the intake that a new box drops out of onto the pile.
+The funnel over the intake that a new box drops out of onto the pile. A
+host may let the overseer drag a task from its own UI onto the hopper; the
+host then queues the task.
 _Avoid_: Spawner, chute
 
 **Deployment**:
@@ -234,6 +236,12 @@ _Avoid_: Room, task
 A room's choice of flooring, furniture and decoration, independent of its
 role. Presets include research lab, foundry, factory and fabrication plant.
 _Avoid_: Workflow, appearance mode
+
+**Biome**:
+The outdoor paper around the rooms: grass, desert or snowy plains. It sets
+the ground, its tufts and the grove's trees, cacti or snow-capped trees,
+and never the rooms or the work.
+_Avoid_: Weather, environment theme
 
 **Billboard**:
 A physical paper sign identifying a room, with a configurable image and the
