@@ -3,7 +3,7 @@ import { exampleRooms } from "~/model/roomExamples"
 import { validateRoomUpdate, roomRoute } from "~/model/roomRouting"
 import type { RoomFactoryState } from "~/model/types"
 import { layoutConfiguredRooms } from "./configuredRooms"
-import { motionsFor, restingTileAfterSlide, restingTiles, tileAfterSlide } from "./motion"
+import { motionsFor, restingTileAfterSlide, tileAfterSlide } from "./motion"
 
 function state(roomId = "intake"): RoomFactoryState {
   return {
@@ -26,7 +26,7 @@ it.each([["intake", "planning"], ["intake", "implementation"], ["planning", "imp
   const next = move(original, to)
   expect(validateRoomUpdate(original, next)).toEqual([])
   const after = layoutConfiguredRooms(next, before)
-  const motion = motionsFor(after, restingTiles(before), before)
+  const motion = motionsFor(after, slidResting(before, after), before)
   expect(motion.unrouted).toEqual([])
   expect(motion.toPlay).toHaveLength(1)
   const path = motion.toPlay[0]!.path
@@ -52,10 +52,10 @@ it("waits in an unstaffed destination and then assigns its first arriving agent"
   waiting.snapshot.tasks[0]!.at = { kind: "room", roomId: "planning" }
   const queued = layoutConfiguredRooms(waiting, before)
   expect(queued.boxes[0]!.tile).toEqual(queued.routing!.queues.planning)
-  expect(motionsFor(queued, restingTiles(before), before).unrouted).toEqual([])
+  expect(motionsFor(queued, slidResting(before, queued), before).unrouted).toEqual([])
   const staffed = move(original, "planning")
   const assigned = layoutConfiguredRooms(staffed, queued)
-  expect(motionsFor(assigned, restingTiles(queued), queued).unrouted).toEqual([])
+  expect(motionsFor(assigned, slidResting(queued, assigned), queued).unrouted).toEqual([])
 })
 
 it("shares room connections across many agents and preserves queues", () => {
@@ -70,7 +70,7 @@ it("shares room connections across many agents and preserves queues", () => {
   const completed = structuredClone(value)
   completed.snapshot.tasks.shift()
   const next = layoutConfiguredRooms(completed, layout)
-  expect(motionsFor(next, restingTiles(layout), layout).unrouted).toEqual([])
+  expect(motionsFor(next, slidResting(layout, next), layout).unrouted).toEqual([])
 })
 
 it("ships from deployment and refuses to reopen shipped work", () => {
@@ -79,7 +79,7 @@ it("ships from deployment and refuses to reopen shipped work", () => {
   const shipped = structuredClone(value)
   shipped.snapshot.tasks[0]!.at = { kind: "shipped", roomId: "deployment" }
   const after = layoutConfiguredRooms(shipped, before)
-  expect(motionsFor(after, restingTiles(before), before).unrouted).toEqual([])
+  expect(motionsFor(after, slidResting(before, after), before).unrouted).toEqual([])
   expect(validateRoomUpdate(shipped, value)[0]!.message).toContain("terminal")
 })
 
@@ -88,7 +88,7 @@ it("remaps in-flight boxes after growth, keeping the selected connection", () =>
   const before = layoutConfiguredRooms(value)
   const next = move(value, "implementation")
   const riding = layoutConfiguredRooms(next, before)
-  const path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
+  const path = motionsFor(riding, slidResting(before, riding), before).toPlay[0]!.path
   const current = path[Math.floor(path.length / 2)]!
   next.snapshot.agents.push(...Array.from({ length: 4 }, (_, i) => ({ id: "router-" + i, name: "Router", role: "router", roomId: "intake", status: "idle" as const })))
   const grown = layoutConfiguredRooms(next, riding, 24, new Set(["task"]))
@@ -104,7 +104,7 @@ it("retains an obsolete connection until its box lands, then removes it", () => 
   const before = layoutConfiguredRooms(value)
   const next = move(value, "implementation")
   const riding = layoutConfiguredRooms(next, before)
-  const path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
+  const path = motionsFor(riding, slidResting(before, riding), before).toPlay[0]!.path
   const current = path[Math.floor(path.length / 2)]!
   next.configuration.transitions = next.configuration.transitions.filter((edge) => edge.id !== "skip-plan")
   const retained = layoutConfiguredRooms(next, riding, 24, new Set(["task"]))
@@ -126,7 +126,7 @@ it("handles a configured intermediate room and a self-loop without renderer chan
   )
   const before = layoutConfiguredRooms(value)
   const after = layoutConfiguredRooms(move(value, "deployment"), before)
-  expect(motionsFor(after, restingTiles(before), before).unrouted).toEqual([])
+  expect(motionsFor(after, slidResting(before, after), before).unrouted).toEqual([])
   expect(after.routing!.connections).toHaveLength(8)
 })
 
@@ -135,7 +135,7 @@ it("keeps retired IDs stable across snapshots and handles an edge retargeted und
   const before = layoutConfiguredRooms(original)
   const next = move(original, "implementation")
   const riding = layoutConfiguredRooms(next, before)
-  const motion = motionsFor(riding, restingTiles(before), before).toPlay[0]!
+  const motion = motionsFor(riding, slidResting(before, riding), before).toPlay[0]!
   next.configuration.transitions.find((edge) => edge.id === "skip-plan")!.to = "review"
   const retained = layoutConfiguredRooms(next, riding, 24, new Set(["task"]))
   const again = layoutConfiguredRooms(next, retained, 24, new Set(["task"]))
@@ -155,7 +155,7 @@ it("moves a task out while atomically removing its old room, retaining the outgo
   expect(validateRoomUpdate(original, next)).toEqual([])
   const after = layoutConfiguredRooms(next, before)
   expect(after.rooms!.some((room) => room.id === "room:planning")).toBe(true)
-  expect(motionsFor(after, restingTiles(before), before).unrouted).toEqual([])
+  expect(motionsFor(after, slidResting(before, after), before).unrouted).toEqual([])
   const settled = layoutConfiguredRooms(next, after)
   expect(settled.rooms!.some((room) => room.id === "room:planning")).toBe(false)
 })
@@ -165,7 +165,7 @@ it.each([["intake", "planning"], ["intake", "implementation"], ["implementation"
   const before = layoutConfiguredRooms(original)
   const next = move(original, to)
   const riding = layoutConfiguredRooms(next, before)
-  const path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
+  const path = motionsFor(riding, slidResting(before, riding), before).toPlay[0]!.path
   next.snapshot.agents.push(...Array.from({ length: 6 }, (_, i) => ({ id: "growth-" + i, name: "Growth", role: "router", roomId: "intake", status: "idle" as const })))
   const grown = layoutConfiguredRooms(next, riding, 24, new Set(["task"]))
   for (const tile of path) {
@@ -201,7 +201,7 @@ it("keeps every configured handoff and shipping continuous with three columns", 
     const value = state(transition.from)
     const before = layoutConfiguredRooms(value, undefined, 28)
     const after = layoutConfiguredRooms(move(value, transition.to), before)
-    const motions = motionsFor(after, restingTiles(before), before)
+    const motions = motionsFor(after, slidResting(before, after), before)
     expect(motions.unrouted, transition.id).toEqual([])
     expect(motions.toPlay, transition.id).toHaveLength(1)
     const path = motions.toPlay[0]!.path
@@ -213,7 +213,7 @@ it("keeps every configured handoff and shipping continuous with three columns", 
   const before = layoutConfiguredRooms(value, undefined, 28)
   value.snapshot.tasks[0]!.at = { kind: "shipped", roomId: "deployment" }
   const after = layoutConfiguredRooms(value, before)
-  expect(motionsFor(after, restingTiles(before), before).unrouted).toEqual([])
+  expect(motionsFor(after, slidResting(before, after), before).unrouted).toEqual([])
   expect(after.boxes[0]!.tile).toEqual(after.container.stacks[0])
 })
 
@@ -257,7 +257,7 @@ it.each([24, 28, 37])("keeps mirrored and centered rooms, stations and routes in
   for (const transition of exampleRooms.transitions) {
     const before = layoutConfiguredRooms(state(transition.from), undefined, width)
     const after = layoutConfiguredRooms(state(transition.to), before)
-    expect(motionsFor(after, restingTiles(before), before).unrouted, transition.id).toEqual([])
+    expect(motionsFor(after, slidResting(before, after), before).unrouted, transition.id).toEqual([])
   }
 })
 
@@ -266,7 +266,7 @@ it("keeps every in-flight position routable when a centered row fills", () => {
   const before = layoutConfiguredRooms(value, undefined, 28)
   const next = move(value, "deployment")
   const riding = layoutConfiguredRooms(next, before)
-  const path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
+  const path = motionsFor(riding, slidResting(before, riding), before).toPlay[0]!.path
   next.configuration.rooms.push({ id: "qa", label: "QA", role: "qa", kind: "work" })
   next.configuration.transitions.push({ id: "review-qa", from: "review", to: "qa", outcome: "needs-qa" })
   const grown = layoutConfiguredRooms(next, riding, 28, new Set(["task"]))
@@ -303,17 +303,17 @@ it.each(["implementation", "review"])("returns shared %s work to another member 
   const reassigned = structuredClone(value)
   reassigned.snapshot.tasks[0]!.at = { kind: "room", roomId, assignment: { agentIds: ["second"], completedAgentIds: [] } }
   const after = layoutConfiguredRooms(reassigned, before)
-  expect(motionsFor(after, restingTiles(before), before).unrouted).toEqual([])
+  expect(motionsFor(after, slidResting(before, after), before).unrouted).toEqual([])
   const queued = structuredClone(value)
   queued.snapshot.tasks[0]!.at = { kind: "room", roomId }
   const waiting = layoutConfiguredRooms(queued, after)
-  const motion = motionsFor(waiting, restingTiles(after), after)
+  const motion = motionsFor(waiting, slidResting(after, waiting), after)
   expect(motion.unrouted).toEqual([])
-  const room = waiting.rooms!.find((room) => room.id === `room:${roomId}`)!
-  expect(motion.toPlay[0]!.path.some((tile) => tile.y === room.rect.y + 2)).toBe(true)
-  expect(motion.toPlay[0]!.path.every((tile) => tile.y >= room.rect.y && tile.y < room.rect.y + room.rect.h)).toBe(true)
+  const buffer = waiting.rooms!.find((room) => waiting.routing!.buffers[room.id] === roomId)!
+  expect(buffer.kind).toBe("staging")
+  expect(motion.toPlay[0]!.path.at(-1)).toEqual(waiting.boxes[0]!.tile)
   const assignedAgain = layoutConfiguredRooms(value, waiting)
-  expect(motionsFor(assignedAgain, restingTiles(waiting), waiting).unrouted).toEqual([])
+  expect(motionsFor(assignedAgain, slidResting(waiting, assignedAgain), waiting).unrouted).toEqual([])
 })
 
 it("keeps an in-flight same-room return on its internal return during growth", () => {
@@ -323,7 +323,7 @@ it("keeps an in-flight same-room return on its internal return during growth", (
   const queued = structuredClone(value)
   queued.snapshot.tasks[0]!.at = { kind: "room", roomId: "review" }
   const riding = layoutConfiguredRooms(queued, before)
-  const path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
+  const path = motionsFor(riding, slidResting(before, riding), before).toPlay[0]!.path
   queued.snapshot.agents.push(...Array.from({ length: 4 }, (_, i) => ({ id: `new-${i}`, name: "New", roomId: "planning", role: "planner", status: "idle" as const })))
   const grown = layoutConfiguredRooms(queued, riding, 28, new Set(["task"]))
   for (const tile of path) {
@@ -365,7 +365,7 @@ it("packs an outdoor intake beside the work rooms without reserving a full room"
   ])
   for (const destination of ["planning", "implementation"]) {
     const after = layoutConfiguredRooms(move(value, destination), floor)
-    expect(motionsFor(after, restingTiles(floor), floor).unrouted, destination).toEqual([])
+    expect(motionsFor(after, slidResting(floor, after), floor).unrouted, destination).toEqual([])
   }
 })
 
@@ -376,7 +376,7 @@ it("keeps outdoor intake rides on belts when an explicit intake worker arrives",
   const before = layoutConfiguredRooms(value, undefined, 28)
   const next = move(value, "implementation")
   const riding = layoutConfiguredRooms(next, before)
-  const path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
+  const path = motionsFor(riding, slidResting(before, riding), before).toPlay[0]!.path
   next.snapshot.agents.push({ id: "router", name: "Router", role: "router", roomId: "intake", status: "idle" })
   const staffed = layoutConfiguredRooms(next, riding, 28, new Set(["task"]))
   expect(staffed.rooms!.find((room) => room.kind === "intake")!.rect.w).toBe(7)
@@ -408,8 +408,13 @@ it("starts the outdoor intake with one outward conveyor and branches downstream"
   expect(floor.belts.filter((belt) => belt.id.startsWith("room:intake:")).map((belt) => belt.id)).toEqual(["room:intake:source"])
   for (const destination of ["planning", "implementation"]) {
     const next = layoutConfiguredRooms(move(value, destination), floor)
-    const motion = motionsFor(next, restingTiles(floor), floor)
+    const motion = motionsFor(next, slidResting(floor, next), floor)
     expect(motion.unrouted, destination).toEqual([])
     expect(motion.toPlay[0]!.path.slice(0, 2)).toEqual([source, { x: source.x + 1, y: source.y }])
   }
 })
+
+/** The view glides the old resting places before starting a new ride. */
+function slidResting(previous: ReturnType<typeof layoutConfiguredRooms>, next: ReturnType<typeof layoutConfiguredRooms>) {
+  return Object.fromEntries(previous.boxes.map((box) => [box.taskId, restingTileAfterSlide(previous, next, box.taskId) ?? box.tile]))
+}

@@ -72,6 +72,11 @@ for the focused acceptance command, current screenshots and measured limits.
    Try **Theme**, **Room graphic**, **Outdoors** (grass, desert or snowy
    plains), **Unstaff planning** and **Remove bypass**.
    Use **Fit all** after growth; **Reorganize** compacts vacant stations.
+8. Choose **Queue 10 planned tasks** to show Implementation's staging area.
+   Boxes stack on the floor beside a T-shaped conveyor spur. Select a queued
+   task and choose **Assign available agent**: a forklift lifts the box back
+   onto the spur tip, then the belt takes it to the station. Staging disappears
+   after its final boxes leave; both appearance and removal relayout the floor.
 
 On narrow screens, open **Rooms and appearance** or **View and assistance**
 for the extra controls. The task actions stay visible. Human attention appears

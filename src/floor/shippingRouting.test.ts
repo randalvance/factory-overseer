@@ -2,7 +2,7 @@ import { expect, it } from "vitest"
 import { exampleRooms } from "~/model/roomExamples"
 import type { RoomFactoryState } from "~/model/types"
 import { layoutConfiguredRooms } from "./configuredRooms"
-import { motionsFor, restingTiles, tileAfterSlide } from "./motion"
+import { restingTileAfterSlide, motionsFor, restingTiles, tileAfterSlide } from "./motion"
 import type { Layout, Tile } from "./types"
 
 function state(extraRooms = 0, assigned = true): RoomFactoryState {
@@ -52,7 +52,7 @@ it.each([true, false])("ships from deployment assigned=%s through its left-side 
     const before = layoutConfiguredRooms(original, undefined, width)
     const after = layoutConfiguredRooms(shipped(original), before)
     assertDockClear(after)
-    const motions = motionsFor(after, restingTiles(before), before)
+    const motions = motionsFor(after, slidResting(before, after), before)
     expect(motions.unrouted).toEqual([])
     expect(motions.toPlay).toHaveLength(2)
     for (const motion of motions.toPlay) {
@@ -70,7 +70,7 @@ it("keeps the truck and real loading conveyor clear when more rooms fill its for
     try { before = layoutConfiguredRooms(original, undefined, width) } catch (error) { throw new Error(`width ${width}, rooms ${count}`, { cause: error }) }
     const after = layoutConfiguredRooms(shipped(original), before)
     assertDockClear(after)
-    expect(motionsFor(after, restingTiles(before), before).unrouted, `width ${width}, rooms ${count}`).toEqual([])
+    expect(motionsFor(after, slidResting(before, after), before).unrouted, `width ${width}, rooms ${count}`).toEqual([])
   }
 })
 
@@ -80,7 +80,7 @@ it("keeps every shipping position routable through growth and Reorganize", () =>
     const before = layoutConfiguredRooms(original, undefined, 28)
     const next = shipped(original)
     const riding = layoutConfiguredRooms(next, before)
-    const motions = motionsFor(riding, restingTiles(before), before)
+    const motions = motionsFor(riding, slidResting(before, riding), before)
     next.snapshot.agents.push(...Array.from({ length: 4 }, (_, i) => ({ id: `extra-${i}`, name: "Extra", role: "deployer", roomId: "deployment", status: "idle" as const })))
     if (compact) next.configuration.rooms.reverse()
     let grown: Layout
@@ -127,7 +127,7 @@ it("keeps terminal rides from every grid row on real belts when deployment compa
     const before = layoutConfiguredRooms(original, undefined, width)
     const next = shipped(original)
     const riding = layoutConfiguredRooms(next, before)
-    const motions = motionsFor(riding, restingTiles(before), before)
+    const motions = motionsFor(riding, slidResting(before, riding), before)
     next.snapshot.agents = next.snapshot.agents.filter((agent) => agent.roomId !== "deployment" || agent.id === "deployment-agent")
     const compacted = layoutConfiguredRooms(next, riding, width, new Set(["task-0", "task-1"]), true)
     for (const motion of motions.toPlay) for (const tile of motion.path) {
@@ -149,7 +149,7 @@ it.each([24, 28])("separates nonshipping routes from truck loading through growt
     const next = structuredClone(original)
     next.snapshot.tasks[0]!.at = { kind: "room", roomId: "qa-1", assignment: { agentIds: ["qa-1-agent"], completedAgentIds: [] } }
     const riding = layoutConfiguredRooms(next, before)
-    const path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
+    const path = motionsFor(riding, slidResting(before, riding), before).toPlay[0]!.path
     const shared = path.filter((tile) => riding.shippingDock!.connectorPath.some((point) => point.x === tile.x && point.y === tile.y))
     expect(shared).toEqual([])
     next.snapshot.agents.push(...Array.from({ length: 6 }, (_, i) => ({ id: `new-${i}`, name: "New", roomId: growingRoom,
@@ -164,3 +164,8 @@ it.each([24, 28])("separates nonshipping routes from truck loading through growt
     }
   }
 })
+
+/** The view glides the old resting places before starting a new ride. */
+function slidResting(previous: ReturnType<typeof layoutConfiguredRooms>, next: ReturnType<typeof layoutConfiguredRooms>) {
+  return Object.fromEntries(previous.boxes.map((box) => [box.taskId, restingTileAfterSlide(previous, next, box.taskId) ?? box.tile]))
+}

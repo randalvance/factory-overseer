@@ -145,8 +145,20 @@ The terminal state of a task reported by the host and shown in the truck.
 _Avoid_: Done, arrived, completed assignment
 
 **Queue**:
-Boxes waiting on a room's feeder or the belt into a station.
+Tasks waiting to be assigned or to reach an occupied station, shown as boxes
+in the destination's staging area. Intake keeps its own pile.
 _Avoid_: Backlog, pile
+
+**Staging Area**:
+A room where boxes stack on the floor while waiting for work in a destination
+room, connected to the tip of a T-shaped conveyor spur. It appears with a
+queue and disappears after its boxes leave.
+_Avoid_: Work room, human review room, deployment
+
+**Forklift**:
+The vehicle that lifts a queued box from its floor stack back onto the
+staging conveyor tip when the host assigns work.
+_Avoid_: Agent, worker
 
 **Pile**:
 Boxes waiting at intake before a belt carries them onward.

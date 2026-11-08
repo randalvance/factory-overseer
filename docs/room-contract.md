@@ -615,3 +615,21 @@ GLB under 1 MB and the four-preset asset pack under 8 MB at publication.
 Use `onRenderMetrics` and the paper browser fixtures to compare frame time,
 draw calls and texture memory before accepting final art. Check the mixed
 four-room view and an expanded seven-agent room at the fixed camera angle.
+
+## Automatic staging areas
+
+Report a ready task at its destination room without an assignment to buffer
+it (for example, `{ kind: "room", roomId: "implementation" }`). Tasks behind
+the first task assigned to the same anchor agent are also buffered. Intake
+continues to use its hopper pile. The factory creates a walled staging room
+per queued destination, with boxes in five ground-level stack positions.
+A T-shaped conveyor spur drops arrivals onto the floor. One forklift per
+area returns assigned boxes to the same spur tip before they ride onward.
+No staging configuration, extra host room or transition is required.
+
+The host chooses when an agent has capacity and publishes an assignment.
+Agent-count differences alone do not create a queue. Staging areas appear
+only with queued work, remain while departing boxes travel out, then disappear
+automatically after landing. These changes relayout rooms and belts using the
+existing glide animation. Logical task destinations, trails and counts remain
+those supplied by the host.

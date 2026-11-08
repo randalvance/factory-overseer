@@ -45,6 +45,7 @@ export function roomBillboard(room: RoomFootprint, placement: ReturnType<typeof 
 
 export function roomIdentity(room: RoomFootprint) {
   const name = room.id.toLowerCase()
+  if (room.kind === "staging") return { color: 0xc5ad82, ink: "#9b8055", icon: "parcel" }
   if (room.kind === "deployment") return { color: 0xc98366, ink: "#b97055", icon: "truck" }
   if (name.includes("plan") || name.includes("research")) return { color: 0x82a8bd, ink: "#618fae", icon: "bulb" }
   if (name.includes("implement") || name.includes("foundry")) return { color: 0xe2b45d, ink: "#d5a145", icon: "hammer" }

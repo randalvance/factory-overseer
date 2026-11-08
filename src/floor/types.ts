@@ -168,3 +168,11 @@ export interface Layout {
   /** The tasks this layout had no place for: at an agent with no station, or at a staging area that is switched off. */
   unplaced: { taskIds: string[] }
 }
+
+/** A floor buffer inside a staging room beside a conveyor T, owned by its work destination. */
+export interface BufferStorage {
+  tip: Tile
+  /** Floor tiles reachable from the spur tip, with no conveyor underneath. */
+  floor: Rect
+  piles: Tile[]
+}

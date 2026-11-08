@@ -12,7 +12,7 @@ const axis = (direction: Direction) => direction === "e" || direction === "w" ? 
  * Deployment is physically last, so room traffic can stay above its outlet
  * and cannot join the loading conveyor before passing a deployment station.
  */
-export function routeRoomConnections(rooms: readonly RoomFootprint[], transitions: readonly RoomTransition[], width: number, terminalId?: string): ConnectionPath[] {
+export function routeRoomConnections(rooms: readonly RoomFootprint[], transitions: readonly RoomTransition[], width: number, terminalId?: string, sourceInlets: ReadonlySet<string> = new Set()): ConnectionPath[] {
   if (!Number.isInteger(width) || width < 1) throw new Error("Exterior room routing needs a positive integer width")
   if (!transitions.length) return []
   // Retired endpoints may include an old terminal while unrelated boxes
@@ -40,7 +40,7 @@ export function routeRoomConnections(rooms: readonly RoomFootprint[], transition
   for (const transition of ordered) {
     const source = byId.get(transition.from), target = byId.get(transition.to)
     if (!source || !target) throw new Error(`Room connection ${transition.id} references unknown room ${!source ? transition.from : transition.to}`)
-    const start = sidePort(source, 1), finish = sidePort(target, 0)
+    const start = sidePort(source, sourceInlets.has(transition.id) ? 0 : 1), finish = sidePort(target, 0)
     const exterior = free(start.outside) && free(finish.outside)
       ? search(start.outside, finish.outside, start.outward, opposite(finish.outward), free, used, usedAxes)
       : undefined

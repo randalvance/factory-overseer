@@ -2,7 +2,7 @@ import { expect, it } from "vitest"
 import { exampleRooms } from "~/model/roomExamples"
 import type { RoomFactoryState } from "~/model/types"
 import { layoutConfiguredRooms } from "./configuredRooms"
-import { motionsFor, restingTileAfterSlide, restingTiles, tileAfterSlide } from "./motion"
+import { motionsFor, restingTileAfterSlide, tileAfterSlide } from "./motion"
 import type { Layout } from "./types"
 
 function state(count: number, roomId = "implementation"): RoomFactoryState {
@@ -69,20 +69,20 @@ it.each(["implementation", "review", "deployment"])("routes shared %s work betwe
     const next = layoutConfiguredRooms(value, layout)
     expect(next.boxes).toHaveLength(1)
     expect(next.boxes[0]!.tile).toEqual(stations(next, roomId)[index]!.bench)
-    expect(motionsFor(next, restingTiles(layout), layout).unrouted).toEqual([])
+    expect(motionsFor(next, slidResting(layout, next), layout).unrouted).toEqual([])
     layout = next
   }
   value.snapshot.tasks[0]!.at = { kind: "room", roomId }
   let next = layoutConfiguredRooms(value, layout)
-  expect(motionsFor(next, restingTiles(layout), layout).unrouted).toEqual([])
+  expect(motionsFor(next, slidResting(layout, next), layout).unrouted).toEqual([])
   layout = next
   assign(value, [`${roomId}-6`], roomId)
   next = layoutConfiguredRooms(value, layout)
-  expect(motionsFor(next, restingTiles(layout), layout).unrouted).toEqual([])
+  expect(motionsFor(next, slidResting(layout, next), layout).unrouted).toEqual([])
   if (roomId === "deployment") {
     value.snapshot.tasks[0]!.at = { kind: "shipped", roomId }
     const shipped = layoutConfiguredRooms(value, next)
-    expect(motionsFor(shipped, restingTiles(next), next).unrouted).toEqual([])
+    expect(motionsFor(shipped, slidResting(next, shipped), next).unrouted).toEqual([])
     expect(shipped.shippingDock!.outlet.x).toBe(room(shipped, roomId).rect.x)
   }
 })
@@ -96,10 +96,10 @@ it("reaches a later row and every column from room queues, then advances station
     assign(assigned, [`implementation-${index}`])
     assigned.snapshot.tasks.push({ ...structuredClone(assigned.snapshot.tasks[0]!), id: "queued" })
     const occupied = layoutConfiguredRooms(assigned, queued)
-    expect(motionsFor(occupied, restingTiles(queued), queued).unrouted).toEqual([])
+    expect(motionsFor(occupied, slidResting(queued, occupied), queued).unrouted).toEqual([])
     assigned.snapshot.tasks.shift()
     const advanced = layoutConfiguredRooms(assigned, occupied)
-    expect(motionsFor(advanced, restingTiles(occupied), occupied).unrouted).toEqual([])
+    expect(motionsFor(advanced, slidResting(occupied, advanced), occupied).unrouted).toEqual([])
     expect(advanced.boxes).toHaveLength(1)
     queued = layoutConfiguredRooms(value, advanced)
   }
@@ -112,7 +112,7 @@ it.each(["planning", "implementation", "review", "deployment"])("keeps every rid
   const value = structuredClone(original)
   assign(value, ["implementation-0"])
   let riding = layoutConfiguredRooms(value, before)
-  let path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
+  let path = motionsFor(riding, slidResting(before, riding), before).toPlay[0]!.path
   for (const count of [2, 3, 4, 6, 7]) {
     const members = state(count, growingRoom).snapshot.agents
     value.snapshot.agents = members
@@ -140,7 +140,7 @@ it("keeps each declared transition routable between full grids at the minimum fl
     const before = layoutConfiguredRooms(value, undefined, 24)
     assign(value, [`${edge.to}-6`], edge.to)
     const after = layoutConfiguredRooms(value, before)
-    const motions = motionsFor(after, restingTiles(before), before)
+    const motions = motionsFor(after, slidResting(before, after), before)
     expect(motions.unrouted, edge.id).toEqual([])
     expect(motions.toPlay).toHaveLength(1)
     const unrelated = after.rooms!.filter((room) => ![edge.from, edge.to].includes(room.id.slice(5)))
@@ -155,7 +155,7 @@ it("remaps a same-room return during compaction from three columns to one", () =
   const before = layoutConfiguredRooms(value, undefined, 28)
   assign(value, ["implementation-0"])
   const riding = layoutConfiguredRooms(value, before)
-  const path = motionsFor(riding, restingTiles(before), before).toPlay[0]!.path
+  const path = motionsFor(riding, slidResting(before, riding), before).toPlay[0]!.path
   value.snapshot.agents = value.snapshot.agents.filter((agent) => agent.roomId !== "implementation" || agent.id === "implementation-0")
   const compacted = layoutConfiguredRooms(value, riding, 28, new Set(["task"]), true)
   for (const tile of path) {
@@ -166,3 +166,8 @@ it("remaps a same-room return during compaction from three columns to one", () =
   expect(compacted.boxes).toHaveLength(1)
   expect(stations(compacted)).toHaveLength(1)
 })
+
+/** The view glides the old resting places before starting a new ride. */
+function slidResting(previous: ReturnType<typeof layoutConfiguredRooms>, next: ReturnType<typeof layoutConfiguredRooms>) {
+  return Object.fromEntries(previous.boxes.map((box) => [box.taskId, restingTileAfterSlide(previous, next, box.taskId) ?? box.tile]))
+}
