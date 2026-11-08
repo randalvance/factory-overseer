@@ -9,7 +9,7 @@ import { needsHuman, requestHuman, resolveHuman } from "./humanAttention"
 import type { HumanAttentionRequest, MainAgent, RoomFactoryState, RoomTask } from "~/model/types"
 import { exampleRooms } from "~/model/roomExamples"
 import { ROOM_THEMES, type RoomThemeRegistry } from "~/model/roomThemes"
-import { BIOMES, BIOME_LABELS, type Biome } from "~/model/biomes"
+import { BIOMES, BIOME_LABELS, DEFAULT_BIOME, type Biome } from "~/model/biomes"
 
 const DEMO_ROOM_THEMES = {
   "paper-garden": { extends: "research-lab", label: "Paper garden", wall: "#a4b99a", accent: "#5f806b", floor: "kraft-pavers", station: "lab", decoration: "shelves" },
@@ -53,7 +53,7 @@ export function RoutingDemo() {
   const [riding, setRiding] = useState<Set<string>>(new Set())
   const [unrouted, setUnrouted] = useState<string[]>([])
   const [follow, setFollow] = useState(true)
-  const [biome, setBiome] = useState<Biome>("grass")
+  const [biome, setBiome] = useState<Biome>(DEFAULT_BIOME)
   const [controlsInitiallyOpen] = useState(() => window.matchMedia("(min-width: 900px)").matches)
   const task = state.snapshot.tasks.find((task) => task.id === selected)!
   const room = state.configuration.rooms.find((room) => room.id === task.at.roomId)!
@@ -116,8 +116,13 @@ export function RoutingDemo() {
   /** A task chip from the demo's own UI, let go over the hopper, queues a task of its kind at intake. */
   function dropOnHopper(data: Readonly<Record<string, string>>) {
     const raw = data[DEMO_TASK_DRAG]
-    if (raw === undefined) return
-    addTask((JSON.parse(raw) as { planning?: boolean }).planning === true)
+    if (!raw) return
+    try {
+      const parsed: unknown = JSON.parse(raw)
+      if (typeof parsed === "object" && parsed !== null) addTask((parsed as { planning?: unknown }).planning === true)
+    } catch {
+      // A drag from elsewhere with the same type and non-JSON text is ignored.
+    }
   }
   function startTaskDrag(event: DragEvent, needsPlanning: boolean) {
     event.dataTransfer.setData(DEMO_TASK_DRAG, JSON.stringify({ planning: needsPlanning }))

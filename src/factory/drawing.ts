@@ -10,13 +10,13 @@ import type { ResolvedRoomTheme } from "~/model/roomThemes"
 import type { ThemeAssets } from "./roomThemeAssets"
 import { drawRooms } from "./rooms"
 import type { BillboardAssets } from "./roomBillboardAssets"
-import { drawPaperGround } from "./paperGround"
+import { drawPaperGround, PAPER_GROUND_Y } from "./paperGround"
 import { drawPaperTrees } from "./paperTrees"
 import { paperRoad, paperRoadFootprint } from "./paperRoad"
 import { paperTruck, paperTruckPlacement } from "./paperTruck"
 import { beltName, carriesRework } from "~/floor/belts"
 import type { Layout } from "~/floor/types"
-import type { Biome } from "~/model/biomes"
+import { DEFAULT_BIOME, type Biome } from "~/model/biomes"
 import { type Pieces, isShared } from "./models"
 import { tileKey } from "~/floor/tiles"
 import { trimPaperBeltAtBenches } from "./paperConveyors"
@@ -30,7 +30,7 @@ import { beltTile, bench, containerWalls, door, hopper, pallet } from "./pieces"
  * how far along it is; a bench for its station; a wall for its room; and so
  * on. The same name in the next drawing is the same piece, slid there.
  */
-export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets, billboards?: BillboardAssets, biome: Biome = "grass"): THREE.Group {
+export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap<string, ResolvedRoomTheme>, assets?: ThemeAssets, billboards?: BillboardAssets, biome: Biome = DEFAULT_BIOME): THREE.Group {
   const group = new THREE.Group()
   const add = (name: string, piece: THREE.Object3D) => {
     piece.name = name
@@ -53,7 +53,7 @@ export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap
       // they pass its open rear; conveyor feet must not pierce the sleeve.
       if (layout.shippingDock?.cargoTiles.some((cargo) => cargo.x === tile.x && cargo.y === tile.y)) return
       const onPlatform = layout.rooms?.some(({ rect, kind }) => kind !== "intake" && tile.x >= rect.x && tile.x < rect.x + rect.w && tile.y >= rect.y && tile.y < rect.y + rect.h)
-      const floorY = onPlatform ? 0 : -.22
+      const floorY = onPlatform ? 0 : PAPER_GROUND_Y
       const drawingTile = paperWallPortTile(openPaperBeltTile(tile), layout.rooms)
       const piece = beltTile(drawingTile, surface, pieces, floorY)
       trimPaperBeltAtBenches(piece, drawingTile, paperBenches)
@@ -65,7 +65,7 @@ export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap
   for (const bay of layout.bays) for (const station of bay.stations) add(`bench:${station.id}`, bench(station.bench, station.vacant, pieces, station.role, themes?.get(bay.id), assets, stationPalette))
   for (const room of layout.rooms ?? []) if (room.kind !== "intake") add(`door:${room.id}`, door(room.door, pieces))
   layout.intake.pile.forEach((tile, i) => add(`pallet:intake:${i}`, pallet(tile)))
-  add("hopper", hopper(layout.intake, -.22))
+  add("hopper", hopper(layout.intake, PAPER_GROUND_Y))
   // Factories with a deployment outlet ship into the parked truck.
   if (!layout.shippingDock) add("container", containerWalls(layout.container))
   const truck = paperTruck(layout)

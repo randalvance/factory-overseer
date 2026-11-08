@@ -161,7 +161,11 @@ of the hopper:
 ```tsx
 <RoomFactory state={state} biome="desert"
   acceptsHopperDrag={(types) => types.includes("application/x-my-task")}
-  onHopperDrop={({ roomId, data }) => queueTask(roomId, JSON.parse(data["application/x-my-task"]!))} />
+  onHopperDrop={({ roomId, data }) => {
+    const raw = data["application/x-my-task"]
+    if (!raw) return
+    try { queueTask(roomId, JSON.parse(raw)) } catch { /* ignore malformed drag data */ }
+  }} />
 ```
 
 Mount the factory in a client component with a positioned container and an

@@ -1,6 +1,6 @@
 import * as THREE from "three"
 import type { Layout, Rect } from "~/floor/types"
-import type { Biome } from "~/model/biomes"
+import { DEFAULT_BIOME, type Biome } from "~/model/biomes"
 import { PAPER_GROUND_Y } from "./paperGround"
 import { paperBiome } from "./paperBiomes"
 
@@ -147,11 +147,11 @@ export function cactusGeometry(): THREE.BufferGeometry {
 
 /** Two instanced meshes for the whole grove; resources belong to this drawing.
  * The sites are the same in every biome; only what stands on them changes. */
-export function drawPaperTrees(layout: Layout, reserved: readonly Rect[] = [], biomeName: Biome = "grass"): THREE.Group {
+export function drawPaperTrees(layout: Layout, reserved: readonly Rect[] = [], biomeName: Biome = DEFAULT_BIOME): THREE.Group {
   const group = new THREE.Group()
   group.name = "paper-trees"
   const biome = paperBiome(biomeName)
-  group.userData.biome = biome.id
+  group.userData.biome = biomeName
   const sites = paperTreeSites(layout, reserved)
   const crowns = new THREE.InstancedMesh(biome.grove === "cactus" ? cactusGeometry() : canopyGeometry(biome.grove === "snowy"),
     new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), sites.length)

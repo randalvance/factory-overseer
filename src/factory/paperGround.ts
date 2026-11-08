@@ -1,11 +1,11 @@
 import * as THREE from "three"
 import type { Layout, Rect } from "~/floor/types"
-import type { Biome } from "~/model/biomes"
+import { DEFAULT_BIOME, type Biome } from "~/model/biomes"
 import { type PaperBiome, PAPER_BIOMES, paperBiome } from "./paperBiomes"
 
 /** Continuous paper ground, grass by default, lies below the cream room platforms. */
 export const PAPER_GROUND_Y = -.22
-export const PAPER_GRASS_COLOR = PAPER_BIOMES.grass.ground
+export const PAPER_GRASS_COLOR = PAPER_BIOMES[DEFAULT_BIOME].ground
 const GROUND_MARGIN = 100
 const DECORATION_MARGIN = 6
 interface GroundPoint { x: number; z: number }
@@ -61,7 +61,7 @@ function hash(x: number, z: number): number {
 }
 
 /** Deterministic tuft sites leave circulation and the truck's loading apron clear. Drier and snowier biomes have fewer. */
-export function paperGrassSites(layout: Layout, reserved: readonly Rect[] = [], biome: Biome = "grass"): GroundPoint[] {
+export function paperGrassSites(layout: Layout, reserved: readonly Rect[] = [], biome: Biome = DEFAULT_BIOME): GroundPoint[] {
   const density = paperBiome(biome).tuftDensity
   const bounds = { x: layout.bounds.x - DECORATION_MARGIN, y: layout.bounds.y - DECORATION_MARGIN,
     w: layout.bounds.w + DECORATION_MARGIN * 2, h: layout.bounds.h + DECORATION_MARGIN * 2 }
@@ -92,10 +92,10 @@ export function paperGrassSites(layout: Layout, reserved: readonly Rect[] = [], 
 }
 
 /** Continuous biome paper, flat cut-paper patches and a few scored, folded blades. */
-export function drawPaperGround(layout: Layout, reserved: readonly Rect[] = [], biomeName: Biome = "grass"): THREE.Group {
+export function drawPaperGround(layout: Layout, reserved: readonly Rect[] = [], biomeName: Biome = DEFAULT_BIOME): THREE.Group {
   const group = new THREE.Group()
   const biome = paperBiome(biomeName)
-  group.userData.biome = biome.id
+  group.userData.biome = biomeName
   const bounds = paperGroundBounds(layout)
   const geometry = new THREE.PlaneGeometry(bounds.w, bounds.h).rotateX(-Math.PI / 2)
   const map = paperGroundTexture(biome)
@@ -111,7 +111,7 @@ export function drawPaperGround(layout: Layout, reserved: readonly Rect[] = [], 
   // Small irregular polygons suggest layered colored paper, not a noisy photo texture.
   const positions: number[] = [], colors: number[] = []
   const greens = biome.patches.map((color) => new THREE.Color(color))
-  const sites = paperGrassSites(layout, reserved, biome.id)
+  const sites = paperGrassSites(layout, reserved, biomeName)
   for (let index = 0; index < sites.length; index++) {
     const site = sites[index]!, color = greens[index % greens.length]!
     const radius = .20 + hash(index + 11, 61) * .13

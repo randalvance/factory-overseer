@@ -10,9 +10,8 @@ import type { ResolvedRoomTheme, RoomThemeRegistry } from "~/model/roomThemes"
 import { themesForLayout } from "./themesForLayout"
 import { createRoomThemeAssets } from "./roomThemeAssets"
 import { createRoomBillboardAssets } from "./roomBillboardAssets"
-import { PAPER_GRASS_COLOR } from "./paperGround"
 import { paperBiome } from "./paperBiomes"
-import type { Biome } from "~/model/biomes"
+import { DEFAULT_BIOME, type Biome } from "~/model/biomes"
 import { createPaperSurfaces } from "./paperMaterial"
 import { roomGeometryChanged, stationed } from "~/floor/layout"
 import { type Motions, motionsFor } from "~/floor/motion"
@@ -29,8 +28,8 @@ import { batchPaperDrawing, unbatchPaperDrawing, createBatchRetirement, disposeM
 import { paperPieces } from "./paper"
 import { type Pieces, type BeltTextures, loadPieces } from "./models"
 import { nearer } from "./picking"
-import { BOX_SIZE, halo, hopperBounds, hopperGlow, hopperRim } from "./pieces"
-import { type HopperDragState, attachHopperDrop } from "./hopperDrop"
+import { BOX_SIZE, halo, hopperGlow, placeHopperGlow } from "./pieces"
+import { type HopperDragState, type HopperHitTarget, attachHopperDrop, hitsHopper, hopperHitTarget } from "./hopperDrop"
 import { type Slide, startSlide } from "./slide"
 import { createPetTextures, petAssetFor, type PetAssets } from "./petAssets"
 
@@ -53,6 +52,10 @@ export interface FactoryView {
   reorganize(layout: Layout, snapshot: Snapshot, styling: Styling): Promise<Motions>
   /** Scale every belt. */
   setSpeed(speed: number): void
+  /** Change the outdoor paper around the rooms without redrawing the work. */
+  setBiome(biome: Biome): void
+  /** Let a host's HTML5 drags be let go over the hopper, or stop taking drags when undefined. */
+  setHopperDrop(hopperDrop: HopperDropOptions | undefined): void
   /** Frame the floor's width, and the whole floor when it fits, as the view opened. A box being followed is let go. */
   fitAll(): void
   /** Put the agent's figure under the middle of the screen. A box being followed is let go. */
@@ -68,8 +71,6 @@ export interface Styling {
   petAssets?: PetAssets
   /** What each status looks like, resolved. */
   styles: Readonly<Record<AgentStatus, StatusStyle>>
-  /** The outdoor paper around the rooms; grass when not given. */
-  biome?: Biome
 }
 
 export interface RenderMetrics {
@@ -103,8 +104,8 @@ export interface HopperDropOptions {
   drop(dataTransfer: DataTransfer): void
 }
 
-/** A snapshot's sheets and pieces, with the themes and the biome it is drawn in. */
-type Ready = Dressed & { themes: ReadonlyMap<string, ResolvedRoomTheme>; biome: Biome }
+/** A snapshot's sheets and pieces, with the themes it is drawn in. */
+type Ready = Dressed & { themes: ReadonlyMap<string, ResolvedRoomTheme> }
 
 /** The longest step the clock may take between frames, so a tab coming back does not leap. */
 const MAX_FRAME_S = 0.1
@@ -120,13 +121,13 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   const billboardAssets = createRoomBillboardAssets(() => { sceneryPaintPending = true }, assetBase)
   let shownThemes: ReadonlyMap<string, ResolvedRoomTheme> | undefined
   let shownPieces: Pieces | undefined
-  let shownBiome: Biome = "grass"
+  let shownBiome: Biome = DEFAULT_BIOME
   const canvas = document.createElement("canvas")
   mount.append(canvas)
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.setClearColor(PAPER_GRASS_COLOR)
+  renderer.setClearColor(paperBiome(shownBiome).ground)
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.VSMShadowMap
   renderer.shadowMap.autoUpdate = false
@@ -175,10 +176,12 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
   const ring = halo()
   scene.add(ring)
   const raycaster = new THREE.Raycaster()
+  const ndc = new THREE.Vector2()
   /** Lit around the hopper's rim while a host's drag is armed over the canvas, and brighter over the hopper. */
   const glow = hopperGlow()
   scene.add(glow)
   let hopperDrag: HopperDragState = "none"
+  let hitTarget: HopperHitTarget = { hopper: undefined, hopperMeshes: [], occluders: [] }
 
   /** Cache the fitted zoom only on initial framing and explicit Fit all. */
   function fitPose() {
@@ -225,36 +228,56 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     aimCamera()
   }
 
+  /** Aim the raycaster from the camera through a point of the canvas. */
+  function rayThrough(point: Point) {
+    ndc.set((point.x / viewport.width) * 2 - 1, 1 - (point.y / viewport.height) * 2)
+    raycaster.setFromCamera(ndc, camera)
+  }
+
   /** What is under a point of the canvas: the nearer of the box and the figure on the ray through it. */
   function pickAt(point: Point): Subject | undefined {
-    raycaster.setFromCamera(new THREE.Vector2((point.x / viewport.width) * 2 - 1, 1 - (point.y / viewport.height) * 2), camera)
+    rayThrough(point)
     return nearer(boxes.pick(raycaster), agents.pick(raycaster))
   }
 
-  /** Whether the ray through a point of the canvas passes through the hopper. */
+  /** Whether the ray through a point of the canvas lands on the hopper before anything else on the floor. */
   function overHopper(point: Point): boolean {
     if (!shown || !visible) return false
-    raycaster.setFromCamera(new THREE.Vector2((point.x / viewport.width) * 2 - 1, 1 - (point.y / viewport.height) * 2), camera)
-    return raycaster.ray.intersectsBox(hopperBounds(shown.intake))
+    rayThrough(point)
+    const nearerDistance = Math.min(boxes.pick(raycaster)?.distance ?? Infinity, agents.pick(raycaster)?.distance ?? Infinity)
+    return hitsHopper(raycaster, hitTarget, nearerDistance)
   }
 
   /** Light the hopper's rim for the drag as it now is. */
   function lightHopper(state: HopperDragState) {
     hopperDrag = state
     mount.dataset.hopperDrag = state
-    glow.visible = state !== "none" && shown !== undefined
-    if (!shown) return
-    const rim = hopperRim(shown.intake)
-    glow.position.set(rim.x, rim.y + .06, rim.z)
+    glow.visible = state !== "none" && hitTarget.hopper !== undefined
+    if (glow.visible && hitTarget.hopper) placeHopperGlow(glow, hitTarget.hopper)
   }
 
-  const detachHopperDrop = options.hopperDrop ? attachHopperDrop(canvas, {
-    accepts: (types) => shown !== undefined && options.hopperDrop!.accepts(types),
-    over: overHopper,
-    changed: lightHopper,
-    drop: (dataTransfer) => options.hopperDrop!.drop(dataTransfer),
-  }) : () => {}
-  if (options.hopperDrop) mount.dataset.hopperDrag = "none"
+  let hopperDropTarget: HopperDropOptions | undefined
+  let detachHopperDrop: (() => void) | undefined
+
+  function setHopperDrop(next: HopperDropOptions | undefined) {
+    hopperDropTarget = next
+    if (next && !detachHopperDrop) {
+      mount.dataset.hopperDrag = "none"
+      detachHopperDrop = attachHopperDrop(canvas, {
+        accepts: (types) => shown !== undefined && (hopperDropTarget?.accepts(types) ?? false),
+        over: overHopper,
+        changed: lightHopper,
+        drop: (dataTransfer) => hopperDropTarget?.drop(dataTransfer),
+      })
+    } else if (!next && detachHopperDrop) {
+      detachHopperDrop()
+      detachHopperDrop = undefined
+      hopperDrag = "none"
+      glow.visible = false
+      delete mount.dataset.hopperDrag
+    }
+  }
+  setHopperDrop(options.hopperDrop)
 
   /** The point under an agent's feet or a box's underside, where it is this frame. */
   function underfoot(subject: Subject): THREE.Vector3 | undefined {
@@ -333,6 +356,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
       disposeMeshes(drawing)
       drawing = drawFactory(shown, shownPieces, shownThemes, themeAssets, billboardAssets, shownBiome)
       paperSurfaces.apply(drawing)
+      hitTarget = hopperHitTarget(drawing)
       batchPaperDrawing(drawing)
       scene.add(drawing)
       renderer.shadowMap.needsUpdate = true
@@ -348,7 +372,8 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
       else following = undefined
     }
     placeRing()
-    if (glow.visible) {
+    if (glow.visible && hitTarget.hopper) {
+      placeHopperGlow(glow, hitTarget.hopper)
       // Armed, the rim glows faintly; over the hopper it brightens and breathes.
       const material = glow.material as THREE.MeshBasicMaterial
       material.opacity = hopperDrag === "over" ? .75 + .2 * Math.sin(time / 160) : .3
@@ -405,7 +430,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     paper ??= paperPieces(pieces)
     const themes = themesForLayout(layout, styling.roomThemes)
     themeAssets.update(themes.values())
-    return { themes, pets, styles: styling.styles, pieces: paper, biome: styling.biome ?? "grass" }
+    return { themes, pets, styles: styling.styles, pieces: paper }
 
   }
 
@@ -442,13 +467,13 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     belts = ready.pieces.belts
     shownPieces = ready.pieces
     shownThemes = ready.themes
-    shownBiome = ready.biome
     // Past the ground's far edge the clear colour carries the biome on.
-    renderer.setClearColor(paperBiome(ready.biome).ground)
+    renderer.setClearColor(paperBiome(shownBiome).ground)
     billboardAssets.update(layout.routing?.configuration.rooms.map((room) => room.billboard) ?? [])
-    drawing = drawFactory(layout, ready.pieces, ready.themes, themeAssets, billboardAssets, ready.biome)
+    drawing = drawFactory(layout, ready.pieces, ready.themes, themeAssets, billboardAssets, shownBiome)
     sceneryPaintPending = false
     paperSurfaces.apply(drawing)
+    hitTarget = hopperHitTarget(drawing)
     scene.add(drawing)
     if (settling === "glide") {
       slide = startSlide(stood, drawing)
@@ -482,7 +507,7 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     renderer.setAnimationLoop(null)
     observer.disconnect()
     detachControls()
-    detachHopperDrop()
+    detachHopperDrop?.()
     slide?.end()
     disposeMeshes(drawing)
     disposeMeshes(ring)
@@ -505,6 +530,13 @@ export function createFactoryView(mount: HTMLElement, options: FactoryViewOption
     setSpeed: (next) => {
       speed = next
     },
+    setBiome(next) {
+      if (next === shownBiome) return
+      shownBiome = next
+      renderer.setClearColor(paperBiome(next).ground)
+      sceneryPaintPending = true
+    },
+    setHopperDrop,
     fitAll,
     focusAgent(id) {
       following = undefined

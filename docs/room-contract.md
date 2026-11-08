@@ -411,7 +411,8 @@ The loading area stays clear as rooms grow or Reorganize.
 ### Outdoor biome
 
 The optional `biome` prop chooses the outdoor paper around the rooms. It
-is a string so hosts can pass a stored setting directly. `BIOMES` lists
+is typed as `Biome | (string & {})` so known literals autocomplete while
+hosts can still pass a stored setting directly. `BIOMES` lists
 the known names and `BIOME_LABELS` gives a label for each:
 
 | `biome` | Ground | Grove |
@@ -444,10 +445,13 @@ count, by their `DataTransfer.types`. It defaults to every drag; give your
 drag a custom type so files or links dragged over the page are left alone.
 
 While an accepted drag is over the floor, the hopper's rim glows faintly
-and the drop cursor says no. Over the hopper, the rim brightens and the
-cursor offers a copy. The canvas's container exposes this state as
-`data-hopper-drag`, set to `none`, `armed` or `over`. Letting go over the
-hopper calls `onHopperDrop` with a `HopperDrop`:
+and the drop cursor says no. Over the hopper's drawn meshes (when nothing
+else on the floor is nearer along the ray), the rim brightens and the
+cursor offers a copy when `effectAllowed` permits it, else move or link.
+While `onHopperDrop` is supplied, the canvas's container exposes this
+state as `data-hopper-drag`, set to `none`, `armed` or `over`; without
+`onHopperDrop` the attribute and drag listeners are absent. Letting go
+over the hopper calls `onHopperDrop` with a `HopperDrop`:
 
 ```ts
 interface HopperDrop {
@@ -455,6 +459,17 @@ interface HopperDrop {
   data: Readonly<Record<string, string>>    // every string type, read at the drop
   dataTransfer: DataTransfer                // for files; readable only during the call
 }
+```
+
+Any drag source in the browser can put arbitrary text under a custom MIME
+type, so guard `JSON.parse` and validate the decoded payload before queuing:
+
+```tsx
+onHopperDrop={({ roomId, data }) => {
+  const raw = data["application/x-my-task"]
+  if (!raw) return
+  try { queueTask(roomId, JSON.parse(raw)) } catch { /* ignore malformed drag data */ }
+}}
 ```
 
 The factory queues nothing itself (ADR 0014). To queue the task, publish

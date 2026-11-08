@@ -2,10 +2,9 @@
 // and beyond the floor, its flat patches and folded tufts, and the grove's
 // kind. Everything is procedural colour; no biome brings an art file.
 
-import type { Biome } from "~/model/biomes"
+import { DEFAULT_BIOME, type Biome } from "~/model/biomes"
 
 export interface PaperBiome {
-  id: Biome
   /** The ground cardstock's base colour; also the clear colour past the ground's edge. */
   ground: number
   /** Flat cut-paper patches laid on the ground. */
@@ -22,7 +21,6 @@ export interface PaperBiome {
 
 export const PAPER_BIOMES: Readonly<Record<Biome, PaperBiome>> = {
   grass: {
-    id: "grass",
     ground: 0xa7bc7c,
     patches: [0xadc286, 0xa0b775, 0xb4c78d, 0x9db476],
     tuft: { light: 0xc0d191, dark: 0x789957 },
@@ -31,7 +29,6 @@ export const PAPER_BIOMES: Readonly<Record<Biome, PaperBiome>> = {
     names: { ground: "grass-cardstock", patches: "grass-paper-patches", tufts: "grass-folded-tufts", crowns: "folded-paper-crowns", trunks: "kraft-paper-trunks" },
   },
   desert: {
-    id: "desert",
     ground: 0xe2c992,
     patches: [0xd9bd82, 0xe9d4a2, 0xcfb276, 0xdcc38c],
     // Sparse dry scrub, straw on the lit fold and olive in shade.
@@ -41,7 +38,6 @@ export const PAPER_BIOMES: Readonly<Record<Biome, PaperBiome>> = {
     names: { ground: "desert-cardstock", patches: "desert-paper-patches", tufts: "desert-folded-scrub", crowns: "folded-paper-cacti", trunks: "sand-paper-mounds" },
   },
   snow: {
-    id: "snow",
     ground: 0xe9eff3,
     // Drifts read by their cool shadowed paper, not by outlines.
     patches: [0xdde6ee, 0xf5f8fa, 0xd4dfe9, 0xebf1f5],
@@ -53,6 +49,6 @@ export const PAPER_BIOMES: Readonly<Record<Biome, PaperBiome>> = {
   },
 }
 
-export function paperBiome(biome: Biome = "grass"): PaperBiome {
+export function paperBiome(biome: Biome = DEFAULT_BIOME): PaperBiome {
   return PAPER_BIOMES[biome]
 }

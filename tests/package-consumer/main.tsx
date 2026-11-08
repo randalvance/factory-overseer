@@ -55,8 +55,9 @@ function Consumer() {
   const onLayout = (_layout: Layout, _motions: Motions) => {}
   const common = { assetBase: "/host/static/factory", onReady: setHandle, onRenderMetrics, onLayout }
   const biome: Biome = BIOMES.includes("snow") ? "snow" : DEFAULT_BIOME
+  const storedBiome: RoomFactoryProps["biome"] = String(biome)
   const onHopperDrop = (drop: HopperDrop) => setNotice(`Dropped on ${drop.roomId}: ${drop.data["text/plain"] ?? ""}`)
-  const props: RoomFactoryProps = { ...common, state, petAssets, roomThemes, onHumanNeeded, width: 28, biome, onHopperDrop,
+  const props: RoomFactoryProps = { ...common, state, petAssets, roomThemes, onHumanNeeded, width: 28, biome: storedBiome, onHopperDrop,
     acceptsHopperDrag: (types) => types.includes("text/plain") }
   return <>
     <output aria-label="Host question">{notice}</output>

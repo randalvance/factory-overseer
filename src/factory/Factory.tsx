@@ -12,7 +12,7 @@ import { type StatusStyleOverrides, resolveStatusStyles } from "~/model/status"
 import { Hud } from "./Hud"
 import type { RoomThemeRegistry } from "~/model/roomThemes"
 import type { PetAssets } from "./petAssets"
-import { isBiome, resolveBiome } from "~/model/biomes"
+import { type Biome, isBiome, resolveBiome } from "~/model/biomes"
 import { type FactoryView, createFactoryView } from "./view"
 
 export interface FactoryProps {
@@ -42,7 +42,7 @@ export interface FactoryProps {
    * whose trees are cacti, or "snow", snowy plains under snow-capped trees.
    * An unknown name draws grass.
    */
-  biome?: string
+  biome?: Biome | (string & {})
   /**
    * Makes the outdoor hopper a drop target for the host's own HTML5 drags.
    * Called when an accepted drag is let go over the hopper. The factory
@@ -82,7 +82,8 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
   const previous = useRef<Layout | undefined>(undefined)
   const snapshot = useMemo(() => roomSnapshotForView(roomState), [roomState])
   const biome = resolveBiome(biomeName)
-  const latest = useRef({ roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded, biome, onHopperDrop, acceptsHopperDrag })
+  const hasHopperDrop = onHopperDrop !== undefined
+  const latest = useRef({ roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded, onHopperDrop, acceptsHopperDrag })
   const asked = useRef(0)
   const [drawn, setDrawn] = useState(0)
   const [picked, setPicked] = useState<Subject>()
@@ -92,7 +93,7 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
   const styles = useMemo(() => resolveStatusStyles(statusStyles), [statusStyles])
 
   useEffect(() => {
-    latest.current = { roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded, biome, onHopperDrop, acceptsHopperDrag }
+    latest.current = { roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded, onHopperDrop, acceptsHopperDrag }
   })
   useEffect(() => {
     if (biomeName !== undefined && !isBiome(biomeName)) console.warn(`Unknown factory biome "${biomeName}"; drawing grass.`)
@@ -108,17 +109,6 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
       onRenderMetrics: onRenderMetrics ? (metrics) => latest.current.onRenderMetrics?.(metrics) : undefined,
       onClick: setPicked,
       onRoam: (id, whereabouts) => setRoaming({ id, whereabouts }),
-      hopperDrop: {
-        accepts: (types) => latest.current.onHopperDrop !== undefined && (latest.current.acceptsHopperDrag?.(types) ?? true),
-        drop(dataTransfer) {
-          const { onHopperDrop, roomState } = latest.current
-          const intake = roomState.configuration.rooms.find((room) => room.kind === "intake")
-          if (!onHopperDrop || !intake) return
-          const data: Record<string, string> = {}
-          for (const type of dataTransfer.types) if (type !== "Files") data[type] = dataTransfer.getData(type)
-          onHopperDrop({ roomId: intake.id, data, dataTransfer })
-        },
-      },
       onLanded: (taskId) => {
         activeRides.current.delete(taskId)
         latest.current.onTaskLanded?.(taskId)
@@ -146,13 +136,27 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
   }
 
   useEffect(() => { view.current?.setSpeed(speed) }, [speed])
+  useEffect(() => { view.current?.setBiome(biome) }, [biome])
+  useEffect(() => {
+    view.current?.setHopperDrop(hasHopperDrop ? {
+      accepts: (types) => latest.current.onHopperDrop !== undefined && (latest.current.acceptsHopperDrag?.(types) ?? true),
+      drop(dataTransfer) {
+        const { onHopperDrop, roomState } = latest.current
+        const intake = roomState.configuration.rooms.find((room) => room.kind === "intake")
+        if (!onHopperDrop || !intake) return
+        const data: Record<string, string> = {}
+        for (const type of dataTransfer.types) if (type !== "Files") data[type] = dataTransfer.getData(type)
+        onHopperDrop({ roomId: intake.id, data, dataTransfer })
+      },
+    } : undefined)
+  }, [hasHopperDrop])
   useEffect(() => {
     if (!view.current) return
     const layout = layoutConfiguredRooms(roomState, previous.current, width, activeRides.current)
     const traffic = comingsAndGoings(previous.current, layout)
     previous.current = layout
-    drawnBy(view.current.show(layout, snapshot, { styles, petAssets, roomThemes, biome }, traffic), layout, "The factory could not be drawn")
-  }, [roomState, snapshot, width, styles, petAssets, roomThemes, biome])
+    drawnBy(view.current.show(layout, snapshot, { styles, petAssets, roomThemes }, traffic), layout, "The factory could not be drawn")
+  }, [roomState, snapshot, width, styles, petAssets, roomThemes])
 
   const handle = useRef<FactoryHandle>({
     focus(subject) {
@@ -162,11 +166,11 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
     inspect(subject) { setPicked(subject); handle.current.focus(subject) },
     fitAll() { view.current?.fitAll() },
     reorganize() {
-      const { roomState, petAssets, roomThemes, statusStyles, biome } = latest.current
+      const { roomState, petAssets, roomThemes, statusStyles } = latest.current
       if (!view.current || !previous.current) return
       const layout = layoutConfiguredRooms(roomState, previous.current, previous.current.bounds.w, activeRides.current, true)
       previous.current = layout
-      drawnBy(view.current.reorganize(layout, roomSnapshotForView(roomState), { styles: resolveStatusStyles(statusStyles), petAssets, roomThemes, biome }), layout, "The factory could not be reorganized")
+      drawnBy(view.current.reorganize(layout, roomSnapshotForView(roomState), { styles: resolveStatusStyles(statusStyles), petAssets, roomThemes }), layout, "The factory could not be reorganized")
     },
   })
   useEffect(() => { if (drawn === 1) latest.current.onReady?.(handle.current) }, [drawn])
