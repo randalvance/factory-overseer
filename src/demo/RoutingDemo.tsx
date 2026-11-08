@@ -343,6 +343,7 @@ export function RoutingDemo() {
     <section className="demo-factory">
       <RoomFactory assetBase={import.meta.env.BASE_URL} roomThemes={DEMO_ROOM_THEMES} petAssets={DEFAULT_PET_ASSETS} state={state} speed={speed} width={28} onReady={setHandle}
         biome={biome} acceptsHopperDrag={(types) => types.includes(DEMO_TASK_DRAG)} onHopperDrop={({ data }) => dropOnHopper(data)}
+        onPick={(subject) => { if (subject && "task" in subject) setSelected(subject.task) }}
         onTaskLanded={taskLanded}
         onHumanNeeded={(request) => setNotifications((before) => [...before, request])}
         onLayout={(_layout, motions) => { setRiding(new Set(motions.toPlay.map((motion) => motion.taskId))); setUnrouted(motions.unrouted) }} />

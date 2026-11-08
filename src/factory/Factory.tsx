@@ -38,6 +38,13 @@ export interface FactoryProps {
   /** A task finished riding its conveyor path. */
   onTaskLanded?: (taskId: string) => void
   /**
+   * The overseer clicked the floor: called with the agent or task box the
+   * click picked, or undefined for open floor. The factory still opens or
+   * closes its own card; this only tells the host. Not called for
+   * `FactoryHandle.inspect`, which the host asked for itself.
+   */
+  onPick?: (subject: Subject | undefined) => void
+  /**
    * The outdoor paper around the rooms: "grass" (the default), "desert",
    * whose trees are cacti, or "snow", snowy plains under snow-capped trees.
    * An unknown name draws grass.
@@ -76,14 +83,14 @@ export interface FactoryHandle {
   reorganize(): void
 }
 
-export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onRenderMetrics, speed = 1, width, statusStyles, onLayout, onReady, onTaskLanded, biome: biomeName, onHopperDrop, acceptsHopperDrag }: FactoryProps) {
+export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onRenderMetrics, speed = 1, width, statusStyles, onLayout, onReady, onTaskLanded, onPick, biome: biomeName, onHopperDrop, acceptsHopperDrag }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
   const snapshot = useMemo(() => roomSnapshotForView(roomState), [roomState])
   const biome = resolveBiome(biomeName)
   const hasHopperDrop = onHopperDrop !== undefined
-  const latest = useRef({ roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded, onHopperDrop, acceptsHopperDrag })
+  const latest = useRef({ roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded, onPick, onHopperDrop, acceptsHopperDrag })
   const asked = useRef(0)
   const [drawn, setDrawn] = useState(0)
   const [picked, setPicked] = useState<Subject>()
@@ -93,7 +100,7 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
   const styles = useMemo(() => resolveStatusStyles(statusStyles), [statusStyles])
 
   useEffect(() => {
-    latest.current = { roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded, onHopperDrop, acceptsHopperDrag }
+    latest.current = { roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded, onPick, onHopperDrop, acceptsHopperDrag }
   })
   useEffect(() => {
     if (biomeName !== undefined && !isBiome(biomeName)) console.warn(`Unknown factory biome "${biomeName}"; drawing grass.`)
@@ -107,7 +114,10 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
     const created = createFactoryView(mount.current, {
       assetBase: assetBase.replace(/\/?$/, "/"),
       onRenderMetrics: onRenderMetrics ? (metrics) => latest.current.onRenderMetrics?.(metrics) : undefined,
-      onClick: setPicked,
+      onClick: (picked) => {
+        setPicked(picked)
+        latest.current.onPick?.(picked)
+      },
       onRoam: (id, whereabouts) => setRoaming({ id, whereabouts }),
       onLanded: (taskId) => {
         activeRides.current.delete(taskId)

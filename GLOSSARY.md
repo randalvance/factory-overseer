@@ -200,7 +200,8 @@ followed as it moves.
 _Avoid_: Select, reorganize
 
 **Pick**:
-An agent or box beneath a pointer or click. Clicking opens its card.
+An agent or box beneath a pointer or click. Clicking opens its card and
+tells the host what was picked.
 _Avoid_: Task assignment
 
 **Halo**:

@@ -44,6 +44,7 @@ for the focused acceptance command, current screenshots and measured limits.
 ## Try the complete flow
 
 1. Keep **Plan a new feature** selected and choose **Send to Planning**.
+   Clicking a box on the floor also selects its task.
    Answer both questions in **Human attention**. Answers leave the task in
    planning; choose **Send to Implementation** to resume explicitly.
 2. Choose **Assign two implementers**. Complete one participant and inspect
@@ -167,6 +168,11 @@ of the hopper:
     try { queueTask(roomId, JSON.parse(raw)) } catch { /* ignore malformed drag data */ }
   }} />
 ```
+
+`onPick` tells the host what the overseer clicked on the floor: an agent
+(`{ agent }`), a task's box (`{ task }`), or `undefined` for open floor.
+The factory still opens its own card. The demo uses it to select a clicked
+box in its **Task** list.
 
 Mount the factory in a client component with a positioned container and an
 explicit height. Importing the package does not require a DOM, but drawing

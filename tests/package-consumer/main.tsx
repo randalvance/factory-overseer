@@ -2,7 +2,7 @@ import { useState } from "react"
 import { createRoot } from "react-dom/client"
 import {
   RoomFactory, DEFAULT_PET_ASSETS, ROOM_THEMES, BIOMES, DEFAULT_BIOME,
-  type FactoryHandle, type HopperDrop, type Biome, type RoomFactoryState,
+  type FactoryHandle, type HopperDrop, type Biome, type Subject, type RoomFactoryState,
   type RoomFactoryProps, type OnHumanNeeded, type RenderMetrics,
   type RoomThemeRegistry, type PetAssets, type Layout, type Motions,
 } from "factory-overseer"
@@ -57,7 +57,8 @@ function Consumer() {
   const biome: Biome = BIOMES.includes("snow") ? "snow" : DEFAULT_BIOME
   const storedBiome: RoomFactoryProps["biome"] = String(biome)
   const onHopperDrop = (drop: HopperDrop) => setNotice(`Dropped on ${drop.roomId}: ${drop.data["text/plain"] ?? ""}`)
-  const props: RoomFactoryProps = { ...common, state, petAssets, roomThemes, onHumanNeeded, width: 28, biome: storedBiome, onHopperDrop,
+  const onPick = (subject: Subject | undefined) => { if (subject && "task" in subject) setNotice(`Picked ${subject.task}`) }
+  const props: RoomFactoryProps = { ...common, state, petAssets, roomThemes, onHumanNeeded, width: 28, biome: storedBiome, onHopperDrop, onPick,
     acceptsHopperDrag: (types) => types.includes("text/plain") }
   return <>
     <output aria-label="Host question">{notice}</output>
