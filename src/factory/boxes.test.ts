@@ -76,3 +76,32 @@ it("loads existing shipments, follows the truck through growth and releases the 
   close()
   expect(disposed).toHaveBeenCalledOnce()
 })
+
+it("keeps boxes on the floor and serializes forklift pickups back to the conveyor tip", () => {
+  const { state, parent, boxes, pieces, close } = fixture()
+  state.snapshot.agents.push(...[0, 1].map((index) => ({ id: `builder-${index}`, name: "Builder", role: "implementer", roomId: "implementation", status: "idle" as const })))
+  state.snapshot.tasks = [0, 1, 2].map((index) => ({ id: `queued-${index}`, label: "Planned work", at: { kind: "room", roomId: "implementation" } }))
+  const before = layoutConfiguredRooms(state, undefined, 28)
+  boxes.update(before, roomSnapshotForView(state).tasks, [], pieces)
+  expect(boxes.positionOf("queued-0")!.y).toBeCloseTo(.3)
+  expect(parent.getObjectsByProperty("name", "forklift")).toHaveLength(1)
+  state.snapshot.tasks[0]!.at = { kind: "room", roomId: "implementation", assignment: { agentIds: ["builder-0"], completedAgentIds: [] } }
+  state.snapshot.tasks[1]!.at = { kind: "room", roomId: "implementation", assignment: { agentIds: ["builder-1"], completedAgentIds: [] } }
+  const after = layoutConfiguredRooms(state, before)
+  const slid = boxes.tilesAfterSlide(before, after)
+  const motions = motionsFor(after, slid, before)
+  expect(motions.unrouted).toEqual([])
+  boxes.update(after, roomSnapshotForView(state).tasks, motions.toPlay, pieces, slid)
+  boxes.tick(2, 1) // Finish the layout glide.
+  const waiting = boxes.positionOf("queued-1")!.clone()
+  expect(boxes.tick(2, 1)).toEqual([]) // First pickup reaches the tip; second waits.
+  expect(boxes.positionOf("queued-1")!.toArray()).toEqual(waiting.toArray())
+  const tip = after.routing!.bufferStorage.implementation!.tip
+  expect(boxes.tiles()["queued-0"]).toEqual(tip)
+  expect(parent.getObjectByName("forks")!.position.y).toBeGreaterThan(.5)
+  const landed = [...boxes.tick(100, 1), ...boxes.tick(100, 1), ...boxes.tick(100, 1)].map((landing) => landing.taskId)
+  expect(landed).toEqual(["queued-0", "queued-1"])
+  expect(boxes.positionOf("queued-2")!.y).toBeCloseTo(.3)
+  close()
+  expect(parent.getObjectsByProperty("name", "forklift")).toEqual([])
+})

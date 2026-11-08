@@ -40,9 +40,9 @@ function drawPaperRoom(room: RoomFootprint, occupied: Set<string>, add: Add, lay
   const put = (key: string, piece: THREE.Object3D) => add(`room:${room.id}:${key}`, piece)
   // The floor's visible thickness and bright cut edge establish the cardstock scale.
   put("plinth", box(w + .16, .20, h + .16, x + w / 2, -.12, y + h / 2, edge))
-  const floorMap = (theme?.assets.floor ? assets?.floor(theme.assets.floor, w + .12, h + .12) : undefined) ??
+  const floorMap = room.kind === "staging" ? undefined : (theme?.assets.floor ? assets?.floor(theme.assets.floor, w + .12, h + .12) : undefined) ??
     paperFloorTexture(theme?.floor ?? paperFloorProfile(room), w + .12, h + .12)
-  const floorMaterial = new THREE.MeshLambertMaterial({ map: floorMap })
+  const floorMaterial = new THREE.MeshLambertMaterial(room.kind === "staging" ? { color: 0xe1d5b8 } : { map: floorMap })
   const floor = box(w + .12, .045, h + .12, x + w / 2, -.005, y + h / 2, floorMaterial)
   floor.userData.disposeTexture = true
   put("floor", floor)
@@ -96,6 +96,13 @@ function drawPaperRoom(room: RoomFootprint, occupied: Set<string>, add: Add, lay
     brace.position.set(side === "left" ? xx + .68 : xx - .68, .02, y + h - .3)
     brace.castShadow = true; brace.receiveShadow = true
     put(`${side}:folded-foot`, brace)
+  }
+  if (room.kind === "staging") {
+    const paint = new THREE.MeshLambertMaterial({ color: 0xd2ab52 })
+    for (let column = 1; column < w; column++) {
+      put(`loading-mark:${column}`, box(.45, .012, .08, x + column, .025, y + h - .35, paint))
+    }
+    return
   }
   // Test complete world footprints, not just their center tile: tall folded
   // props cannot intrude into conveyors, station surfaces or arriving pets.

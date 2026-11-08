@@ -64,11 +64,25 @@ export function tileAfterSlide(previous: Layout, next: Layout, tile: Tile, taskI
         next.shippingDock.connectorPath[Math.min(loadingIndex,
           next.shippingDock.connectorPath.length - next.shippingDock.cargoTiles.length - 1)]
     }
+    // Staging links are physical paths owned by the destination, outside its
+    // walls. Map their path progress rather than treating them as room-local.
+    if (!previous.rooms?.some((room) => inside(room.rect, tile))) {
+      const relevantRooms = taskId ? new Set([previous.routing.taskRooms[taskId], previous.routing.taskOrigins[taskId],
+        ...previous.routing.connections.filter((connection) => previous.routing!.taskEdges[taskId]?.includes(connection.transition.id))
+          .flatMap((connection) => [connection.transition.from, connection.transition.to])]) : undefined
+      for (const connection of previous.routing.bufferConnections) {
+        const owner = previous.routing.buffers[`room:${connection.transition.from}`] ?? previous.routing.buffers[`room:${connection.transition.to}`]
+        if (relevantRooms && !relevantRooms.has(owner)) continue
+        const index = connection.path.findIndex((point) => sameTile(point, tile))
+        const after = next.routing.bufferConnections.find((candidate) => candidate.transition.id === connection.transition.id)
+        if (index >= 0 && after) return after.path[Math.min(index, after.path.length - 1)]
+      }
+    }
     const room = previous.rooms?.find((room) => inside(room.rect, tile)) ??
       previous.rooms?.find((room) =>
         // A shared exterior crossing still belongs to a nonterminal task's
         // selected room connection, not to deployment's loading conveyor.
-        (terminal || loadingIndex < 0 || room.kind !== "deployment") &&
+        room.kind === "deployment" && (terminal || loadingIndex < 0) &&
         previous.routing!.roomPaths[room.id.slice(5)]?.some((point) => sameTile(point, tile)))
     const afterRoom = room && next.rooms?.find((next) => next.id === room.id)
     if (room && afterRoom) {
@@ -84,6 +98,7 @@ export function tileAfterSlide(previous: Layout, next: Layout, tile: Tile, taskI
       return {
         x: afterRoom.rect.x + (nextForward ? mapped : afterRoom.rect.w - 1 - mapped),
         y: Math.min(afterRoom.rect.y + tile.y - room.rect.y,
+          room.kind === "staging" ? afterRoom.rect.y + afterRoom.rect.h - 1 :
           next.bays.find((bay) => bay.id === afterRoom.id)?.stations.at(-1)?.bench.y ?? afterRoom.rect.y + ROOM_STATION_ROW),
       }
     }
@@ -172,6 +187,21 @@ function routes(layout: Layout): Map<string, Tile[]> {
       }
     }
   }
+  for (const storage of Object.values(layout.routing?.bufferStorage ?? {})) {
+    const { floor, tip } = storage
+    // Only the tip touches the floor. Stacks connect to the clear aisle,
+    // never directly to one another or to the through conveyor.
+    const aisle = Array.from({ length: floor.w }, (_, index) => ({ x: floor.x + index, y: floor.y }))
+    for (let i = 1; i < aisle.length; i++) {
+      link(aisle[i - 1]!, aisle[i]!); link(aisle[i]!, aisle[i - 1]!)
+    }
+    for (const pile of storage.piles) {
+      const entry = { x: pile.x, y: floor.y }
+      link(entry, pile); link(pile, entry)
+    }
+    const landing = { x: tip.x, y: floor.y }
+    link(tip, landing); link(landing, tip)
+  }
   return reach
 }
 
@@ -226,7 +256,11 @@ export function restingTileAfterSlide(previous: Layout, next: Layout, taskId: st
     return next.bays.flatMap((bay) => bay.stations).find((station) => station.id === spot.stationId)?.bench
   }
   if (spot.kind === "queue") {
-    if (next.routing && spot.stationId.startsWith("room:") && !spot.stationId.includes(":station:")) return next.routing.queues[spot.stationId.slice(5)]
+    if (next.routing && spot.stationId.startsWith("room:") && next.routing.queues[spot.stationId.slice(5)]) {
+      const roomId = spot.stationId.slice(5)
+      const slots = next.routing.queueSlots[roomId]
+      return slots?.[spot.index % slots.length] ?? next.routing.queues[roomId]
+    }
     return tileAfterSlide(previous, next, box.tile, taskId)
   }
   if (spot.kind === "intake") return next.intake.pile[Math.min(spot.index, next.intake.pile.length - 1)]

@@ -54,7 +54,11 @@ export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap
       if (layout.shippingDock?.cargoTiles.some((cargo) => cargo.x === tile.x && cargo.y === tile.y)) return
       const onPlatform = layout.rooms?.some(({ rect, kind }) => kind !== "intake" && tile.x >= rect.x && tile.x < rect.x + rect.w && tile.y >= rect.y && tile.y < rect.y + rect.h)
       const floorY = onPlatform ? 0 : PAPER_GROUND_Y
-      const drawingTile = paperWallPortTile(openPaperBeltTile(tile), layout.rooms)
+      const isTip = Object.values(layout.routing?.bufferStorage ?? {}).some((storage) => storage.tip.x === tile.x && storage.tip.y === tile.y)
+      // A spur ends in a straight drop lip, even though its logical tile
+      // also accepts the forklift's return trip in the opposite direction.
+      const drawingTile = isTip ? { kind: "straight" as const, x: tile.x, y: tile.y, dir: "s" as const } :
+        paperWallPortTile(openPaperBeltTile(tile), layout.rooms)
       const piece = beltTile(drawingTile, surface, pieces, floorY)
       trimPaperBeltAtBenches(piece, drawingTile, paperBenches)
       add(`belt:${beltName(belt)}:${i}`, piece)
@@ -63,7 +67,7 @@ export function drawFactory(layout: Layout, pieces: Pieces, themes?: ReadonlyMap
 
   const stationPalette = new Map<number, THREE.MeshLambertMaterial>()
   for (const bay of layout.bays) for (const station of bay.stations) add(`bench:${station.id}`, bench(station.bench, station.vacant, pieces, station.role, themes?.get(bay.id), assets, stationPalette))
-  for (const room of layout.rooms ?? []) if (room.kind !== "intake") add(`door:${room.id}`, door(room.door, pieces))
+  for (const room of layout.rooms ?? []) if (room.kind !== "intake" && room.kind !== "staging") add(`door:${room.id}`, door(room.door, pieces))
   layout.intake.pile.forEach((tile, i) => add(`pallet:intake:${i}`, pallet(tile)))
   add("hopper", hopper(layout.intake, PAPER_GROUND_Y))
   // Factories with a deployment outlet ship into the parked truck.

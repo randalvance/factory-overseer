@@ -68,12 +68,30 @@ validation error. If a physical path cannot be found despite a valid logical
 update, an existing box remains at its previous position and onLayout reports
 its ID in motions.unrouted.
 
-Queues occupy the incoming feeder at or downstream of the side inlet.
-Overflow stacks there instead of placing an arrival upstream and forcing it
-to tour workstations and the internal return before waiting. Queue advancement
-still follows the directed feeder toward its assigned workstation.
+Queues occupy an automatically derived staging area for their destination.
+This amends the original feeder-only queue placement: unassigned tasks and
+all but the first task at an anchor station are buffered, while intake keeps
+its outdoor pile. Staging has the same paper walls, side conveyor openings
+and billboard as other rooms, around a plain loading floor with no furniture
+or workstations. It packs immediately before its destination and uses
+the existing width constraints and relayout animation.
 
-Rooms without agents retain tasks on their feeder queue. The host may later
+The through conveyor crosses the rear of the loading floor. A T-shaped spur
+ends above a clear floor aisle; arrivals travel down the spur, drop off its
+tip and accumulate in five floor-stack positions. No conveyor runs under the
+stacks. When the host assigns work, one forklift per area picks up boxes in
+turn, raises them back to that same tip and releases them onto the through
+conveyor toward the destination. Other stacks keep their positions when a
+box leaves. Physical return links allow work to return to the queue;
+deployment's return leaves via its inlet to protect its truck outlet.
+
+Staging areas have no agents or host graph identities. The host still reports
+the real destination and chooses assignments; changing agent counts alone
+never assigns queued work. Staging remains while its departing boxes ride,
+then disappears and relayouts automatically after the last ride lands.
+Logical room transitions and task trails stay unchanged.
+
+Rooms without agents retain tasks in their staging area. The host may later
 assign an arriving agent or hand queued work onward. Shared assignments keep
 the contract's first-member visual anchor; richer collaboration visuals are
 a separate ticket.

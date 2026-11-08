@@ -93,6 +93,7 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
   const latest = useRef({ roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded, onPick, onHopperDrop, acceptsHopperDrag })
   const asked = useRef(0)
   const [drawn, setDrawn] = useState(0)
+  const [bufferCleanup, setBufferCleanup] = useState(0)
   const [picked, setPicked] = useState<Subject>()
   const [roaming, setRoaming] = useState<{ id: string; whereabouts: Whereabouts }>()
   const activeRides = useRef(new Set<string>())
@@ -121,6 +122,10 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
       onRoam: (id, whereabouts) => setRoaming({ id, whereabouts }),
       onLanded: (taskId) => {
         activeRides.current.delete(taskId)
+        const layout = previous.current
+        if (!activeRides.current.size && layout && hasEmptyBuffer(layout)) {
+          setBufferCleanup((value) => value + 1)
+        }
         latest.current.onTaskLanded?.(taskId)
         setRiding((before) => {
           if (!before.has(taskId)) return before
@@ -140,6 +145,8 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
       if (call !== asked.current) return
       latest.current.onLayout?.(layout, motions)
       activeRides.current = new Set(motions.toPlay.map((motion) => motion.taskId))
+      // Cancelled rides have no landing callback to retire their empty staging.
+      if (!activeRides.current.size && hasEmptyBuffer(layout)) setBufferCleanup((value) => value + 1)
       setRiding(new Set(activeRides.current))
       setDrawn((n) => n + 1)
     }).catch((error: unknown) => console.error(failure, error))
@@ -166,7 +173,7 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
     const traffic = comingsAndGoings(previous.current, layout)
     previous.current = layout
     drawnBy(view.current.show(layout, snapshot, { styles, petAssets, roomThemes }, traffic), layout, "The factory could not be drawn")
-  }, [roomState, snapshot, width, styles, petAssets, roomThemes])
+  }, [roomState, snapshot, width, styles, petAssets, roomThemes, bufferCleanup])
 
   const handle = useRef<FactoryHandle>({
     focus(subject) {
@@ -197,4 +204,9 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
 function onFloor(subject: Subject, snapshot: Snapshot): boolean {
   return "agent" in subject ? snapshot.agents.some((agent) => agent.id === subject.agent) || snapshot.mainAgent?.id === subject.agent :
     snapshot.tasks.some((task) => task.id === subject.task)
+}
+
+function hasEmptyBuffer(layout: Layout): boolean {
+  return Object.values(layout.routing?.buffers ?? {}).some((roomId) =>
+    !layout.boxes.some((box) => box.spot.kind === "queue" && box.spot.stationId === `room:${roomId}`))
 }

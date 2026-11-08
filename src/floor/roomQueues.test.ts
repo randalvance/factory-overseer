@@ -2,7 +2,7 @@ import { expect, it } from "vitest"
 import { exampleRooms } from "~/model/roomExamples"
 import type { RoomFactoryState } from "~/model/types"
 import { layoutConfiguredRooms } from "./configuredRooms"
-import { motionsFor, restingTileAfterSlide, restingTiles, tileAfterSlide } from "./motion"
+import { motionsFor, restingTileAfterSlide, tileAfterSlide } from "./motion"
 import { sameTile } from "./tiles"
 import type { Layout, Tile } from "./types"
 
@@ -46,7 +46,7 @@ it.each([28, 37])("parks incoming station queues before any work surface or retu
     const before = layoutConfiguredRooms(state, undefined, width)
     receive(state)
     const after = layoutConfiguredRooms(state, before)
-    const motions = motionsFor(after, restingTiles(before), before)
+    const motions = motionsFor(after, slidResting(before, after), before)
     const benches = after.bays.find((bay) => bay.id === "room:implementation")!.stations.map((station) => station.bench)
     const inlet = destination(after).ports[0]!
     expect(motions.unrouted).toEqual([])
@@ -56,23 +56,22 @@ it.each([28, 37])("parks incoming station queues before any work surface or retu
       expect(motion.path.some((tile) => benches.some((bench) => sameTile(tile, bench))), context).toBe(false)
       expect(motion.path.filter((tile) => insideDestination(after, tile)).every((tile) => tile.y >= inlet.y), context).toBe(true)
     }
-    // Both physical orientations must be exercised, without changing host assignments.
-    expect(inlet.x === destination(after).rect.x).toBe(width === 37)
+    expect(after.rooms!.some((room) => room.kind === "staging")).toBe(true)
     expect(after.boxes.slice(1).every((box) => box.spot.kind === "queue")).toBe(true)
 
     state.snapshot.tasks.shift()
     const advanced = layoutConfiguredRooms(state, after)
     expect(advanced.boxes[0]!.spot.kind).toBe("bench")
-    expect(motionsFor(advanced, restingTiles(after), after).unrouted).toEqual([])
+    expect(motionsFor(advanced, slidResting(after, advanced), after).unrouted).toEqual([])
   }
 })
 
-it.each([28, 37])("parks unassigned arrivals at the inlet without a work-room lap at width %s", (width) => {
+it.each([28, 37])("parks unassigned arrivals in staging without a work-room lap at width %s", (width) => {
   const state = queuedState(0, false)
   const before = layoutConfiguredRooms(state, undefined, width)
   receive(state)
   const after = layoutConfiguredRooms(state, before)
-  const motions = motionsFor(after, restingTiles(before), before)
+  const motions = motionsFor(after, slidResting(before, after), before)
   const inlet = destination(after).ports[0]!
   expect(motions.unrouted).toEqual([])
   expect(motions.toPlay).toHaveLength(12)
@@ -89,7 +88,7 @@ it("keeps queued arrivals and queue advancement routable through growth and Reor
   receive(state)
   const riding = layoutConfiguredRooms(state, before)
   const incoming = state.snapshot.tasks.slice(1).map((task) => task.id)
-  const ride = motionsFor(riding, restingTiles(before), before).toPlay.find((motion) => motion.taskId === incoming.at(-1))!
+  const ride = motionsFor(riding, slidResting(before, riding), before).toPlay.find((motion) => motion.taskId === incoming.at(-1))!
   const grownState = structuredClone(state)
   for (let index = 7; index < 10; index++) grownState.snapshot.agents.push({
     id: `implementation-${index}`, roomId: "implementation", role: "implementer", name: "New implementer", status: "idle",
@@ -112,5 +111,10 @@ it("keeps queued arrivals and queue advancement routable through growth and Reor
   grownState.snapshot.tasks.shift()
   const advanced = layoutConfiguredRooms(grownState, compacted)
   expect(advanced.boxes[0]!.spot.kind).toBe("bench")
-  expect(motionsFor(advanced, restingTiles(compacted), compacted).unrouted).toEqual([])
+  expect(motionsFor(advanced, slidResting(compacted, advanced), compacted).unrouted).toEqual([])
 })
+
+/** The view glides the old resting places before starting a new ride. */
+function slidResting(previous: ReturnType<typeof layoutConfiguredRooms>, next: ReturnType<typeof layoutConfiguredRooms>) {
+  return Object.fromEntries(previous.boxes.map((box) => [box.taskId, restingTileAfterSlide(previous, next, box.taskId) ?? box.tile]))
+}

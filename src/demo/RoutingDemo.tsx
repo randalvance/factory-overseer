@@ -106,6 +106,28 @@ export function RoutingDemo() {
       } }
     })
   }
+  function queuePlannedTasks() {
+    const firstId = `task-${state.snapshot.tasks.length + 1}`
+    setState((before) => ({ ...before, snapshot: { ...before.snapshot,
+      tasks: [...before.snapshot.tasks, ...Array.from({ length: 10 }, (_, index): RoomTask => ({
+        id: `task-${before.snapshot.tasks.length + index + 1}`, label: `Planned feature ${index + 1}`,
+        at: { kind: "room", roomId: "implementation" },
+      }))],
+    } }))
+    setSelected(firstId)
+  }
+  const availableAgent = task.at.kind === "room" && !task.at.assignment && state.snapshot.agents.find((agent) =>
+    agent.roomId === task.at.roomId && (agent.status === "idle" || agent.status === "done") &&
+    !state.snapshot.tasks.some((item) => item.at.kind === "room" && item.at.assignment?.agentIds.includes(agent.id)))
+  function assignAvailableAgent() {
+    if (!availableAgent) return
+    setState((before) => ({ ...before, snapshot: { ...before.snapshot,
+      tasks: before.snapshot.tasks.map((item) => item.id === selected ? { ...item,
+        at: { kind: "room", roomId: item.at.roomId, assignment: { agentIds: [availableAgent.id], completedAgentIds: [] } },
+      } : item),
+      agents: before.snapshot.agents.map((agent) => agent.id === availableAgent.id ? { ...agent, status: "working" as const } : agent),
+    } }))
+  }
   function addTask(needsPlanning: boolean) {
     const id = `task-${state.snapshot.tasks.length + 1}`
     const task: RoomTask = { id, label: needsPlanning ? `Feature ${id}` : `Quick fix ${id}`, at: destination(state, "intake") }
@@ -263,6 +285,9 @@ export function RoutingDemo() {
           </select></label>
           <button onClick={() => addTask(true)}>Add planning task</button>
           <button onClick={() => addTask(false)}>Add direct task</button>
+          <button onClick={queuePlannedTasks}>Queue 10 planned tasks</button>
+          {task.at.kind === "room" && !task.at.assignment && task.at.roomId !== "intake" &&
+            <button onClick={assignAvailableAgent} disabled={!availableAgent || riding.has(selected) || waitingForHuman}>Assign available agent</button>}
           <span className="demo-drag-chips" aria-label="Drag a task onto the hopper">
             <span className="demo-drag-chip" draggable onDragStart={(event) => startTaskDrag(event, true)}>Drag planning task</span>
             <span className="demo-drag-chip" draggable onDragStart={(event) => startTaskDrag(event, false)}>Drag direct task</span>

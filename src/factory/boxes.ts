@@ -17,6 +17,7 @@ import { BOX_SIZE, box, boxFace, containerCount, heightsOver, hopperMouth, recou
 import { type Candidate, nearestOf } from "./picking"
 import { paperTruckPlacement } from "./paperTruck"
 import { truckCount, recountTruck } from "./paperTruckCount"
+import { createForklifts } from "./forklifts"
 import { type Glide, glide, startGlide } from "./slide"
 
 /** Belt travel in tiles per second at speed 1. */
@@ -29,6 +30,8 @@ interface Ride {
   waypoints: THREE.Vector3[]
   /** How far along the waypoints, in steps. */
   progress: number
+  transfer?: { owner: string; tipStep: number }
+  dropStep?: number
 }
 
 interface FloorBox {
@@ -80,6 +83,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
   const boxes = new Map<string, FloorBox>()
   const group = new THREE.Group()
   parent.add(group)
+  const forklifts = createForklifts(group)
   /** The count over the container, and its way to the container's new place while the floor slides. */
   let plate: THREE.Mesh | undefined
   let plateGlide: Glide | undefined
@@ -89,6 +93,8 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
   function update(layout: Layout, tasks: Task[], motions: Motion[], pieces: Pieces, slid?: BoxTiles, blocked?: ReadonlySet<string>) {
     const taskById = new Map(tasks.map((task) => [task.id, task]))
     const motionOf = new Map(motions.map((motion) => [motion.taskId, motion]))
+    const storage = layout.routing?.bufferStorage ?? {}
+    forklifts.update(storage)
     const heightOver = heightsOver(layout)
     const over = (tile: Tile) => {
       const centre = tileCenter(tile)
@@ -134,7 +140,23 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
         const waypoints = motion.path.map((tile, i) => (i === motion.path.length - 1 ? rest.clone() : over(tile)))
         // Set off from wherever the box is, mid-tile if it was already riding; after a glide, from where that ends.
         waypoints[0] = floorBox.mesh.position.clone()
-        floorBox.ride = { path: motion.path, waypoints, progress: 0 }
+        const transfer = Object.entries(storage).flatMap(([owner, area]) => {
+          const start = motion.path[0]!
+          const onFloor = start.x >= area.floor.x && start.x < area.floor.x + area.floor.w &&
+            start.y >= area.floor.y && start.y < area.floor.y + area.floor.h
+          const tipStep = motion.path.findIndex((tile) => sameTile(tile, area.tip))
+          return onFloor && tipStep > 0 ? [{ owner, tipStep }] : []
+        })[0]
+        if (transfer) {
+          // Carry above the floor, then raise the forks to the conveyor tip.
+          for (let i = 1; i < transfer.tipStep; i++) waypoints[i]!.y += .16
+        }
+        const dropStep = Object.values(storage).map((area) => {
+          const tipIndex = motion.path.findIndex((tile) => sameTile(tile, area.tip))
+          const afterTip = motion.path[tipIndex + 1]
+          return tipIndex >= 0 && afterTip?.y === area.floor.y ? tipIndex : -1
+        }).find((index) => index >= 0)
+        floorBox.ride = { path: motion.path, waypoints, progress: 0, transfer, dropStep }
       } else if (floorBox.glide) {
         floorBox.ride = undefined
       } else if (floorBox.ride) {
@@ -202,6 +224,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
   function tick(dt: number, speed: number): Landing[] {
     const steps = dt * BELT_SPEED * speed
     const landings: Landing[] = []
+    forklifts.tick(dt, speed)
     if (plate && plateGlide && glide(plate, plateGlide, dt, speed)) plateGlide = undefined
     for (const [taskId, floorBox] of boxes) {
       if (floorBox.glide) {
@@ -214,9 +237,22 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
       const ride = floorBox.ride
       if (!ride) continue
       const last = ride.waypoints.length - 1
-      ride.progress = Math.min(ride.progress + steps, last)
+      const transfer = ride.transfer
+      if (transfer && !forklifts.acquire(transfer.owner, taskId, floorBox.mesh.position, dt, speed)) continue
+      ride.progress = Math.min(ride.progress + steps, transfer?.tipStep ?? last)
       const i = Math.floor(ride.progress)
       floorBox.mesh.position.lerpVectors(ride.waypoints[i]!, ride.waypoints[Math.min(i + 1, last)]!, ride.progress - i)
+      if (ride.dropStep === i) {
+        const t = ride.progress - i
+        floorBox.mesh.position.y = THREE.MathUtils.lerp(ride.waypoints[i]!.y, ride.waypoints[i + 1]!.y, t * t)
+      }
+      if (transfer) {
+        forklifts.carry(transfer.owner, floorBox.mesh.position, ride.waypoints[Math.min(i + 1, last)]!, floorBox.mesh.position.y - BOX_SIZE / 2)
+        if (ride.progress >= transfer.tipStep) {
+          forklifts.release(transfer.owner)
+          ride.transfer = undefined
+        }
+      }
       if (ride.progress >= last) {
         floorBox.ride = undefined
         floorBox.mesh.position.copy(floorBox.rest)
@@ -253,6 +289,7 @@ export function createBoxes(parent: THREE.Object3D): Boxes {
   function dispose() {
     for (const taskId of [...boxes.keys()]) remove(taskId)
     removePlate()
+    forklifts.dispose()
     parent.remove(group)
   }
 
