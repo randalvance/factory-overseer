@@ -12,6 +12,7 @@ import { type StatusStyleOverrides, resolveStatusStyles } from "~/model/status"
 import { Hud } from "./Hud"
 import type { RoomThemeRegistry } from "~/model/roomThemes"
 import type { PetAssets } from "./petAssets"
+import { type Biome, isBiome, resolveBiome } from "~/model/biomes"
 import { type FactoryView, createFactoryView } from "./view"
 
 export interface FactoryProps {
@@ -36,6 +37,31 @@ export interface FactoryProps {
   onReady?: (handle: FactoryHandle) => void
   /** A task finished riding its conveyor path. */
   onTaskLanded?: (taskId: string) => void
+  /**
+   * The outdoor paper around the rooms: "grass" (the default), "desert",
+   * whose trees are cacti, or "snow", snowy plains under snow-capped trees.
+   * An unknown name draws grass.
+   */
+  biome?: Biome | (string & {})
+  /**
+   * Makes the outdoor hopper a drop target for the host's own HTML5 drags.
+   * Called when an accepted drag is let go over the hopper. The factory
+   * queues nothing itself: publish a snapshot with the new task at intake,
+   * and its box drops out of the hopper. Without it the hopper takes no drags.
+   */
+  onHopperDrop?: (drop: HopperDrop) => void
+  /** Which drags the hopper takes, by their `DataTransfer.types`. Every drag by default. Called while dragging, so keep it quick. */
+  acceptsHopperDrag?: (types: readonly string[]) => boolean
+}
+
+/** A host's drag let go over the hopper. */
+export interface HopperDrop {
+  /** The configured intake room the hopper stands over. */
+  roomId: string
+  /** The drag's string data by type, read as it was dropped; files are left in `dataTransfer`. */
+  data: Readonly<Record<string, string>>
+  /** The drop's own transfer, for files; browsers allow reading it only during the call. */
+  dataTransfer: DataTransfer
 }
 
 /** What the host asks of the factory beyond publishing snapshots. */
@@ -50,12 +76,14 @@ export interface FactoryHandle {
   reorganize(): void
 }
 
-export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onRenderMetrics, speed = 1, width, statusStyles, onLayout, onReady, onTaskLanded }: FactoryProps) {
+export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onRenderMetrics, speed = 1, width, statusStyles, onLayout, onReady, onTaskLanded, biome: biomeName, onHopperDrop, acceptsHopperDrag }: FactoryProps) {
   const mount = useRef<HTMLDivElement>(null)
   const view = useRef<FactoryView | null>(null)
   const previous = useRef<Layout | undefined>(undefined)
   const snapshot = useMemo(() => roomSnapshotForView(roomState), [roomState])
-  const latest = useRef({ roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded })
+  const biome = resolveBiome(biomeName)
+  const hasHopperDrop = onHopperDrop !== undefined
+  const latest = useRef({ roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded, onHopperDrop, acceptsHopperDrag })
   const asked = useRef(0)
   const [drawn, setDrawn] = useState(0)
   const [picked, setPicked] = useState<Subject>()
@@ -65,8 +93,11 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
   const styles = useMemo(() => resolveStatusStyles(statusStyles), [statusStyles])
 
   useEffect(() => {
-    latest.current = { roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded }
+    latest.current = { roomState, onRenderMetrics, petAssets, roomThemes, statusStyles, onLayout, onReady, onTaskLanded, onHopperDrop, acceptsHopperDrag }
   })
+  useEffect(() => {
+    if (biomeName !== undefined && !isBiome(biomeName)) console.warn(`Unknown factory biome "${biomeName}"; drawing grass.`)
+  }, [biomeName])
   useEffect(() => {
     setPicked((before) => before && !onFloor(before, snapshot) ? undefined : before)
   }, [snapshot])
@@ -105,6 +136,20 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
   }
 
   useEffect(() => { view.current?.setSpeed(speed) }, [speed])
+  useEffect(() => { view.current?.setBiome(biome) }, [biome])
+  useEffect(() => {
+    view.current?.setHopperDrop(hasHopperDrop ? {
+      accepts: (types) => latest.current.onHopperDrop !== undefined && (latest.current.acceptsHopperDrag?.(types) ?? true),
+      drop(dataTransfer) {
+        const { onHopperDrop, roomState } = latest.current
+        const intake = roomState.configuration.rooms.find((room) => room.kind === "intake")
+        if (!onHopperDrop || !intake) return
+        const data: Record<string, string> = {}
+        for (const type of dataTransfer.types) if (type !== "Files") data[type] = dataTransfer.getData(type)
+        onHopperDrop({ roomId: intake.id, data, dataTransfer })
+      },
+    } : undefined)
+  }, [hasHopperDrop])
   useEffect(() => {
     if (!view.current) return
     const layout = layoutConfiguredRooms(roomState, previous.current, width, activeRides.current)
@@ -133,7 +178,7 @@ export function Factory({ roomState, assetBase = "/", roomThemes, petAssets, onR
   return <div className="factory factory-paper">
     <div ref={mount} className="factory-canvas" role="img" aria-label="Factory floor"
       aria-description={roomState.configuration.rooms.map((room) => room.billboard?.alt ? `${room.label}: ${room.billboard.alt}` : room.label).join("; ")}
-      data-drawn={drawn} data-rooms={previous.current?.rooms?.length ?? 0} />
+      data-drawn={drawn} data-rooms={previous.current?.rooms?.length ?? 0} data-biome={biome} />
     <Hud snapshot={snapshot} roomState={roomState} riding={riding} styles={styles} picked={picked} ready={drawn > 0} roaming={roaming}
       onClose={() => setPicked(undefined)} onFitAll={() => handle.current.fitAll()} onReorganize={() => handle.current.reorganize()} />
   </div>

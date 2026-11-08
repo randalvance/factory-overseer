@@ -1,6 +1,6 @@
 import "./factory/styles.css"
 
-export type { FactoryHandle } from "./factory/Factory"
+export type { FactoryHandle, HopperDrop } from "./factory/Factory"
 export { RoomFactory, type RoomFactoryProps } from "./factory/RoomFactory"
 export type { Subject } from "./model/types"
 export type * from "./model/rooms"
@@ -8,6 +8,8 @@ export type { RoomThemeDefinition, RoomThemeRegistry, RoomModelAsset, RoomThemeA
 export { AGENT_STATUSES, DEFAULT_STATUS_STYLES } from "./model/status"
 export type { AgentStatus, StatusStyle, StatusStyleOverrides, StatusIcon, BodyMotion, Pose } from "./model/status"
 export { ROOM_THEMES, ROOM_THEME_SLOTS } from "./model/roomThemes"
+export { BIOMES, BIOME_LABELS, DEFAULT_BIOME } from "./model/biomes"
+export type { Biome } from "./model/biomes"
 export { DEFAULT_PET_ASSETS, DEFAULT_PET_ANIMATIONS } from "./factory/petAssets"
 export type { PetAsset, PetAssets, PetAnimation, PetAnimations } from "./factory/petAssets"
 export type { RenderMetrics } from "./factory/view"

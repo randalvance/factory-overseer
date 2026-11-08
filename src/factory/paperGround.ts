@@ -1,9 +1,11 @@
 import * as THREE from "three"
 import type { Layout, Rect } from "~/floor/types"
+import { DEFAULT_BIOME, type Biome } from "~/model/biomes"
+import { type PaperBiome, PAPER_BIOMES, paperBiome } from "./paperBiomes"
 
-/** Continuous paper grass lies below the cream room platforms. */
+/** Continuous paper ground, grass by default, lies below the cream room platforms. */
 export const PAPER_GROUND_Y = -.22
-export const PAPER_GRASS_COLOR = 0xa7bc7c
+export const PAPER_GRASS_COLOR = PAPER_BIOMES[DEFAULT_BIOME].ground
 const GROUND_MARGIN = 100
 const DECORATION_MARGIN = 6
 interface GroundPoint { x: number; z: number }
@@ -24,17 +26,19 @@ export function paperGroundBounds(layout: Layout): Rect {
   return { x: x - GROUND_MARGIN, y: y - GROUND_MARGIN, w: w + GROUND_MARGIN * 2, h: h + GROUND_MARGIN * 2 }
 }
 
-/** A repeating low-contrast fiber grain; no DOM or photographic texture needed. */
-function paperGrassTexture(): THREE.DataTexture {
+/** A repeating low-contrast fiber grain over the biome's cardstock; no DOM or photographic texture needed. */
+function paperGroundTexture(biome: PaperBiome): THREE.DataTexture {
+  // The texture is sRGB bytes, so take the hex as written, not as linear colour.
+  const r = biome.ground >> 16 & 255, g = biome.ground >> 8 & 255, b = biome.ground & 255
   const size = 128
   const pixels = new Uint8Array(size * size * 4)
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const grain = Math.round((hash(x + 41, y + 97) - .5) * 7)
     const fiber = hash(Math.floor(x / 3) + 71, y + 13) > .975 ? 4 : 0
     const at = (y * size + x) * 4
-    pixels[at] = 167 + grain + fiber
-    pixels[at + 1] = 188 + grain + fiber
-    pixels[at + 2] = 124 + grain + fiber
+    pixels[at] = clampByte(r + grain + fiber)
+    pixels[at + 1] = clampByte(g + grain + fiber)
+    pixels[at + 2] = clampByte(b + grain + fiber)
     pixels[at + 3] = 255
   }
   const map = new THREE.DataTexture(pixels, size, size, THREE.RGBAFormat)
@@ -45,6 +49,10 @@ function paperGrassTexture(): THREE.DataTexture {
   return map
 }
 
+function clampByte(value: number): number {
+  return Math.max(0, Math.min(255, value))
+}
+
 function hash(x: number, z: number): number {
   let value = Math.imul(x | 0, 73856093) ^ Math.imul(z | 0, 19349663)
   value = Math.imul(value ^ (value >>> 16), 0x7feb352d)
@@ -52,8 +60,9 @@ function hash(x: number, z: number): number {
   return ((value ^ (value >>> 16)) >>> 0) / 0x100000000
 }
 
-/** Deterministic tuft sites leave circulation and the truck's loading apron clear. */
-export function paperGrassSites(layout: Layout, reserved: readonly Rect[] = []): GroundPoint[] {
+/** Deterministic tuft sites leave circulation and the truck's loading apron clear. Drier and snowier biomes have fewer. */
+export function paperGrassSites(layout: Layout, reserved: readonly Rect[] = [], biome: Biome = DEFAULT_BIOME): GroundPoint[] {
+  const density = paperBiome(biome).tuftDensity
   const bounds = { x: layout.bounds.x - DECORATION_MARGIN, y: layout.bounds.y - DECORATION_MARGIN,
     w: layout.bounds.w + DECORATION_MARGIN * 2, h: layout.bounds.h + DECORATION_MARGIN * 2 }
   const firstRow = Math.floor(bounds.y), lastRow = Math.ceil(bounds.y + bounds.h) - 1
@@ -73,7 +82,7 @@ export function paperGrassSites(layout: Layout, reserved: readonly Rect[] = []):
     const occupied = occupiedByRow.get(row) ?? []
     for (let col = Math.floor(bounds.x); col < bounds.x + bounds.w; col++) {
       const seed = hash(col + 17, row + 31)
-      if (seed > .23) continue
+      if (seed > density) continue
       const point = { x: col + .25 + seed * .5, z: row + .3 + hash(col + 59, row + 7) * .4 }
       if (occupied.some(({ x, y, w, h }) => point.x > x - .38 && point.x < x + w + .38 && point.z > y - .38 && point.z < y + h + .38)) continue
       sites.push(point)
@@ -82,16 +91,18 @@ export function paperGrassSites(layout: Layout, reserved: readonly Rect[] = []):
   return sites
 }
 
-/** Continuous green paper, flat cut-paper patches and a few scored, folded blades. */
-export function drawPaperGround(layout: Layout, reserved: readonly Rect[] = []): THREE.Group {
+/** Continuous biome paper, flat cut-paper patches and a few scored, folded blades. */
+export function drawPaperGround(layout: Layout, reserved: readonly Rect[] = [], biomeName: Biome = DEFAULT_BIOME): THREE.Group {
   const group = new THREE.Group()
+  const biome = paperBiome(biomeName)
+  group.userData.biome = biomeName
   const bounds = paperGroundBounds(layout)
   const geometry = new THREE.PlaneGeometry(bounds.w, bounds.h).rotateX(-Math.PI / 2)
-  const map = paperGrassTexture()
+  const map = paperGroundTexture(biome)
   map.repeat.set(bounds.w / 4, bounds.h / 4)
   map.offset.set(bounds.x / 4, -bounds.y / 4)
   const mat = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ map }))
-  mat.name = "grass-cardstock"
+  mat.name = biome.names.ground
   mat.position.set(bounds.x + bounds.w / 2, PAPER_GROUND_Y, bounds.y + bounds.h / 2)
   mat.receiveShadow = true
   mat.userData.disposeTexture = true
@@ -99,8 +110,8 @@ export function drawPaperGround(layout: Layout, reserved: readonly Rect[] = []):
 
   // Small irregular polygons suggest layered colored paper, not a noisy photo texture.
   const positions: number[] = [], colors: number[] = []
-  const greens = [0xadc286, 0xa0b775, 0xb4c78d, 0x9db476].map((color) => new THREE.Color(color))
-  const sites = paperGrassSites(layout, reserved)
+  const greens = biome.patches.map((color) => new THREE.Color(color))
+  const sites = paperGrassSites(layout, reserved, biomeName)
   for (let index = 0; index < sites.length; index++) {
     const site = sites[index]!, color = greens[index % greens.length]!
     const radius = .20 + hash(index + 11, 61) * .13
@@ -117,12 +128,12 @@ export function drawPaperGround(layout: Layout, reserved: readonly Rect[] = []):
   patches.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3))
   patches.computeVertexNormals()
   const patchMesh = new THREE.Mesh(patches, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }))
-  patchMesh.name = "grass-paper-patches"; patchMesh.receiveShadow = true; group.add(patchMesh)
+  patchMesh.name = biome.names.patches; patchMesh.receiveShadow = true; group.add(patchMesh)
 
   // Each blade has a pale lit fold and a darker return face. All tufts share
   // one geometry/material and one draw call, even on a grown factory floor.
   const bladePositions: number[] = [], bladeColors: number[] = []
-  const light = new THREE.Color(0xc0d191), dark = new THREE.Color(0x789957)
+  const light = new THREE.Color(biome.tuft.light), dark = new THREE.Color(biome.tuft.dark)
   for (const [lean, height, offset] of [[-.16, .35, -.10], [.02, .47, 0], [.20, .30, .11]]) {
     for (const [side, color] of [[-1, light], [1, dark]] as const) {
       bladePositions.push(offset!, 0, 0, offset! + side * .10, 0, .02, lean!, height!, -.035)
@@ -140,7 +151,7 @@ export function drawPaperGround(layout: Layout, reserved: readonly Rect[] = []):
     transform.scale.setScalar(.72 + hash(i + 3, 19) * .35)
     transform.updateMatrix(); tufts.setMatrixAt(i, transform.matrix)
   })
-  tufts.name = "grass-folded-tufts"; tufts.castShadow = true; tufts.receiveShadow = true
+  tufts.name = biome.names.tufts; tufts.castShadow = true; tufts.receiveShadow = true
   tufts.computeBoundingSphere(); group.add(tufts)
   return group
 }

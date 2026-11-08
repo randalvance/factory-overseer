@@ -56,15 +56,20 @@ for the focused acceptance command, current screenshots and measured limits.
    implementation. Enable **Include QA room** to insert a configurable step
    between review and deployment. Select QA in **Room** and **Add agent** to
    staff it.
-5. In **Main agent**, choose **Add Jarvis**: the host's main agent, a paper
+5. Drag **Drag planning task** or **Drag direct task** from **Tasks** onto
+   the outdoor hopper. The hopper's rim lights up while the drag is over the
+   floor and brightens over the hopper. Let go there to queue a new task at
+   intake; let go anywhere else and nothing is queued.
+6. In **Main agent**, choose **Add Jarvis**: the host's main agent, a paper
    puppy with no station, strolls the open paper between the rooms and
    pauses by their doors and benches. Set **Jarvis is** to **Working** to
    have it work where it stands, or **Asking for help** to have it wave until
    you answer in **Human attention**; **Inspect Jarvis** opens its card, which
    says where it is going.
-6. In **Rooms and appearance**, select Implementation and add agents.
+7. In **Rooms and appearance**, select Implementation and add agents.
    Agents 1–3 fill the first row, 4–6 the second, and 7 starts the third.
-   Try **Theme**, **Room graphic**, **Unstaff planning** and **Remove bypass**.
+   Try **Theme**, **Room graphic**, **Outdoors** (grass, desert or snowy
+   plains), **Unstaff planning** and **Remove bypass**.
    Use **Fit all** after growth; **Reorganize** compacts vacant stations.
 
 On narrow screens, open **Rooms and appearance** or **View and assistance**
@@ -143,6 +148,24 @@ export function Example() {
       onReady={(handle) => handle.fitAll()} />
   </div>
 }
+```
+
+Two optional props shape the outdoors. `biome` picks the paper around the
+rooms: `"grass"` (the default), `"desert"`, whose trees are cacti, or
+`"snow"`, snowy plains under snow-capped trees. All three are procedural
+paper with no extra art files. `onHopperDrop` makes the hopper a drop target
+for your own HTML5 drags. The factory reports the drop and queues nothing
+itself: publish a snapshot with the new task at intake and its box drops out
+of the hopper:
+
+```tsx
+<RoomFactory state={state} biome="desert"
+  acceptsHopperDrag={(types) => types.includes("application/x-my-task")}
+  onHopperDrop={({ roomId, data }) => {
+    const raw = data["application/x-my-task"]
+    if (!raw) return
+    try { queueTask(roomId, JSON.parse(raw)) } catch { /* ignore malformed drag data */ }
+  }} />
 ```
 
 Mount the factory in a client component with a positioned container and an

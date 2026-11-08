@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react"
+import { type DragEvent, useMemo, useRef, useState } from "react"
 import { RoomFactory } from "~/factory/RoomFactory"
 import { DEFAULT_PET_ASSETS } from "~/factory/petAssets"
 import type { FactoryHandle } from "~/factory/Factory"
@@ -9,6 +9,7 @@ import { needsHuman, requestHuman, resolveHuman } from "./humanAttention"
 import type { HumanAttentionRequest, MainAgent, RoomFactoryState, RoomTask } from "~/model/types"
 import { exampleRooms } from "~/model/roomExamples"
 import { ROOM_THEMES, type RoomThemeRegistry } from "~/model/roomThemes"
+import { BIOMES, BIOME_LABELS, DEFAULT_BIOME, type Biome } from "~/model/biomes"
 
 const DEMO_ROOM_THEMES = {
   "paper-garden": { extends: "research-lab", label: "Paper garden", wall: "#a4b99a", accent: "#5f806b", floor: "kraft-pavers", station: "lab", decoration: "shelves" },
@@ -27,6 +28,9 @@ function opening(): RoomFactoryState {
     },
   }
 }
+
+/** The data type the demo's draggable task chips carry, so the hopper ignores every other drag. */
+const DEMO_TASK_DRAG = "application/x-factory-overseer-task"
 
 /** The demo host's main agent: Jarvis, the paper puppy, who roams the floor between the rooms. */
 const JARVIS: MainAgent = { id: "jarvis", name: "Jarvis", role: "main agent", status: "idle" }
@@ -49,6 +53,7 @@ export function RoutingDemo() {
   const [riding, setRiding] = useState<Set<string>>(new Set())
   const [unrouted, setUnrouted] = useState<string[]>([])
   const [follow, setFollow] = useState(true)
+  const [biome, setBiome] = useState<Biome>(DEFAULT_BIOME)
   const [controlsInitiallyOpen] = useState(() => window.matchMedia("(min-width: 900px)").matches)
   const task = state.snapshot.tasks.find((task) => task.id === selected)!
   const room = state.configuration.rooms.find((room) => room.id === task.at.roomId)!
@@ -107,6 +112,22 @@ export function RoutingDemo() {
     setState((before) => ({ ...before, snapshot: { ...before.snapshot, tasks: [...before.snapshot.tasks, task] } }))
     setPlanning((before) => ({ ...before, [id]: needsPlanning }))
     setSelected(id)
+  }
+  /** A task chip from the demo's own UI, let go over the hopper, queues a task of its kind at intake. */
+  function dropOnHopper(data: Readonly<Record<string, string>>) {
+    const raw = data[DEMO_TASK_DRAG]
+    if (!raw) return
+    try {
+      const parsed: unknown = JSON.parse(raw)
+      if (typeof parsed === "object" && parsed !== null) addTask((parsed as { planning?: unknown }).planning === true)
+    } catch {
+      // A drag from elsewhere with the same type and non-JSON text is ignored.
+    }
+  }
+  function startTaskDrag(event: DragEvent, needsPlanning: boolean) {
+    event.dataTransfer.setData(DEMO_TASK_DRAG, JSON.stringify({ planning: needsPlanning }))
+    event.dataTransfer.setData("text/plain", needsPlanning ? "Planning task" : "Direct task")
+    event.dataTransfer.effectAllowed = "copy"
   }
   function setRoomTheme(theme: string) {
     setState((before) => ({ ...before, configuration: { ...before.configuration,
@@ -242,6 +263,10 @@ export function RoutingDemo() {
           </select></label>
           <button onClick={() => addTask(true)}>Add planning task</button>
           <button onClick={() => addTask(false)}>Add direct task</button>
+          <span className="demo-drag-chips" aria-label="Drag a task onto the hopper">
+            <span className="demo-drag-chip" draggable onDragStart={(event) => startTaskDrag(event, true)}>Drag planning task</span>
+            <span className="demo-drag-chip" draggable onDragStart={(event) => startTaskDrag(event, false)}>Drag direct task</span>
+          </span>
           <button onClick={() => handle?.inspect({ task: selected })} disabled={!handle}>Inspect task</button>
           <button className="demo-next-action" onClick={() => moveTo(task.at.roomId === "deployment" ? "shipped" : edge!.to)} disabled={!handle || joinBlocked || waitingForHuman || riding.has(selected) || task.at.kind === "shipped" || (!edge && task.at.roomId !== "deployment")}>{routeLabel}</button>
           <button onClick={() => moveTo("planning")} disabled={!handle || waitingForHuman || riding.has(selected) || task.at.roomId !== "implementation"}>Return to planning</button>
@@ -261,6 +286,9 @@ export function RoutingDemo() {
             <option value="pixel">Pixel crate</option>
             <option value="default">Built-in default</option>
             <option value="unavailable">Unavailable image</option>
+          </select></label>
+          <label>Outdoors <select aria-label="Biome" value={biome} onChange={(event) => setBiome(event.target.value as Biome)}>
+            {BIOMES.map((id) => <option key={id} value={id}>{BIOME_LABELS[id]}</option>)}
           </select></label>
           <button onClick={addAgent}>Add agent</button>
           <button onClick={togglePlanner} disabled={state.snapshot.humanRequests.some((request) => request.roomId === "planning")}>{plannerPresent ? "Unstaff planning" : "Staff planning"}</button>
@@ -314,6 +342,7 @@ export function RoutingDemo() {
     </header>
     <section className="demo-factory">
       <RoomFactory assetBase={import.meta.env.BASE_URL} roomThemes={DEMO_ROOM_THEMES} petAssets={DEFAULT_PET_ASSETS} state={state} speed={speed} width={28} onReady={setHandle}
+        biome={biome} acceptsHopperDrag={(types) => types.includes(DEMO_TASK_DRAG)} onHopperDrop={({ data }) => dropOnHopper(data)}
         onTaskLanded={taskLanded}
         onHumanNeeded={(request) => setNotifications((before) => [...before, request])}
         onLayout={(_layout, motions) => { setRiding(new Set(motions.toPlay.map((motion) => motion.taskId))); setUnrouted(motions.unrouted) }} />

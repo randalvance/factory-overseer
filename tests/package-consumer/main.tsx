@@ -1,8 +1,8 @@
 import { useState } from "react"
 import { createRoot } from "react-dom/client"
 import {
-  RoomFactory, DEFAULT_PET_ASSETS, ROOM_THEMES,
-  type FactoryHandle, type RoomFactoryState,
+  RoomFactory, DEFAULT_PET_ASSETS, ROOM_THEMES, BIOMES, DEFAULT_BIOME,
+  type FactoryHandle, type HopperDrop, type Biome, type RoomFactoryState,
   type RoomFactoryProps, type OnHumanNeeded, type RenderMetrics,
   type RoomThemeRegistry, type PetAssets, type Layout, type Motions,
 } from "factory-overseer"
@@ -54,7 +54,11 @@ function Consumer() {
   const onRenderMetrics = (_metrics: RenderMetrics) => {}
   const onLayout = (_layout: Layout, _motions: Motions) => {}
   const common = { assetBase: "/host/static/factory", onReady: setHandle, onRenderMetrics, onLayout }
-  const props: RoomFactoryProps = { ...common, state, petAssets, roomThemes, onHumanNeeded, width: 28 }
+  const biome: Biome = BIOMES.includes("snow") ? "snow" : DEFAULT_BIOME
+  const storedBiome: RoomFactoryProps["biome"] = String(biome)
+  const onHopperDrop = (drop: HopperDrop) => setNotice(`Dropped on ${drop.roomId}: ${drop.data["text/plain"] ?? ""}`)
+  const props: RoomFactoryProps = { ...common, state, petAssets, roomThemes, onHumanNeeded, width: 28, biome: storedBiome, onHopperDrop,
+    acceptsHopperDrag: (types) => types.includes("text/plain") }
   return <>
     <output aria-label="Host question">{notice}</output>
     <button onClick={() => { setState({ ...state, snapshot: { ...state.snapshot, humanRequests: [] } }); setNotice("Answered") }}>Answer</button>

@@ -13,6 +13,7 @@ import { type BeltSurface, beltPieces } from "./beltPieces"
 import { type Pieces, TABLET_FACE, replaceMaterials, isShared } from "./models"
 import { sheetFrame } from "./sprites"
 import { PAPER_BELT_H } from "./paperConveyors"
+import { PAPER_GROUND_Y } from "./paperGround"
 import { paperJunctionFor } from "./paperJunctions"
 import { TEXT_PX_PER_TILE, canvasTexture, bubbleTexture, countTexture } from "./textures"
 
@@ -21,6 +22,9 @@ const PALLET_H = 0.1
 const CONTAINER_FLOOR_H = 0.1
 /** How high over the floor the hopper's mouth is, where new boxes drop from. */
 const HOPPER_MOUTH_H = 1.9
+/** Half the hopper's square rim, and the funnel's height from mouth to rim. */
+const HOPPER_HALF_WIDTH = 1.2
+const HOPPER_HEIGHT = 1.25
 /** A box's edge, in tiles. */
 export const BOX_SIZE = 0.6
 /** A status icon's edge, in tiles. */
@@ -127,18 +131,18 @@ export function door(tile: Tile, pieces: Pieces): THREE.Object3D {
 }
 
 /** The hopper over the intake: a funnel on four legs, its mouth over the middle of the intake, that new boxes drop out of. */
-export function hopper(intake: Intake, floorY = 0): THREE.Group {
+export function hopper(intake: Intake, floorY = PAPER_GROUND_Y): THREE.Group {
   const group = new THREE.Group()
   const mouth = hopperMouth(intake)
-  const halfWidth = 1.2
-  const height = 1.25
+  const halfWidth = HOPPER_HALF_WIDTH
+  const height = HOPPER_HEIGHT
   // Four segments make a square funnel; turned so its sides run with the grid. The radius is to a corner.
   const funnel = new THREE.Mesh(
     new THREE.CylinderGeometry(halfWidth * Math.SQRT2, 0.3 * Math.SQRT2, height, 4, 1, true),
     new THREE.MeshLambertMaterial({ color: 0xf1e3c6, side: THREE.FrontSide }),
   )
   funnel.rotation.y = Math.PI / 4
-  funnel.position.set(mouth.x, HOPPER_MOUTH_H + height / 2, mouth.z)
+  funnel.position.set(0, HOPPER_MOUTH_H + height / 2, 0)
   funnel.castShadow = true
   funnel.receiveShadow = true
   group.add(funnel)
@@ -153,9 +157,9 @@ export function hopper(intake: Intake, floorY = 0): THREE.Group {
   const rimMaterial = new THREE.MeshLambertMaterial({ color: 0xfff5de })
   for (const side of [-1, 1]) {
     const front = new THREE.Mesh(new THREE.BoxGeometry(halfWidth * 2 + .1, .075, .08), rimMaterial)
-    front.position.set(mouth.x, HOPPER_MOUTH_H + height, mouth.z + side * halfWidth)
+    front.position.set(0, HOPPER_MOUTH_H + height, side * halfWidth)
     const edge = new THREE.Mesh(new THREE.BoxGeometry(.08, .075, halfWidth * 2 + .1), rimMaterial)
-    edge.position.set(mouth.x + side * halfWidth, HOPPER_MOUTH_H + height, mouth.z)
+    edge.position.set(side * halfWidth, HOPPER_MOUTH_H + height, 0)
     front.castShadow = edge.castShadow = true
     group.add(front, edge)
   }
@@ -166,11 +170,12 @@ export function hopper(intake: Intake, floorY = 0): THREE.Group {
   for (const dx of [-.5, .5]) {
     for (const dz of [-.5, .5]) {
       const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, legH, 0.3), legMaterial)
-      leg.position.set(mouth.x + dx, floorY + legH / 2, mouth.z + dz)
+      leg.position.set(dx, floorY + legH / 2, dz)
       leg.castShadow = true
       group.add(leg)
     }
   }
+  group.position.set(mouth.x, 0, mouth.z)
   return group
 }
 
@@ -178,6 +183,29 @@ export function hopper(intake: Intake, floorY = 0): THREE.Group {
 export function hopperMouth(intake: Intake): THREE.Vector3 {
   const { x, y, w, h } = intake.rect
   return new THREE.Vector3(x + w / 2, HOPPER_MOUTH_H, y + h / 2)
+}
+
+/** The middle of the hopper's open top, at the height of its rim. */
+export function hopperRim(intake: Intake): THREE.Vector3 {
+  return hopperMouth(intake).setY(HOPPER_MOUTH_H + HOPPER_HEIGHT)
+}
+
+/** Put the drag glow over the rim of the drawn hopper piece where it stands this frame. */
+export function placeHopperGlow(glow: THREE.Object3D, hopperPiece: THREE.Object3D) {
+  hopperPiece.updateWorldMatrix(true, false)
+  glow.position.set(0, HOPPER_MOUTH_H + HOPPER_HEIGHT + .06, 0).applyMatrix4(hopperPiece.matrixWorld)
+}
+
+/** A square of warm light around the hopper's rim, shown while a host's drag can be dropped in. Hidden until then. */
+export function hopperGlow(): THREE.Mesh {
+  // Four segments make a square ring; turned so its sides run with the rim's. Radii are to a corner.
+  const inner = (HOPPER_HALF_WIDTH + .06) * Math.SQRT2, outer = (HOPPER_HALF_WIDTH + .36) * Math.SQRT2
+  const material = new THREE.MeshBasicMaterial({ color: COLOR.halo, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide })
+  const mesh = new THREE.Mesh(new THREE.RingGeometry(inner, outer, 4, 1, Math.PI / 4).rotateX(-Math.PI / 2), material)
+  mesh.name = "hopper-drop-glow"
+  mesh.renderOrder = 2
+  mesh.visible = false
+  return mesh
 }
 
 /** The count of boxes resting in the container, on a plate above its back wall over the mouth, where no stack rises in front of it. */

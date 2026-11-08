@@ -39,3 +39,39 @@ it("uses two instanced meshes with drawing-owned paper resources and no textures
     expect(mesh.castShadow && mesh.receiveShadow).toBe(true)
   }
 })
+
+it("stands cacti in the desert and snow-capped trees on snowy plains, on the same sites", () => {
+  const sites = paperTreeSites(layout, reserved)
+  const colorsOf = (mesh: THREE.InstancedMesh) => {
+    const attribute = mesh.geometry.getAttribute("color")
+    return new Set(Array.from({ length: attribute.count }, (_, i) => new THREE.Color(attribute.getX(i), attribute.getY(i), attribute.getZ(i)).getHex()))
+  }
+  const heightOf = (mesh: THREE.InstancedMesh) => { mesh.geometry.computeBoundingBox(); return mesh.geometry.boundingBox! }
+
+  const desert = drawPaperTrees(layout, reserved, "desert")
+  const cacti = desert.getObjectByName("folded-paper-cacti") as THREE.InstancedMesh
+  const mounds = desert.getObjectByName("sand-paper-mounds") as THREE.InstancedMesh
+  expect(cacti.count).toBe(sites.length)
+  expect(mounds.count).toBe(sites.length)
+  expect(desert.getObjectByName("folded-paper-crowns")).toBeUndefined()
+  // A cactus is a column with arms from the ground up, as tall as a tree but slimmer than a crown.
+  const cactus = heightOf(cacti)
+  expect(cactus.min.y).toBeCloseTo(0)
+  expect(cactus.max.y).toBeGreaterThan(2)
+  expect(cactus.max.y).toBeLessThanOrEqual(2.42)
+  expect(Math.max(-cactus.min.x, cactus.max.x, -cactus.min.z, cactus.max.z)).toBeLessThan(.83)
+  expect(heightOf(mounds).max.y).toBeLessThan(.2)
+
+  const snowy = drawPaperTrees(layout, reserved, "snow")
+  const crowns = snowy.getObjectByName("snowy-paper-crowns") as THREE.InstancedMesh
+  expect(crowns.count).toBe(sites.length)
+  expect(snowy.getObjectByName("kraft-paper-trunks")).toBeDefined()
+  // The same three folded layers, now with white caps.
+  expect(colorsOf(crowns).has(0xf7fafc)).toBe(true)
+  const leafy = drawPaperTrees(layout, reserved).getObjectByName("folded-paper-crowns") as THREE.InstancedMesh
+  expect(colorsOf(leafy).has(0xf7fafc)).toBe(false)
+  expect(heightOf(crowns).max.y).toBeCloseTo(heightOf(leafy).max.y)
+  for (const grove of [desert, snowy]) for (const object of grove.children) {
+    expect(((object as THREE.InstancedMesh).material as THREE.MeshLambertMaterial).map).toBeNull()
+  }
+})
