@@ -8,14 +8,18 @@ export function petMotionState(walking: boolean, needsHuman: boolean, working: b
   return walking ? "walking" : needsHuman ? "attention" : working ? "working" : "idle"
 }
 
+/** Each clip's columns and fps when the host's is missing or malformed; walking has none, so the built-in walk plays. */
+const FALLBACK = { working: { frames: [3, 4], fps: 5.5 }, attention: { frames: [5, 0], fps: 3.2 }, walking: { frames: [], fps: 8 } }
+
 /** A host sheet's named clip, with safe fallback when an override is malformed. */
 export function petFrame(state: PetMotionState, seconds: number, animations?: PetAnimations): number | undefined {
-  if (state !== "working" && state !== "attention") return undefined
+  if (state === "idle") return undefined
   const requested = animations?.[state]
-  const fallback = state === "working" ? [3, 4] : [5, 0]
+  const fallback = FALLBACK[state]
   const valid = requested?.frames.filter((frame) => Number.isInteger(frame) && frame >= 0 && frame < 6)
-  const frames = valid?.length ? valid : fallback
-  const fps = requested?.fps !== undefined && Number.isFinite(requested.fps) && requested.fps > 0 ? Math.min(30, requested.fps) : state === "working" ? 5.5 : 3.2
+  const frames = valid?.length ? valid : fallback.frames
+  if (!frames.length) return undefined
+  const fps = requested?.fps !== undefined && Number.isFinite(requested.fps) && requested.fps > 0 ? Math.min(30, requested.fps) : fallback.fps
   return frames[Math.floor(Math.max(0, seconds) * fps) % frames.length]!
 }
 

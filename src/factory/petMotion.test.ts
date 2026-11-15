@@ -30,6 +30,19 @@ describe("pet activity animation", () => {
     expect(petFrame("idle", 10, DEFAULT_PET_ANIMATIONS)).toBeUndefined()
   })
 
+  it("walks a host sheet's own stride, leaving the built-in walk when there is no usable clip", () => {
+    const stride = { walking: { frames: [1, 0, 2, 0] } }
+    expect([0, .125, .25, .375, .5].map((s) => petFrame("walking", s, stride))).toEqual([1, 0, 2, 0, 1])
+    expect(petFrame("walking", .1, { walking: { frames: [1, 0, 2, 0], fps: 20 } })).toBe(2)
+    expect(petFrame("walking", .1, { walking: { frames: [1, 0, 2, 0], fps: 60 } })).toBe(0)
+    expect(petFrame("walking", .1, { walking: { frames: [1, 0, 2, 0], fps: -4 } })).toBe(1)
+    expect(petFrame("walking", 0, { walking: { frames: [6, -1, 1.5, 5] } })).toBe(5)
+    expect(petFrame("walking", 0, { walking: { frames: [7, -2] } })).toBeUndefined()
+    expect(petFrame("walking", 0, DEFAULT_PET_ANIMATIONS)).toBeUndefined()
+    expect(petFrame("walking", 0)).toBeUndefined()
+    expect(petFrame("working", 0, stride)).toBe(3)
+  })
+
   it("animates static custom pets differently for working and attention, returning to their original size when idle", () => {
     const working = petBodyPose("working", .12, true)
     const attention = petBodyPose("attention", .12, true)

@@ -10,6 +10,8 @@ export interface PetAnimation {
 export interface PetAnimations {
   working?: PetAnimation
   attention?: PetAnimation
+  /** Replaces the built-in 0, 1, 2, 1 walk for sheets whose stride runs another way. */
+  walking?: PetAnimation
 }
 
 /** A transparent pet illustration, or a six-column/four-facing animation sheet. */

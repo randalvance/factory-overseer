@@ -358,6 +358,7 @@ transparent PNG, WebP or SVG artwork:
         animations: {
           working: { frames: [3, 4], fps: 5.5 },
           attention: { frames: [5, 0], fps: 3.2 },
+          walking: { frames: [1, 0, 2, 0], fps: 8 },
         },
       },
     },
@@ -397,6 +398,13 @@ Omitted clips use columns `[3, 4]` at 5.5 fps for working and `[5, 0]` at
 columns falls back to that default. FPS must be positive and is capped at
 30. The bundled corgi, rabbit, cat, owl and fox sheets contain actual
 alternating paw poses and raised-paw waves.
+
+A walking sheet steps through columns `0, 1, 2, 1` at 8 fps. A sheet whose
+stride is drawn in another order, such as `1, 0, 2, 0`, names it in
+`animations.walking`; its `fps` defaults to 8 and follows the same rules.
+Walking columns follow the agent's facing and play while it walks in or
+roams. Without a walking clip, or when none of its columns is valid, the
+built-in walk plays; the bundled sheets use it.
 
 An active human request takes precedence over a working animation, even
 when the host keeps the agent's status as `working`. Explicit request
